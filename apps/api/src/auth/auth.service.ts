@@ -1,0 +1,478 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+} from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { createHash, randomBytes, randomUUID } from "crypto";
+import * as bcrypt from "bcryptjs";
+import { LoginDto } from "./dto/login.dto";
+import {
+  AuditLog,
+  PasswordResetToken,
+  Session,
+  User,
+} from "./schemas/auth.schemas";
+import { JwtTokenService } from "../common/auth/jwt-token.service";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  hashToken,
+} from "../common/auth/token.util";
+import { ErrorCodes } from "../common/errors/error-codes";
+import {
+  normalizeEmail,
+  normalizePhoneDigits,
+  isEmailLike,
+} from "@alwisam/shared-validation";
+
+const BCRYPT_ROUNDS = 12;
+
+const ADMIN_PERMISSIONS = [
+  "manage_users",
+  "manage_doctors",
+  "manage_secretaries",
+  "manage_roles",
+  "manage_services",
+  "manage_schedules",
+  "manage_settings",
+  "view_audit_logs",
+  "view_all_reports",
+  "manage_appointments",
+  "manage_waiting_room",
+  "manage_patients",
+  "record_payments",
+  "view_payments",
+  "edit_diagnosis",
+  "edit_prescription",
+  "edit_surgery",
+  "edit_orthodontics",
+  "edit_dental_chart",
+  "approve_patient_account",
+  "view_own_medical",
+  "request_appointment_change",
+] as const;
+
+export function roleDashboardPath(role: string, locale = "ar"): string {
+  const prefix = `/${locale}`;
+  switch (role) {
+    case "ADMIN":
+    case "OWNER":
+    case "SUPER_ADMIN":
+    case "DOCTOR_SPECIALIST":
+      return `${prefix}/doctor/specialist/dashboard`;
+    case "SECRETARY":
+      return `${prefix}/secretary/dashboard`;
+    case "DOCTOR_GENERAL":
+      return `${prefix}/doctor/general/dashboard`;
+    case "PATIENT":
+      return `${prefix}/patient/dashboard`;
+    default:
+      return `${prefix}`;
+  }
+}
+
+function permissionsForUser(user: User): string[] {
+  if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+    return user.permissions;
+  }
+  if (
+    user.roleCode === "ADMIN" ||
+    user.roleCode === "OWNER" ||
+    user.roleCode === "SUPER_ADMIN"
+  ) {
+    return [...ADMIN_PERMISSIONS];
+  }
+  return [];
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    @InjectModel(User.name) private readonly users: Model<User>,
+    @InjectModel(Session.name) private readonly sessions: Model<Session>,
+    @InjectModel(PasswordResetToken.name)
+    private readonly resetTokens: Model<PasswordResetToken>,
+    @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
+    private readonly tokens: JwtTokenService,
+  ) {}
+
+  private normalizeIdentifier(raw: string): { email?: string; phone?: string; lookup: string } {
+    const trimmed = raw.trim();
+    if (isEmailLike(trimmed)) {
+      const email = normalizeEmail(trimmed);
+      return { email, lookup: email };
+    }
+    const phone = normalizePhoneDigits(trimmed) || trimmed;
+    return { phone, lookup: phone };
+  }
+
+  async login(dto: LoginDto, meta: { ip?: string; userAgent?: string }) {
+    const identifier = dto.loginId;
+    if (!identifier || identifier.length < 3) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.INVALID_CREDENTIALS,
+        message: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+      });
+    }
+
+    const { email, phone, lookup } = this.normalizeIdentifier(identifier);
+    const user = await this.users.findOne({
+      deletedAt: null,
+      $or: [
+        ...(email ? [{ email }] : []),
+        ...(phone ? [{ phone }] : []),
+        { email: lookup },
+        { phone: lookup },
+      ],
+    });
+
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.INVALID_CREDENTIALS,
+        message: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+      });
+    }
+
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new HttpException(
+        {
+          code: ErrorCodes.ACCOUNT_DISABLED,
+          message: "الحساب مقفل مؤقتًا بسبب محاولات فاشلة متكررة",
+        },
+        HttpStatus.LOCKED,
+      );
+    }
+
+    if (user.status === "INACTIVE") {
+      throw new ForbiddenException({
+        code: ErrorCodes.ACCOUNT_DISABLED,
+        message: "تم تعطيل هذا الحساب.",
+      });
+    }
+
+    if (user.status !== "ACTIVE" && user.status !== "LOCKED") {
+      throw new ForbiddenException({
+        code: ErrorCodes.ACCOUNT_DISABLED,
+        message: "الحساب غير نشط",
+      });
+    }
+
+    const portal = dto.portal === "patient" ? "patient" : "staff";
+    if (portal === "patient" && user.roleCode !== "PATIENT") {
+      throw new ForbiddenException({
+        code: ErrorCodes.FORBIDDEN,
+        message: "هذا الحساب غير مخصص لبوابة المرضى",
+      });
+    }
+    if (portal === "staff" && user.roleCode === "PATIENT") {
+      throw new ForbiddenException({
+        code: ErrorCodes.FORBIDDEN,
+        message: "يرجى استخدام بوابة المرضى",
+      });
+    }
+
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) {
+      user.failedLoginCount = (user.failedLoginCount ?? 0) + 1;
+      const maxAttempts = Number(process.env.MAX_LOGIN_ATTEMPTS || 5);
+      if (user.failedLoginCount >= maxAttempts) {
+        const lockMinutes = Number(process.env.LOCKOUT_MINUTES || 30);
+        user.lockedUntil = new Date(Date.now() + lockMinutes * 60_000);
+        user.status = "LOCKED";
+      }
+      await user.save();
+      throw new UnauthorizedException({
+        code: ErrorCodes.INVALID_CREDENTIALS,
+        message: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+      });
+    }
+
+    user.failedLoginCount = 0;
+    user.lockedUntil = null;
+    user.status = "ACTIVE";
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    await this.auditLogs.create({
+      userId: user._id,
+      roleCode: user.roleCode,
+      action: "LOGIN",
+      entityType: "User",
+      entityId: String(user._id),
+      ipAddress: meta.ip,
+      newValue: { portal: dto.portal || "staff" },
+    });
+
+    return this.issueTokens(user, meta, !!dto.rememberMe);
+  }
+
+  private async issueTokens(
+    user: User & { _id: { toString(): string }; locale?: string },
+    meta: { ip?: string; userAgent?: string },
+    rememberMe: boolean,
+  ) {
+    const accessToken = await this.tokens.signAccess({
+      sub: String(user._id),
+      roleCode: user.roleCode,
+      fullName: user.fullName,
+    });
+
+    const jti = randomUUID();
+    const refreshToken = await this.tokens.signRefresh({
+      sub: String(user._id),
+      jti,
+    });
+    const refreshHash = hashToken(refreshToken);
+    const ttl = this.tokens.getRefreshTtlMs();
+    const expiresAt = new Date(Date.now() + ttl);
+
+    await this.sessions.create({
+      userId: user._id,
+      tokenHash: refreshHash,
+      csrfToken: createHash("sha256").update(jti).digest("hex").slice(0, 32),
+      ipAddress: meta.ip,
+      userAgent: meta.userAgent,
+      rememberMe,
+      expiresAt,
+      lastActivityAt: new Date(),
+    });
+
+    return {
+      accessCookie: ACCESS_COOKIE,
+      refreshCookie: REFRESH_COOKIE,
+      accessToken,
+      refreshToken,
+      accessExpiresAt: new Date(Date.now() + this.tokens.getAccessTtlMs()),
+      refreshExpiresAt: expiresAt,
+      body: {
+        ok: true,
+        redirectTo: roleDashboardPath(user.roleCode, user.locale || "ar"),
+        accessToken,
+        user: {
+          id: String(user._id),
+          fullName: user.fullName,
+          role: user.roleCode,
+          locale: user.locale || "ar",
+          permissions: permissionsForUser(user),
+        },
+      },
+    };
+  }
+
+  async refresh(rawRefresh?: string, meta?: { ip?: string; userAgent?: string }) {
+    if (!rawRefresh) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "يلزم تسجيل الدخول",
+      });
+    }
+
+    let verified;
+    try {
+      verified = await this.tokens.verifyRefresh(rawRefresh);
+    } catch {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "انتهت الجلسة",
+      });
+    }
+
+    const tokenHash = hashToken(rawRefresh);
+    const session = await this.sessions.findOne({
+      tokenHash,
+      expiresAt: { $gt: new Date() },
+    });
+
+    // Refresh-token reuse: revoked token presented again → revoke all sessions.
+    if (session?.revokedAt) {
+      await this.sessions.updateMany(
+        { userId: session.userId, revokedAt: null },
+        { $set: { revokedAt: new Date() } },
+      );
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "تم رفض إعادة استخدام رمز التحديث",
+      });
+    }
+
+    if (!session || session.revokedAt) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "انتهت الجلسة",
+      });
+    }
+
+    const user = await this.users.findOne({
+      _id: verified.sub,
+      deletedAt: null,
+      status: "ACTIVE",
+    });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.ACCOUNT_DISABLED,
+        message: "الحساب غير متاح",
+      });
+    }
+
+    // Rotate refresh token
+    session.revokedAt = new Date();
+    await session.save();
+
+    return this.issueTokens(user, meta || {}, !!session.rememberMe);
+  }
+
+  async logout(rawRefresh?: string) {
+    if (!rawRefresh) return;
+    await this.sessions.updateOne(
+      { tokenHash: hashToken(rawRefresh), revokedAt: null },
+      { $set: { revokedAt: new Date() } },
+    );
+  }
+
+  async me(userId: string) {
+    const user = await this.users.findOne({ _id: userId, deletedAt: null });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "يلزم تسجيل الدخول",
+      });
+    }
+    return {
+      ok: true,
+      user: {
+        id: String(user._id),
+        fullName: user.fullName,
+        role: user.roleCode,
+        email: user.email,
+        phone: user.phone,
+        status: user.status,
+        emailVerified: !!user.emailVerified,
+        locale: user.locale || "ar",
+        permissions: permissionsForUser(user),
+        doctor: user.doctor
+          ? {
+              type: user.doctor.type,
+              isActive: user.doctor.isActive !== false,
+            }
+          : undefined,
+      },
+    };
+  }
+
+  async updateLocale(userId: string, locale: "ar" | "en" | "fr") {
+    const user = await this.users.findOneAndUpdate(
+      { _id: userId, deletedAt: null },
+      { $set: { locale } },
+      { new: true },
+    );
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "يلزم تسجيل الدخول",
+      });
+    }
+    return { ok: true, locale: user.locale || locale };
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.users.findOne({ _id: userId, deletedAt: null });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: ErrorCodes.UNAUTHORIZED,
+        message: "يلزم تسجيل الدخول",
+      });
+    }
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "كلمة المرور الحالية غير صحيحة",
+        fieldErrors: { currentPassword: ["كلمة المرور الحالية غير صحيحة"] },
+      });
+    }
+    user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await user.save();
+    await this.sessions.updateMany(
+      { userId: user._id, revokedAt: null },
+      { $set: { revokedAt: new Date() } },
+    );
+    return { ok: true, message: "تم تحديث كلمة المرور بنجاح" };
+  }
+
+  async requestPasswordReset(identifier: string) {
+    const { email, phone, lookup } = this.normalizeIdentifier(identifier);
+    const user = await this.users.findOne({
+      deletedAt: null,
+      $or: [
+        ...(email ? [{ email }] : []),
+        ...(phone ? [{ phone }] : []),
+        { email: lookup },
+        { phone: lookup },
+      ],
+    });
+
+    const generic = {
+      ok: true,
+      message: "إذا وُجد الحساب، ستصلك تعليمات إعادة تعيين كلمة المرور.",
+    };
+
+    if (!user) return generic;
+
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await this.resetTokens.create({
+      userId: user._id,
+      tokenHash: hashToken(token),
+      expiresAt,
+    });
+
+    if (process.env.NODE_ENV === "development") {
+      return { ...generic, devToken: token };
+    }
+    return generic;
+  }
+
+  async resetPassword(token: string, password: string) {
+    const record = await this.resetTokens.findOne({
+      tokenHash: hashToken(token),
+      usedAt: null,
+      expiresAt: { $gt: new Date() },
+    });
+    if (!record) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "رابط إعادة التعيين غير صالح أو منتهٍ",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await this.users.updateOne(
+      { _id: record.userId },
+      {
+        $set: {
+          passwordHash,
+          failedLoginCount: 0,
+          lockedUntil: null,
+          status: "ACTIVE",
+        },
+      },
+    );
+    record.usedAt = new Date();
+    await record.save();
+    await this.sessions.updateMany(
+      { userId: record.userId, revokedAt: null },
+      { $set: { revokedAt: new Date() } },
+    );
+
+    return { ok: true, message: "تم تحديث كلمة المرور بنجاح" };
+  }
+}

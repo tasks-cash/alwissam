@@ -1,0 +1,163 @@
+:root {
+  --primary-navy: #0f2747;
+  --primary-blue: #176b87;
+  --medical-teal: #0f9a9a;
+  --soft-teal: #ddf5f4;
+  --success: #16a36a;
+  --warning: #f59e0b;
+  --danger: #d9485f;
+  --background: #f5f8fc;
+  --surface: #ffffff;
+  --border: #dce4ee;
+  --text-primary: #162033;
+  --text-secondary: #667085;
+  --text-muted: #98a2b3;
+  --radius: 16px;
+  --shadow: 0 4px 20px rgba(15, 39, 71, 0.06);
+  --font-sans: "Cairo", "Segoe UI", Tahoma, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--medical-teal);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.card-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.login-hero {
+  background: linear-gradient(145deg, var(--primary-navy), var(--primary-blue) 55%, var(--medical-teal));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.field .hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.field .error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.required {
+  color: var(--danger);
+  margin-inline-start: 0.15rem;
+}
+
+.input,
+.select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  background: #fff;
+  color: var(--text-primary);
+}
+
+.input:focus,
+.select:focus {
+  outline: 2px solid color-mix(in srgb, var(--medical-teal) 45%, white);
+  border-color: var(--medical-teal);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--medical-teal);
+  color: #fff;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--primary-navy);
+}
+
+.alert-error {
+  background: #fde8ec;
+  color: var(--danger);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.alert-success {
+  background: #e7f8ef;
+  color: var(--success);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap .input {
+  padding-inline-end: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
