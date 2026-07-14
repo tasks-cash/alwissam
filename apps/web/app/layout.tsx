@@ -1,15 +1,10 @@
-import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "عيادة الوسام لطب الأسنان",
-  description: "منصة إدارة عيادة الوسام — الواجهة الهدف",
-};
-
+/** Root shell — lang/dir are applied by the locale layout attributes + client sync. */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ar-DZ" dir="rtl">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -18,7 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&family=Libre+Baskerville:wght@700&display=swap"
           rel="stylesheet"
         />
       </head>
