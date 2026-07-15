@@ -46,6 +46,18 @@ export type Dictionary = {
   navDoctors: string;
   navSecretaries: string;
   navPatientDashboard: string;
+  navPatientAppointments: string;
+  navPatientCases: string;
+  navPatientFiles: string;
+  navPatientInstructions: string;
+  navPatientMessages: string;
+  navPatientFollowUp: string;
+  navPatientNotifications: string;
+  navPatientProfile: string;
+  navPatientSecurity: string;
+  navPatientPrivacy: string;
+  navPatientConsents: string;
+  navPatientHelp: string;
   navPayments: string;
   navSettings: string;
   navPatientExperiences: string;
@@ -167,7 +179,19 @@ const ar: Dictionary = {
   navAppointments: "المواعيد",
   navDoctors: "الأطباء",
   navSecretaries: "السكرتارية",
-  navPatientDashboard: "حسابي",
+  navPatientDashboard: "نظرة عامة",
+  navPatientAppointments: "مواعيدي",
+  navPatientCases: "حالاتي العلاجية",
+  navPatientFiles: "صوري وتقاريري",
+  navPatientInstructions: "تعليمات الطبيب",
+  navPatientMessages: "الرسائل",
+  navPatientFollowUp: "المتابعة والتذكيرات",
+  navPatientNotifications: "الإشعارات",
+  navPatientProfile: "المعلومات الشخصية",
+  navPatientSecurity: "الأمان وكلمة المرور",
+  navPatientPrivacy: "الخصوصية",
+  navPatientConsents: "الموافقات",
+  navPatientHelp: "المساعدة والدعم",
   navPayments: "المدفوعات",
   navSettings: "إعدادات العيادة",
   navPatientExperiences: "تجارب المرضى",
@@ -289,9 +313,20 @@ const en: Dictionary = {
   navAppointments: "Appointments",
   navDoctors: "Doctors",
   navSecretaries: "Secretaries",
-  navPatientDashboard: "My account",
-  navPayments: "Payments",
-  navSettings: "Clinic settings",
+  navPatientDashboard: "Overview",
+  navPatientAppointments: "My appointments",
+  navPatientCases: "Medical cases",
+  navPatientFiles: "Images & reports",
+  navPatientInstructions: "Doctor instructions",
+  navPatientMessages: "Messages",
+  navPatientFollowUp: "Follow-up",
+  navPatientNotifications: "Notifications",
+  navPatientProfile: "Personal information",
+  navPatientSecurity: "Security & password",
+  navPatientPrivacy: "Privacy",
+  navPatientConsents: "Consents",
+  navPatientHelp: "Help & support",
+  navPayments: "Payments",  navSettings: "Clinic settings",
   navPatientExperiences: "Patient experiences",
   navBeforeAfter: "Before & after",
   navSpecialtiesAdmin: "Specialties",
@@ -413,7 +448,19 @@ const fr: Dictionary = {
   navAppointments: "Rendez-vous",
   navDoctors: "Médecins",
   navSecretaries: "Secrétaires",
-  navPatientDashboard: "Mon compte",
+  navPatientDashboard: "Vue d’ensemble",
+  navPatientAppointments: "Mes rendez-vous",
+  navPatientCases: "Dossiers médicaux",
+  navPatientFiles: "Images et rapports",
+  navPatientInstructions: "Consignes du médecin",
+  navPatientMessages: "Messages",
+  navPatientFollowUp: "Suivi",
+  navPatientNotifications: "Notifications",
+  navPatientProfile: "Informations personnelles",
+  navPatientSecurity: "Sécurité et mot de passe",
+  navPatientPrivacy: "Confidentialité",
+  navPatientConsents: "Consentements",
+  navPatientHelp: "Aide et support",
   navPayments: "Paiements",
   navSettings: "Paramètres clinique",
   navPatientExperiences: "Expériences patients",

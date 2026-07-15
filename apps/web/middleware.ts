@@ -16,9 +16,19 @@ const PROTECTED_SEGMENTS = [
   "/patients/",
   "/patient/dashboard",
   "/patient/appointments",
-  "/patient/profile",
+  "/patient/medical-cases",
   "/patient/files",
-  "/patient/payments",
+  "/patient/instructions",
+  "/patient/messages",
+  "/patient/follow-up",
+  "/patient/notifications",
+  "/patient/profile",
+  "/patient/security",
+  "/patient/privacy",
+  "/patient/consents",
+  "/patient/help",
+  "/patient/support",
+  "/patient/account",
 ];
 
 function isProtectedPath(pathname: string) {

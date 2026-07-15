@@ -102,6 +102,13 @@ export class AppointmentRequest {
   @Prop({ default: "public_website" })
   source?: string;
 
+  /** Linked only when phone matches an authenticated patient account (not by name). */
+  @Prop({ type: Types.ObjectId, ref: "Patient", index: true })
+  linkedPatientId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  linkedUserId?: Types.ObjectId;
+
   @Prop({ type: Date, default: null })
   deletedAt?: Date | null;
 }

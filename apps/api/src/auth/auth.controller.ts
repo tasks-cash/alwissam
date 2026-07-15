@@ -3,6 +3,7 @@ import { ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
+import { RegisterPatientDto } from "./dto/register-patient.dto";
 import { ForgotPasswordDto, ResetPasswordDto } from "./dto/password-reset.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";
 import { UpdateLocaleDto } from "./dto/update-locale.dto";
@@ -53,6 +54,21 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto, {
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+    this.setAuthCookies(res, result);
+    return result.body;
+  }
+
+  @Post("register")
+  @HttpCode(201)
+  async register(
+    @Body() dto: RegisterPatientDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.registerPatient(dto, {
       ip: req.ip,
       userAgent: req.headers["user-agent"],
     });

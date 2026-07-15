@@ -107,6 +107,66 @@ export const DASHBOARD_NAV: NavItem[] = [
     labelKey: "navPatientDashboard",
     roles: ["PATIENT"],
   },
+  {
+    href: "/patient/appointments",
+    labelKey: "navPatientAppointments",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/medical-cases",
+    labelKey: "navPatientCases",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/files",
+    labelKey: "navPatientFiles",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/instructions",
+    labelKey: "navPatientInstructions",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/messages",
+    labelKey: "navPatientMessages",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/follow-up",
+    labelKey: "navPatientFollowUp",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/notifications",
+    labelKey: "navPatientNotifications",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/profile",
+    labelKey: "navPatientProfile",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/security",
+    labelKey: "navPatientSecurity",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/privacy",
+    labelKey: "navPatientPrivacy",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/consents",
+    labelKey: "navPatientConsents",
+    roles: ["PATIENT"],
+  },
+  {
+    href: "/patient/help",
+    labelKey: "navPatientHelp",
+    roles: ["PATIENT"],
+  },
 ];
 
 export function navForRole(role: string, locale: Locale) {

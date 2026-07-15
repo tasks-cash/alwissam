@@ -128,13 +128,26 @@ export default async function BookingConfirmationPage({
             </ul>
           ) : null}
           <div className="cta-row">
-            <Link className="btn btn-primary" href={`/${locale}`}>
+            <Link className="btn btn-primary" href={`/${locale}/patient/register`}>
+              {copy.patientAccountRegister}
+            </Link>
+            <Link className="btn btn-outline" href={`/${locale}/patient/login`}>
+              {copy.patientAccountLogin}
+            </Link>
+            <Link className="btn btn-outline" href={`/${locale}`}>
               {copy.backHome}
             </Link>
             <Link className="btn btn-outline" href={`/${locale}/contact`}>
               {copy.navContact}
             </Link>
           </div>
+          <p className="muted" style={{ marginBlockStart: "1rem" }}>
+            {locale === "en"
+              ? "Create an account now to track this booking request, keep visit records, and review doctor instructions when shared."
+              : locale === "fr"
+                ? "Créez un compte maintenant pour suivre cette demande, conserver vos visites et consulter les consignes du médecin lorsqu’elles sont partagées."
+                : "أنشئ حسابًا الآن لتتمكن من متابعة حالة طلب الحجز والاحتفاظ بسجل زياراتك وتعليمات الطبيب."}
+          </p>
         </div>
       </PublicSection>
     </PublicChrome>

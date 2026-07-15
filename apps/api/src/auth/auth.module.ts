@@ -12,6 +12,15 @@ import {
   User,
   UserSchema,
 } from "./schemas/auth.schemas";
+import { Patient, PatientSchema } from "../patients/schemas/patient.schema";
+import {
+  AppointmentRequest,
+  AppointmentRequestSchema,
+} from "../appointments/schemas/appointment-request.schema";
+import {
+  PatientConsent,
+  PatientConsentSchema,
+} from "../patient-portal/schemas/portal.schemas";
 import { JwtAuthGuard } from "../common/auth/session.guard";
 import { JwtTokenService } from "../common/auth/jwt-token.service";
 
@@ -22,6 +31,9 @@ import { JwtTokenService } from "../common/auth/jwt-token.service";
       { name: Session.name, schema: SessionSchema },
       { name: PasswordResetToken.name, schema: PasswordResetTokenSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Patient.name, schema: PatientSchema },
+      { name: AppointmentRequest.name, schema: AppointmentRequestSchema },
+      { name: PatientConsent.name, schema: PatientConsentSchema },
     ]),
   ],
   controllers: [AuthController],

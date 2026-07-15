@@ -5,18 +5,23 @@ import {
   HttpException,
   HttpStatus,
   BadRequestException,
+  ConflictException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { LoginDto } from "./dto/login.dto";
+import { RegisterPatientDto } from "./dto/register-patient.dto";
 import {
   AuditLog,
   PasswordResetToken,
   Session,
   User,
 } from "./schemas/auth.schemas";
+import { Patient } from "../patients/schemas/patient.schema";
+import { AppointmentRequest } from "../appointments/schemas/appointment-request.schema";
+import { PatientConsent } from "../patient-portal/schemas/portal.schemas";
 import { JwtTokenService } from "../common/auth/jwt-token.service";
 import {
   ACCESS_COOKIE,
@@ -67,8 +72,185 @@ export class AuthService {
     @InjectModel(PasswordResetToken.name)
     private readonly resetTokens: Model<PasswordResetToken>,
     @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
+    @InjectModel(Patient.name) private readonly patients: Model<Patient>,
+    @InjectModel(AppointmentRequest.name)
+    private readonly appointmentRequests: Model<AppointmentRequest>,
+    @InjectModel(PatientConsent.name)
+    private readonly consents: Model<PatientConsent>,
     private readonly tokens: JwtTokenService,
   ) {}
+
+  private async nextPatientNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `P${year}`;
+    const latest = await this.patients
+      .findOne({ patientNumber: { $regex: `^${prefix}` } })
+      .sort({ patientNumber: -1 })
+      .select("patientNumber")
+      .lean();
+    let seq = 1;
+    if (latest?.patientNumber) {
+      const n = Number(latest.patientNumber.slice(prefix.length));
+      if (Number.isFinite(n)) seq = n + 1;
+    }
+    return `${prefix}${String(seq).padStart(5, "0")}`;
+  }
+
+  async registerPatient(
+    dto: RegisterPatientDto,
+    meta: { ip?: string; userAgent?: string },
+  ) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "كلمتا المرور غير متطابقتين.",
+        fieldErrors: { confirmPassword: ["كلمتا المرور غير متطابقتين."] },
+      });
+    }
+    if (!dto.privacyAccepted || !dto.termsAccepted) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يلزم الموافقة على سياسة الخصوصية وشروط الاستخدام.",
+      });
+    }
+
+    const phone = normalizePhoneDigits(dto.phone) || dto.phone.trim();
+    const email = dto.email ? normalizeEmail(dto.email) : undefined;
+
+    const existingUser = await this.users.findOne({
+      deletedAt: null,
+      $or: [
+        { phone },
+        ...(email ? [{ email }] : []),
+      ],
+    });
+    if (existingUser) {
+      throw new ConflictException({
+        code: existingUser.phone === phone
+          ? ErrorCodes.DUPLICATE_PHONE
+          : ErrorCodes.DUPLICATE_EMAIL,
+        message: "تعذر إنشاء الحساب بهذه البيانات. جرّب تسجيل الدخول أو استعادة كلمة المرور.",
+      });
+    }
+
+    const linkedPatient = await this.patients.findOne({
+      phone,
+      deletedAt: null,
+    });
+    if (linkedPatient?.userId) {
+      throw new ConflictException({
+        code: ErrorCodes.DUPLICATE_PHONE,
+        message: "تعذر إنشاء الحساب بهذه البيانات. جرّب تسجيل الدخول أو استعادة كلمة المرور.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const user = await this.users.create({
+      fullName: dto.fullName.trim(),
+      phone,
+      email,
+      passwordHash,
+      roleCode: "PATIENT",
+      status: "ACTIVE",
+      emailVerified: false,
+      permissions: defaultPermissionsForRole("PATIENT"),
+      locale: dto.locale || "ar",
+    });
+
+    let patient = linkedPatient;
+    if (patient) {
+      patient.userId = user._id as Types.ObjectId;
+      if (email && !patient.email) patient.email = email;
+      if (dto.fullName.trim()) patient.fullName = dto.fullName.trim();
+      await patient.save();
+    } else {
+      patient = await this.patients.create({
+        patientNumber: await this.nextPatientNumber(),
+        fullName: dto.fullName.trim(),
+        phone,
+        email,
+        userId: user._id,
+        patientType: "REGULAR",
+        createdById: user._id,
+      });
+    }
+
+    // Link guest booking requests that share this phone (not by name).
+    await this.appointmentRequests.updateMany(
+      {
+        phone,
+        deletedAt: null,
+        $or: [
+          { linkedPatientId: { $exists: false } },
+          { linkedPatientId: null },
+        ],
+      },
+      {
+        $set: {
+          linkedPatientId: patient._id,
+          linkedUserId: user._id,
+        },
+      },
+    );
+
+    await this.auditLogs.create({
+      userId: user._id,
+      roleCode: "PATIENT",
+      action: "PATIENT_REGISTERED",
+      entityType: "User",
+      entityId: String(user._id),
+      ipAddress: meta.ip,
+      newValue: { patientId: String(patient._id) },
+    });
+
+    await this.consents.bulkWrite(
+      [
+        {
+          updateOne: {
+            filter: { patientId: patient._id, consentType: "privacy_policy" },
+            update: {
+              $set: {
+                accepted: true,
+                acceptedAt: new Date(),
+                required: true,
+              },
+            },
+            upsert: true,
+          },
+        },
+        {
+          updateOne: {
+            filter: { patientId: patient._id, consentType: "terms_of_use" },
+            update: {
+              $set: {
+                accepted: true,
+                acceptedAt: new Date(),
+                required: true,
+              },
+            },
+            upsert: true,
+          },
+        },
+      ],
+      { ordered: false },
+    );
+
+    const issued = await this.issueTokens(user, meta, false);
+    const locale = dto.locale || "ar";
+    return {
+      ...issued,
+      body: {
+        ok: true,
+        message: "تم إنشاء حساب المريض بنجاح.",
+        redirectTo: `/${locale}/patient/dashboard`,
+        user: {
+          id: String(user._id),
+          fullName: user.fullName,
+          role: user.roleCode,
+        },
+      },
+    };
+  }
 
   private normalizeIdentifier(raw: string): { email?: string; phone?: string; lookup: string } {
     const trimmed = raw.trim();

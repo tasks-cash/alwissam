@@ -232,6 +232,21 @@ export type PublicCopy = {
   pastDateError: string;
   reviewSummary: string;
   stepLabel: string;
+  patientAccountKicker: string;
+  patientAccountTitle: string;
+  patientAccountLead: string;
+  patientAccountRegister: string;
+  patientAccountLogin: string;
+  patientAccountImageAlt: string;
+  patientAccountMockLabel: string;
+  benefitAppointments: string;
+  benefitStatus: string;
+  benefitHistory: string;
+  benefitFiles: string;
+  benefitInstructions: string;
+  benefitReminders: string;
+  benefitProfile: string;
+  benefitMessaging: string;
   reasons: Record<string, string>;
 };
 
@@ -573,6 +588,22 @@ const ar: PublicCopy = {
   pastDateError: "لا يمكن اختيار تاريخ في الماضي.",
   reviewSummary: "مراجعة الطلب",
   stepLabel: "الخطوة",
+  patientAccountKicker: "حساب المريض",
+  patientAccountTitle: "كل تفاصيل حالتك العلاجية في حساب واحد",
+  patientAccountLead:
+    "تابع مواعيدك وزياراتك السابقة وصورك وتقاريرك وتعليمات طبيبك من لوحة تحكم خاصة وآمنة.",
+  patientAccountRegister: "إنشاء حساب جديد",
+  patientAccountLogin: "تسجيل الدخول",
+  patientAccountImageAlt: "بيئة رعاية أسنان احترافية للمرضى",
+  patientAccountMockLabel: "معاينة توضيحية للوحة التحكم (بيانات وهمية)",
+  benefitAppointments: "مواعيدك في مكان واحد",
+  benefitStatus: "معرفة حالة كل حجز",
+  benefitHistory: "الاطلاع على الزيارات السابقة",
+  benefitFiles: "صورك وتقاريرك خاصة بك",
+  benefitInstructions: "تعليمات الطبيب متاحة دائمًا",
+  benefitReminders: "تذكيرات المتابعة",
+  benefitProfile: "تحديث معلوماتك الشخصية",
+  benefitMessaging: "تواصل آمن بعد الزيارة",
   reasons: baseReasons("ar"),
 };
 
@@ -855,6 +886,22 @@ const en: PublicCopy = {
   pastDateError: "Past dates cannot be selected.",
   reviewSummary: "Review request",
   stepLabel: "Step",
+  patientAccountKicker: "Patient account",
+  patientAccountTitle: "All your care details in one secure account",
+  patientAccountLead:
+    "Track appointments, past visits, shared images and reports, and doctor instructions from your private patient dashboard.",
+  patientAccountRegister: "Create an account",
+  patientAccountLogin: "Sign in",
+  patientAccountImageAlt: "Professional dental care environment for patients",
+  patientAccountMockLabel: "Decorative dashboard preview (mock data)",
+  benefitAppointments: "Your appointments in one place",
+  benefitStatus: "Know each booking status",
+  benefitHistory: "Review past visits",
+  benefitFiles: "Your private images and reports",
+  benefitInstructions: "Doctor instructions when shared",
+  benefitReminders: "Follow-up reminders",
+  benefitProfile: "Update your personal details",
+  benefitMessaging: "Secure messaging after completed visits",
   reasons: baseReasons("en"),
 };
 
@@ -1142,6 +1189,22 @@ const fr: PublicCopy = {
   pastDateError: "Les dates passées ne peuvent pas être sélectionnées.",
   reviewSummary: "Vérifier la demande",
   stepLabel: "Étape",
+  patientAccountKicker: "Compte patient",
+  patientAccountTitle: "Tous les détails de vos soins dans un seul compte",
+  patientAccountLead:
+    "Suivez vos rendez-vous, vos visites, vos images et rapports partagés, et les consignes du médecin depuis un tableau de bord privé.",
+  patientAccountRegister: "Créer un compte",
+  patientAccountLogin: "Se connecter",
+  patientAccountImageAlt: "Environnement de soins dentaires professionnel",
+  patientAccountMockLabel: "Aperçu décoratif du tableau de bord (données fictives)",
+  benefitAppointments: "Vos rendez-vous au même endroit",
+  benefitStatus: "Statut de chaque réservation",
+  benefitHistory: "Historique des visites",
+  benefitFiles: "Images et rapports privés",
+  benefitInstructions: "Consignes du médecin partagées",
+  benefitReminders: "Rappels de suivi",
+  benefitProfile: "Mettre à jour vos informations",
+  benefitMessaging: "Messagerie sécurisée après une visite terminée",
   reasons: baseReasons("fr"),
 };
 

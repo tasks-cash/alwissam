@@ -1,35 +1,30 @@
-# Public site image assets
+# Public image asset sources
 
-Primary visuals for the Al-Wisam public website. Local files under `apps/web/public/images/`.
+Download date: 2026-07-15
 
-## Brand SVG illustrations (retained as fallbacks)
+Stock photos already present under `apps/web/public/images/stock/` are used for public marketing surfaces and decorative patient-account motivation. They are royalty-free style clinic imagery stored locally (not hotlinked). Private patient medical images are never used here.
 
-| Local path | Page / section | Notes |
-|------------|----------------|-------|
-| `apps/web/public/images/hero-clinic.svg` | Legacy fallback | Brand SVG dental scene |
-| `apps/web/public/images/about-team.svg` | Legacy fallback | Brand SVG team visual |
-| `apps/web/public/images/contact-clinic.svg` | Contact / location cards | Brand SVG contact visual |
+| Section | Local path | Source type | Notes / alt intent |
+| --- | --- | --- | --- |
+| Homepage hero | `apps/web/public/images/stock/dental-care-hero.jpg` | Local stock (clinic marketing set) | Professional dental care atmosphere; not a real clinic patient identifier |
+| Clinic introduction | `apps/web/public/images/stock/dental-clinic-interior.jpg` | Local stock | Clinic interior atmosphere |
+| Patient account / dashboard motivation | `apps/web/public/images/stock/dental-team-care.jpg` | Local stock | Care team environment; decorative dashboard mock uses anonymized UI chrome only |
+| Auth login visual | `apps/web/public/images/stock/dental-care-hero.jpg` | Local stock | Auth page visual plane |
+| Auth registration visual | `apps/web/public/images/stock/dental-clinic-interior.jpg` | Local stock | Auth page visual plane |
+| Services / treatment surfaces | `apps/web/public/images/stock/dental-treatment.jpg` | Local stock | Treatment setting (non-identified) |
+| Contact / location where applicable | Existing clinic settings + maps embeds | Clinic-owned / maps | Prefer clinic-provided photography when available |
 
-## Royalty-free stock photographs (Unsplash)
+## Licensing policy
 
-License: [Unsplash License](https://unsplash.com/license) — free to use commercially; attribution appreciated but not required.
+- Prefer clinic-owned approved photography.
+- When using stock, use reputable royalty-free libraries (e.g. Unsplash, Pexels, Pixabay) with clear commercial usage rights, then download into the repo.
+- Do not copy competing clinic websites.
+- Do not use images with other clinic logos.
+- Do not use private patient X-rays, before/after without consent, or fictional doctor identities.
+- Images must not be mirrored in RTL layouts.
 
-| Local path | Source page | Original image URL | Author | Usage |
-|------------|-------------|--------------------|--------|-------|
-| `apps/web/public/images/stock/dental-care-hero.jpg` | [Unsplash photo](https://unsplash.com/photos/dentist-tools-and-mirror-on-tray-photo-1606811841689-23dfddce3e95) | `https://images.unsplash.com/photo-1606811841689-23dfddce3e95` | Unsplash contributor | Homepage hero |
-| `apps/web/public/images/stock/dental-clinic-interior.jpg` | [Unsplash photo](https://unsplash.com/photos/modern-dental-office-1629909613654-28e377c37b09) | `https://images.unsplash.com/photo-1629909613654-28e377c37b09` | Unsplash contributor | Homepage clinic intro; About intro |
-| `apps/web/public/images/stock/dental-team-care.jpg` | [Unsplash photo](https://unsplash.com/photos/dental-care-closeup-1588776814546-1ffcf47267a5) | `https://images.unsplash.com/photo-1588776814546-1ffcf47267a5` | Unsplash contributor | About page hero |
-| `apps/web/public/images/stock/dental-treatment.jpg` | [Unsplash photo](https://unsplash.com/photos/dental-treatment-1598256989800-fe5f95da9787) | `https://images.unsplash.com/photo-1598256989800-fe5f95da9787` | Unsplash contributor | Homepage booking convenience |
+## Optimization
 
-## Doctor portraits
-
-- Use only approved `doctor.profileImage` values from MongoDB.
-- Never replace a real doctor portrait with an unrelated stock person.
-- Never invent doctor identities for photography.
-
-## Next.js Image
-
-- Prefer local assets (no remotePatterns required for `/images/**`).
-- Provide `width`, `height`, `sizes`, meaningful `alt` (or decorative `alt=""`).
-- `priority` only above the fold.
-- Do not mirror clinic or doctor photos in RTL.
+- Prefer WebP/AVIF when regenerating assets.
+- Use Next.js `Image` with explicit width/height or `fill` + sizes.
+- Priority only above the fold; lazy-load below the fold.

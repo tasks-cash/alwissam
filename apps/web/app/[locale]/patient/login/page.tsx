@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import Image from "next/image";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
 import {
   PASSWORD_MIN_LOGIN,
   loginSchema,
@@ -15,14 +16,17 @@ type LoginResponse = {
   redirectTo?: string;
   error?: string;
   message?: string | string[];
+  code?: string;
 };
 
-export default function PatientLoginPage() {
+function PatientLoginForm() {
   const params = useParams();
   const locale = String(params?.locale || "ar");
   const router = useRouter();
+  const search = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +37,7 @@ export default function PatientLoginPage() {
       identifier,
       password,
       portal: "patient",
+      rememberMe,
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message || "بيانات غير صالحة");
@@ -45,16 +50,27 @@ export default function PatientLoginPage() {
         identifier: parsed.data.loginId,
         password: parsed.data.password,
         portal: "patient",
+        rememberMe,
       });
       if (!ok) {
-        setError(
-          data.error ||
-            (Array.isArray(data.message) ? data.message[0] : data.message) ||
-            "فشل تسجيل الدخول",
-        );
+        const code = data.code || "";
+        if (code === "ACCOUNT_DISABLED") {
+          setError("تم تعطيل هذا الحساب أو قفله مؤقتًا.");
+        } else {
+          setError(
+            data.error ||
+              (Array.isArray(data.message) ? data.message[0] : data.message) ||
+              "بيانات الدخول غير صحيحة.",
+          );
+        }
         return;
       }
-      router.push(data.redirectTo || `/${locale}/patient/dashboard`);
+      const next = search.get("next");
+      const safeNext =
+        next && next.startsWith(`/${locale}/patient`) ? next : null;
+      router.push(
+        safeNext || data.redirectTo || `/${locale}/patient/dashboard`,
+      );
       router.refresh();
     } catch {
       setError("تعذر الاتصال بالخادم");
@@ -64,20 +80,46 @@ export default function PatientLoginPage() {
   }
 
   return (
-    <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: "2rem 1rem" }}>
+    <main className="patient-auth-layout">
+      <div className="patient-auth-visual">
+        <Image
+          src="/images/stock/dental-care-hero.jpg"
+          alt=""
+          fill
+          sizes="(max-width: 900px) 100vw, 48vw"
+          priority
+          className="patient-auth-image"
+        />
+        <div className="patient-auth-visual-copy">
+          <h2>أنشئ حسابك وابقَ على اطلاع بحالتك العلاجية</h2>
+          <p>
+            من خلال حساب المريض يمكنك متابعة مواعيدك، وحالتك العلاجية، وصورك
+            الطبية، وتعليمات الطبيب.
+          </p>
+          <Link className="btn btn-outline" href={`/${locale}/patient/register`}>
+            إنشاء حساب مريض
+          </Link>
+        </div>
+      </div>
       <form
         onSubmit={onSubmit}
-        className="card-surface"
-        style={{ width: "100%", maxWidth: 440, padding: "1.75rem", display: "grid", gap: "1rem" }}
+        className="patient-auth-form card-surface"
+        noValidate
       >
-        <h1 style={{ margin: 0, color: "var(--primary-navy)", fontSize: "1.5rem" }}>
-          دخول المريض
-        </h1>
-        {error ? <div className="alert-error">{error}</div> : null}
+        <h1>تسجيل الدخول إلى حساب المريض</h1>
+        <p className="muted">
+          ادخل إلى حسابك لمتابعة مواعيدك وحالتك العلاجية وصورك الطبية وتعليمات
+          الطبيب.
+        </p>
+        {error ? (
+          <div className="alert-error" role="alert">
+            {error}
+          </div>
+        ) : null}
 
         <div className="field">
           <label htmlFor="identifier">
-            البريد أو الهاتف <span className="required">*</span>
+            رقم الهاتف أو البريد الإلكتروني <span className="required">*</span>
           </label>
           <input
             id="identifier"
@@ -87,6 +129,7 @@ export default function PatientLoginPage() {
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             autoComplete="username"
+            dir="ltr"
             required
           />
         </div>
@@ -102,18 +145,38 @@ export default function PatientLoginPage() {
             autoComplete="current-password"
             required
             minLength={PASSWORD_MIN_LOGIN}
-            hint={`الحد الأدنى لتسجيل الدخول: ${PASSWORD_MIN_LOGIN} أحرف`}
           />
         </div>
 
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          <span>تذكرني</span>
+        </label>
+
         <button className="btn btn-primary" type="submit" disabled={loading}>
-          {loading ? "جارٍ الدخول..." : "دخول"}
+          {loading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
         </button>
 
-        <div style={{ fontSize: "0.9rem" }}>
+        <p>
           <Link href={`/${locale}/forgot-password`}>نسيت كلمة المرور؟</Link>
-        </div>
+          {" · "}
+          <Link href={`/${locale}/patient/register`}>إنشاء حساب جديد</Link>
+          {" · "}
+          <Link href={`/${locale}`}>العودة إلى الصفحة الرئيسية</Link>
+        </p>
       </form>
     </main>
+  );
+}
+
+export default function PatientLoginPage() {
+  return (
+    <Suspense fallback={<main className="patient-auth-layout">...</main>}>
+      <PatientLoginForm />
+    </Suspense>
   );
 }

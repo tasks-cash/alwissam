@@ -247,6 +247,24 @@ export const createPatientSchema = z.object({
   notes: z.string().trim().optional(),
 });
 
+export const registerPatientSchema = passwordsMatchSchema(
+  z.object({
+    fullName,
+    phone: phoneRequired,
+    email: emailOptional,
+    password: passwordCreate,
+    locale: z.enum(["ar", "en", "fr"]).optional(),
+    privacyAccepted: z.literal(true, {
+      errorMap: () => ({ message: "يلزم الموافقة على سياسة الخصوصية." }),
+    }),
+    termsAccepted: z.literal(true, {
+      errorMap: () => ({ message: "يلزم الموافقة على شروط الاستخدام." }),
+    }),
+  }),
+);
+
+export type RegisterPatientInput = z.infer<typeof registerPatientSchema>;
+
 export const walkInSchema = z.object({
   fullName,
   phone: phoneRequired,

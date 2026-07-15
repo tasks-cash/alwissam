@@ -1,124 +1,98 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { DashboardShell } from "../../../../components/layout/DashboardShell";
-import { useDashboardSession } from "../../../../lib/use-dashboard-session";
+import Link from "next/link";
+import {
+  EmptyState,
+  ErrorRetry,
+  PatientPortalPage,
+  SkeletonBlock,
+  usePatientFetch,
+  usePatientPortal,
+} from "../../../../components/patient/PatientPortalPage";
 
-type Patient = {
-  id: string;
-  patientNumber: string;
-  fullName: string;
-  phone: string;
-  email?: string;
+type DashboardRes = {
+  dashboard: {
+    greetingName: string;
+    profileComplete: boolean;
+    counts: Record<string, number>;
+    nextAppointment: null | {
+      reference: string;
+      status: string;
+      startAt: string;
+      doctorName?: string;
+    };
+  };
 };
 
-type Appt = {
-  id: string;
-  appointmentNumber: string;
-  doctorName?: string;
-  status: string;
-  startAt: string;
-  appointmentType: string;
-};
-
-export default function PatientDashboardPage() {
-  const { locale, dict, user, loading, error } = useDashboardSession({
-    roles: ["PATIENT"],
-    loginPath: "patient",
-  });
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [appts, setAppts] = useState<Appt[]>([]);
-  const [loadError, setLoadError] = useState("");
-
-  const load = useCallback(async () => {
-    const [meRes, apRes] = await Promise.all([
-      fetch("/api/patients/me", { credentials: "include" }),
-      fetch("/api/appointments/mine", { credentials: "include" }),
-    ]);
-    if (meRes.ok) {
-      const me = await meRes.json();
-      setPatient(me.patient || null);
-    } else if (meRes.status === 404) {
-      setPatient(null);
-    } else {
-      setLoadError(dict.connectionError);
-    }
-    if (apRes.ok) {
-      const a = await apRes.json();
-      setAppts(Array.isArray(a.appointments) ? a.appointments : []);
-    }
-  }, [dict.connectionError]);
-
-  useEffect(() => {
-    if (user) void load();
-  }, [load, user]);
-
-  if (loading || !user) {
-    return <main className="dash-panel">{dict.loading}</main>;
+function Body() {
+  const { locale, reloadKey } = usePatientPortal();
+  const { data, error, loading, reload } = usePatientFetch<DashboardRes>(
+    "/api/patient/dashboard",
+    reloadKey,
+  );
+  if (loading) return <SkeletonBlock />;
+  if (error) {
+    return <ErrorRetry message={error} onRetry={reload} label="إعادة المحاولة" />;
   }
-  if (error || loadError) {
-    return (
-      <main className="dash-panel alert-error">{error || loadError}</main>
-    );
-  }
-
+  const d = data?.dashboard;
+  if (!d) return <EmptyState>لا توجد بيانات للعرض.</EmptyState>;
   return (
-    <DashboardShell
-      locale={locale}
-      dict={dict}
-      role={user.role}
-      userName={user.fullName}
-      title={`${dict.dashboardWelcome}, ${user.fullName}`}
-      description={dict.patientDashboardLead}
-    >
+    <div className="patient-dash">
+      <p className="patient-greeting">مرحبًا، {d.greetingName}</p>
       <section className="stat-grid">
-        <article className="stat-card card-surface">
-          <span>{dict.patient}</span>
-          <strong>{patient?.patientNumber || "—"}</strong>
-        </article>
-        <article className="stat-card card-surface">
-          <span>{dict.phone}</span>
-          <strong>{patient?.phone || "—"}</strong>
-        </article>
-        <article className="stat-card card-surface">
-          <span>{dict.upcomingAppointments}</span>
-          <strong>{appts.length}</strong>
-        </article>
+        <article className="stat-card card-surface"><span>القادمة</span><strong>{d.counts.upcoming}</strong></article>
+        <article className="stat-card card-surface"><span>المكتملة</span><strong>{d.counts.completed}</strong></article>
+        <article className="stat-card card-surface"><span>الملغاة</span><strong>{d.counts.cancelled}</strong></article>
+        <article className="stat-card card-surface"><span>بانتظار المراجعة</span><strong>{d.counts.pending}</strong></article>
+        <article className="stat-card card-surface"><span>الحالات</span><strong>{d.counts.medicalCases}</strong></article>
+        <article className="stat-card card-surface"><span>الملفات</span><strong>{d.counts.files}</strong></article>
+        <article className="stat-card card-surface"><span>رسائل غير مقروءة</span><strong>{d.counts.unreadMessages}</strong></article>
+        <article className="stat-card card-surface"><span>إشعارات</span><strong>{d.counts.unreadNotifications}</strong></article>
       </section>
-
       <section className="card-surface dash-actions">
-        <h2>{dict.upcomingAppointments}</h2>
-        {appts.length === 0 ? (
-          <p className="muted">{dict.emptyState}</p>
+        <h2>الموعد القادم</h2>
+        {d.nextAppointment ? (
+          <p>
+            <Link href={`/${locale}/patient/appointments/${d.nextAppointment.reference}`}>
+              {d.nextAppointment.reference}
+            </Link>
+            {" — "}
+            {d.nextAppointment.doctorName || "—"}
+            {" — "}
+            {new Date(d.nextAppointment.startAt).toLocaleString(locale)}
+          </p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>{dict.doctor}</th>
-                  <th>{dict.appointmentType}</th>
-                  <th>{dict.startAt}</th>
-                  <th>{dict.status}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appts.map((a) => (
-                  <tr key={a.id}>
-                    <td>{a.appointmentNumber}</td>
-                    <td>{a.doctorName || "—"}</td>
-                    <td>{a.appointmentType}</td>
-                    <td>{new Date(a.startAt).toLocaleString(locale)}</td>
-                    <td>
-                      <span className="badge">{a.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <EmptyState>لا يوجد موعد قادم حاليًا.</EmptyState>
         )}
       </section>
-    </DashboardShell>
+      <section className="card-surface dash-actions">
+        <h2>إجراءات سريعة</h2>
+        <div className="patient-quick-actions">
+          <Link className="btn btn-primary" href={`/${locale}/book-appointment`}>حجز موعد جديد</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/appointments`}>عرض مواعيدي</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/medical-cases`}>متابعة حالتي العلاجية</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/files`}>عرض صوري وتقاريري</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/messages`}>رسائلي</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/profile`}>تعديل معلوماتي</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/security`}>تغيير كلمة المرور</Link>
+        </div>
+      </section>
+      {!d.profileComplete ? (
+        <p className="muted">
+          أكمل ملفك الشخصي: <Link href={`/${locale}/patient/profile`}>المعلومات الشخصية</Link>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <PatientPortalPage
+      title="لوحة تحكم المريض"
+      description="نظرة عامة على مواعيدك وحالتك العلاجية وإشعاراتك."
+    >
+      <Body />
+    </PatientPortalPage>
   );
 }

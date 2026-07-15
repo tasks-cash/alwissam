@@ -15,6 +15,7 @@ import type {
 import { localizedFaqA, localizedFaqQ } from "../../../lib/public-site";
 import { BeforeAfterSlider } from "../BeforeAfterSlider";
 import { BookingConvenience } from "../BookingConvenience";
+import { PatientAccountMotivation } from "../PatientAccountMotivation";
 import { ClinicIntroduction } from "../ClinicIntroduction";
 import { ClinicLocation } from "../ClinicLocation";
 import { DoctorsSection } from "../DoctorsSection";
@@ -128,6 +129,8 @@ export function HomePageContent({
       </PublicSection>
 
       <BookingConvenience locale={locale} copy={copy} />
+
+      <PatientAccountMotivation locale={locale} copy={copy} />
 
       <PublicSection>
         <DoctorsSection locale={locale} copy={copy} doctors={doctors} limit={3} />
