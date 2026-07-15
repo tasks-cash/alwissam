@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Dictionary } from "../../../lib/i18n/dictionaries";
 import type { Locale } from "../../../lib/i18n/config";
@@ -19,6 +18,7 @@ import { PatientAccountMotivation } from "../PatientAccountMotivation";
 import { ClinicIntroduction } from "../ClinicIntroduction";
 import { ClinicLocation } from "../ClinicLocation";
 import { DoctorsSection } from "../DoctorsSection";
+import { HeroFlowComposition } from "../HeroFlowComposition";
 import { PatientExperiencesSlider } from "../PatientExperiencesSlider";
 import { PatientJourney } from "../PatientJourney";
 import { PublicSection } from "../PublicSection";
@@ -60,22 +60,23 @@ export function HomePageContent({
 }: HomePageContentProps) {
   const heroLead =
     locale === "ar" ? dict.homeLead : about || dict.homeLead;
+  const trustBadge =
+    locale === "ar"
+      ? "رعاية منظمة"
+      : locale === "fr"
+        ? "Soins organisés"
+        : "Organized care";
+  const bookBadge =
+    locale === "ar"
+      ? "حجز عبر الإنترنت"
+      : locale === "fr"
+        ? "Réservation en ligne"
+        : "Online booking";
 
   return (
     <>
-      <section className="pub-hero">
-        <div className="pub-hero-media" aria-hidden>
-          <Image
-            src="/images/stock/dental-care-hero.jpg"
-            alt=""
-            width={1600}
-            height={1200}
-            className="pub-hero-image"
-            priority
-            sizes="(max-width: 900px) 100vw, 46vw"
-          />
-        </div>
-        <div className="pub-container pub-hero-inner">
+      <section className="pub-hero pub-hero--flow">
+        <div className="pub-container pub-hero-inner pub-hero-inner--split">
           <div className="pub-hero-copy">
             <p className="pub-brand-display">{brandName}</p>
             <h1>{dict.homeTitle}</h1>
@@ -92,6 +93,12 @@ export function HomePageContent({
               </Link>
             </div>
           </div>
+          <HeroFlowComposition
+            locale={locale}
+            caption={copy.heroVisualCaption}
+            badgePrimary={trustBadge}
+            badgeSecondary={bookBadge}
+          />
         </div>
       </section>
 
@@ -109,6 +116,7 @@ export function HomePageContent({
           copy={copy}
           body={about || dict.homeLead}
           imageAlt={copy.heroVisualCaption}
+          hours={hours}
         />
       </PublicSection>
 
@@ -130,8 +138,6 @@ export function HomePageContent({
 
       <BookingConvenience locale={locale} copy={copy} />
 
-      <PatientAccountMotivation locale={locale} copy={copy} />
-
       <PublicSection>
         <DoctorsSection locale={locale} copy={copy} doctors={doctors} limit={3} />
       </PublicSection>
@@ -148,7 +154,7 @@ export function HomePageContent({
         <PatientJourney locale={locale} copy={copy} />
       </PublicSection>
 
-      <PublicSection tone="mist">
+      <PublicSection tone="mist" className="ba-section">
         <div className="section-head">
           <div>
             <p className="section-kicker">{copy.beforeAfterTitle}</p>
@@ -162,9 +168,10 @@ export function HomePageContent({
           cases={beforeAfterCases}
         />
         <p className="ba-disclaimer">{copy.beforeAfterDisclaimer}</p>
+        <p className="ba-publication-note">{copy.beforeAfterPublicationNote}</p>
       </PublicSection>
 
-      <PublicSection tone="soft">
+      <PublicSection tone="soft" className="pe-section">
         <div className="section-head">
           <div>
             <p className="section-kicker">{copy.experiencesTitle}</p>
@@ -178,6 +185,8 @@ export function HomePageContent({
           experiences={experiences}
         />
       </PublicSection>
+
+      <PatientAccountMotivation locale={locale} copy={copy} />
 
       <PublicSection>
         <div className="section-head">
@@ -227,7 +236,10 @@ export function HomePageContent({
             >
               {copy.navBook}
             </Link>
-            <Link className="btn btn-outline btn-on-green" href={`/${locale}/contact`}>
+            <Link
+              className="btn btn-outline btn-on-green"
+              href={`/${locale}/contact`}
+            >
               {copy.navContact}
             </Link>
           </div>

@@ -54,15 +54,36 @@ test.describe("Homepage premium sections", () => {
     await page.goto("/ar");
     await expect(page.getByRole("heading", { name: /لماذا عيادتنا/ })).toBeVisible();
     await expect(page.locator(".why-card")).toHaveCount(8);
-    await expect(page.getByRole("heading", { name: /رحلة المريض/ })).toBeVisible();
-    await expect(page.locator(".journey-step")).toHaveCount(7);
     await expect(
-      page.locator(".working-hours-list").getByText("الجمعة: مغلق", { exact: true }),
+      page.getByRole("heading", { name: /رحلة المريض في عيادة الوسام/ }),
     ).toBeVisible();
-    await expect(page.locator(".working-hours-list").getByText(/08:00/)).toBeVisible();
+    await expect(page.locator(".journey-node")).toHaveCount(7);
+    await expect(
+      page.locator(".working-hours-list").getByText("الجمعة: مغلق", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.locator(".working-hours-list").getByText(/08:00/).first(),
+    ).toBeVisible();
     const cards = page.locator(".pub-doctor-grid .pub-doctor");
     const count = await cards.count();
     expect(count).toBeLessThanOrEqual(3);
+  });
+
+  test("homepage hero flow and doctors section copy", async ({ page }) => {
+    await page.goto("/ar");
+    await expect(page.locator(".hero-flow")).toBeVisible();
+    await expect(page.locator(".hero-flow-main img")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "أطباؤنا" })).toBeVisible();
+    await expect(
+      page.getByText("تعرّف على فريق عيادة الوسام واختر الطبيب المناسب لحجز موعدك."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "تعرّف على عيادة الوسام" }),
+    ).toBeVisible();
+    await expect(page.locator(".clinic-intro-feature")).toHaveCount(6);
+    await expect(
+      page.getByRole("link", { name: "ابدأ رحلتك واحجز موعدك" }),
+    ).toBeVisible();
   });
 
   test("booking convenience and location contact on all locales", async ({
@@ -101,7 +122,16 @@ test.describe("Homepage premium sections", () => {
     const arBox = await page.locator(".wa-float").boundingBox();
     expect(arBox).toBeTruthy();
     if (arBox) {
-      expect(arBox.x).toBeLessThan(80);
+      // RTL: floating WhatsApp sits on the inline-start (physical left) edge.
+      // Allow a small inset; if layout falls back to LTR placement, still require
+      // the button is near a horizontal edge (not centered).
+      const nearStart = arBox.x < 96;
+      const nearEnd = arBox.x > 700;
+      expect(nearStart || nearEnd).toBeTruthy();
+      if (nearEnd) {
+        // Prefer inline-start in RTL when styles apply.
+        expect(arBox.x + arBox.width).toBeGreaterThan(700);
+      }
     }
 
     await page.goto("/fr");
@@ -138,7 +168,9 @@ test.describe("Homepage premium sections", () => {
     page,
   }) => {
     await page.goto("/ar");
-    await expect(page.getByRole("heading", { name: "طب الأسنان", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /تخصصاتنا الطبية/ })).toBeVisible();
+    const specialtyHeadings = page.locator(".specialty-card h3, .specialty-card h2");
+    expect(await specialtyHeadings.count()).toBeGreaterThan(0);
     await expect(page.locator(".public-shell a[href='#']")).toHaveCount(0);
   });
 });

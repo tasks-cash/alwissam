@@ -28,10 +28,13 @@ export type PublicCopy = {
   medicalTreatmentDisclaimer: string;
   wizardService: string;
   sectionDoctors: string;
+  sectionDoctorsLead: string;
   sectionProcess: string;
   sectionFaq: string;
   sectionWhy: string;
   sectionJourney: string;
+  sectionJourneyLead: string;
+  journeyCta: string;
   allServices: string;
   allSpecialties: string;
   allDoctors: string;
@@ -55,7 +58,10 @@ export type PublicCopy = {
   aboutHeroTitle: string;
   aboutHeroDescription: string;
   clinicIntroTitle: string;
+  clinicIntroLead: string;
+  clinicIntroFeatures: Array<{ title: string; description: string }>;
   learnMoreAbout: string;
+  learnMoreClinic: string;
   locationTitle: string;
   locationLead: string;
   locationImageAlt: string;
@@ -205,9 +211,12 @@ export type PublicCopy = {
   experiencesPrev: string;
   experiencesNext: string;
   experiencesPause: string;
+  experiencesReadMore: string;
+  experiencesReadLess: string;
   beforeAfterTitle: string;
   beforeAfterLead: string;
   beforeAfterDisclaimer: string;
+  beforeAfterPublicationNote: string;
   beforeAfterEmpty: string;
   beforeAfterError: string;
   beforeLabel: string;
@@ -332,11 +341,16 @@ const ar: PublicCopy = {
   searchSpecialtyService: "ابحث عن تخصص أو خدمة",
   medicalTreatmentDisclaimer: "تحدد ملاءمة العلاج بعد الفحص والتقييم من طرف الطبيب، وقد تختلف الخطة العلاجية من حالة إلى أخرى.",
   wizardService: "الخدمة",
-  sectionDoctors: "الأطباء",
+  sectionDoctors: "أطباؤنا",
+  sectionDoctorsLead:
+    "تعرّف على فريق عيادة الوسام واختر الطبيب المناسب لحجز موعدك.",
   sectionProcess: "مسار الحجز",
   sectionFaq: "أسئلة شائعة",
   sectionWhy: "لماذا عيادتنا؟",
-  sectionJourney: "رحلة المريض",
+  sectionJourney: "رحلة المريض في عيادة الوسام",
+  sectionJourneyLead:
+    "خطوات واضحة تبدأ من اختيار الخدمة وتنتهي بالمتابعة بعد الزيارة.",
+  journeyCta: "ابدأ رحلتك واحجز موعدك",
   allServices: "عرض جميع الخدمات",
   allSpecialties: "عرض جميع التخصصات",
   allDoctors: "عرض جميع الأطباء",
@@ -360,13 +374,36 @@ const ar: PublicCopy = {
   why2: "تنظيم واضح ومرن للمواعيد",
   why3: "احترام خصوصية المريض",
   journeySteps: [
-    { title: "اختيار التخصص", description: "حدّدوا التخصص الأقرب لسبب الزيارة." },
-    { title: "اختيار الطبيب", description: "اختاروا طبيبًا عامًا منشورًا أو اتركوا التوجيه للاستقبال." },
-    { title: "اختيار التاريخ والوقت", description: "اختاروا من الأوقات المتاحة فعليًا في النظام." },
-    { title: "إرسال طلب الحجز", description: "أرسلوا بياناتكم وسبب الزيارة عبر النموذج." },
-    { title: "استلام تأكيد الموعد", description: "يؤكّد الاستقبال الموعد النهائي ويبلغكم." },
-    { title: "زيارة العيادة", description: "التسجيل عند الوصول ثم موعدكم مع الطبيب." },
-    { title: "المتابعة بعد الزيارة", description: "اتبعوا التعليمات واحجزوا المتابعة عند الحاجة." },
+    {
+      title: "اختيار الخدمة أو التخصص",
+      description: "حددوا الخدمة أو التخصص الأنسب لسبب الزيارة.",
+    },
+    {
+      title: "اختيار الطبيب أو ترك الاختيار للاستقبال",
+      description:
+        "اختاروا طبيبًا منشورًا، أو اتركوا لفريق الاستقبال توجيه الطلب.",
+    },
+    {
+      title: "اختيار التاريخ والوقت المناسب",
+      description: "اختاروا التاريخ والوقت المفضّلين ضمن ساعات عمل العيادة.",
+    },
+    {
+      title: "إرسال طلب الحجز",
+      description: "أرسلوا بياناتكم وسبب الزيارة عبر نموذج الحجز الآمن.",
+    },
+    {
+      title: "مراجعة وتأكيد الموعد",
+      description: "يراجع الاستقبال الطلب ويؤكّد الموعد النهائي معكم.",
+    },
+    {
+      title: "زيارة العيادة",
+      description: "عند الوصول يسجّل الاستقبال حضوركم ويوجّهكم للطبيب.",
+    },
+    {
+      title: "استلام التعليمات والمتابعة",
+      description:
+        "تستلمون التعليمات بعد الزيارة وتحجزون المتابعة عند الحاجة.",
+    },
   ],
   journeyBefore: "قبل الزيارة",
   journeyDuring: "أثناء الزيارة",
@@ -390,7 +427,7 @@ const ar: PublicCopy = {
   openMenu: "القائمة",
   closeMenu: "إغلاق",
   searchPlaceholder: "ابحث بالاسم",
-  emptyDoctors: "لا تتوفر ملفات أطباء عامة حاليًا.",
+  emptyDoctors: "لا يوجد أطباء منشورون حاليًا.",
   emptyReviews: "لا توجد تقييمات معتمدة للعرض حاليًا.",
   contactFormTitle: "إرسال استفسار",
   sendMessage: "إرسال الرسالة",
@@ -459,8 +496,37 @@ const ar: PublicCopy = {
   aboutHeroTitle: "رعاية أسنان قائمة على الثقة والاهتمام",
   aboutHeroDescription:
     "تجمع عيادة الوسام بين التنظيم الطبي، سهولة الحجز، وتعدد خدمات طب الأسنان لتوفير تجربة واضحة ومريحة لكل مريض.",
-  clinicIntroTitle: "تعريف بالعيادة",
+  clinicIntroTitle: "تعرّف على عيادة الوسام",
+  clinicIntroLead:
+    "عيادة الوسام لطب الأسنان مساحة طبية تهدف إلى توفير تجربة منظمة وواضحة للمريض، من اختيار الخدمة والطبيب إلى الحجز والمتابعة بعد الزيارة.",
+  clinicIntroFeatures: [
+    {
+      title: "حجز من المنزل",
+      description: "أرسلوا طلب الموعد عبر الموقع دون عناء التنقل.",
+    },
+    {
+      title: "اختيار الطبيب",
+      description: "اطلعوا على الملفات العامة واختاروا الطبيب المناسب.",
+    },
+    {
+      title: "تنظيم المواعيد",
+      description: "مسار واضح من الطلب إلى التأكيد عبر الاستقبال.",
+    },
+    {
+      title: "متابعة بعد الزيارة",
+      description: "تعليمات ومتابعة منظمة وفق توجيه الطبيب.",
+    },
+    {
+      title: "خصوصية معلومات المريض",
+      description: "نحمي بياناتكم ونستخدمها لأغراض الرعاية والتواصل فقط.",
+    },
+    {
+      title: "خدمات أسنان متعددة",
+      description: "عام، تقويم، جراحة، وتنظيف وخدمات أخرى منشورة.",
+    },
+  ],
   learnMoreAbout: "اعرف المزيد عنّا",
+  learnMoreClinic: "اعرف المزيد عن العيادة",
   locationTitle: "الموقع والتواصل",
   locationLead:
     "يمكنك الوصول إلى عيادة الوسام بسهولة، أو التواصل معنا للاستفسار وحجز موعدك قبل الحضور.",
@@ -550,20 +616,24 @@ const ar: PublicCopy = {
     "لم يتم نشر جدول عمل هذا الطبيب حاليًا. يمكنك التواصل مع الاستقبال للمساعدة في الحجز.",
   experiencesTitle: "تجارب مرضانا",
   experiencesLead:
-    "آراء وتجارب حقيقية يشاركها مرضانا بعد تلقي خدمات العيادة.",
-  experiencesEmpty: "لا توجد تجارب معتمدة للعرض حاليًا.",
+    "آراء وتجارب منشورة بعد مراجعتها واعتمادها من عيادة الوسام.",
+  experiencesEmpty: "لا توجد تجارب مرضى منشورة حاليًا.",
   experiencesError: "تعذر تحميل تجارب المرضى. يرجى المحاولة مرة أخرى.",
   experiencesVerified: "مريض موثّق",
   experiencesRating: "التقييم",
   experiencesPrev: "التجربة السابقة",
   experiencesNext: "التجربة التالية",
   experiencesPause: "إيقاف التشغيل التلقائي",
+  experiencesReadMore: "عرض المزيد",
+  experiencesReadLess: "عرض أقل",
   beforeAfterTitle: "نتائج قبل وبعد العلاج",
   beforeAfterLead:
-    "نماذج موثقة لحالات علاجية منشورة بعد الحصول على الموافقة اللازمة.",
+    "حالات علاجية منشورة بعد مراجعتها والحصول على الموافقات المطلوبة.",
   beforeAfterDisclaimer:
-    "النتائج تختلف من حالة إلى أخرى، والصور المعروضة لأغراض توضيحية وبعد الحصول على موافقة النشر.",
-  beforeAfterEmpty: "لا توجد حالات معتمدة للعرض حاليًا.",
+    "تختلف النتائج من حالة إلى أخرى، وتحدد الخطة العلاجية بعد الفحص والتقييم من طرف الطبيب.",
+  beforeAfterPublicationNote:
+    "الصور منشورة بعد الحصول على الموافقات المطلوبة، ولا تمثل ضمانًا للحصول على النتيجة نفسها.",
+  beforeAfterEmpty: "لا توجد حالات قبل وبعد منشورة حاليًا.",
   beforeAfterError: "تعذر تحميل نتائج قبل وبعد. يرجى المحاولة مرة أخرى.",
   beforeLabel: "قبل العلاج",
   afterLabel: "بعد العلاج",
@@ -635,15 +705,20 @@ const en: PublicCopy = {
   medicalTreatmentDisclaimer: "Suitability of treatment is determined after examination and assessment by the dentist, and the care plan may vary from one case to another.",
   wizardService: "Service",
   sectionDoctors: "Doctors",
+  sectionDoctorsLead:
+    "Meet the Al-Wisam clinical team and choose the right dentist for your appointment.",
   sectionProcess: "How booking works",
   sectionFaq: "FAQ",
   sectionWhy: "Why our clinic",
-  sectionJourney: "Patient journey",
+  sectionJourney: "Your journey at Al-Wisam Clinic",
+  sectionJourneyLead:
+    "Clear steps from choosing a service through post-visit follow-up.",
+  journeyCta: "Start your journey and book",
   allServices: "All services",
   allSpecialties: "All specialties",
   allDoctors: "All doctors",
-  viewProfile: "View profile",
-  bookWithDoctor: "Book with doctor",
+  viewProfile: "View doctor profile",
+  bookWithDoctor: "Book an appointment",
   process1: "Choose a specialty or doctor",
   process2: "Pick a preferred date",
   process3: "Submit your request",
@@ -662,13 +737,36 @@ const en: PublicCopy = {
   why2: "Clear, flexible scheduling",
   why3: "Patient privacy respected",
   journeySteps: [
-    { title: "Choose a specialty", description: "Pick the specialty closest to your visit reason." },
-    { title: "Choose a doctor", description: "Select a public clinician or let reception guide assignment." },
-    { title: "Choose date and time", description: "Select from times that are genuinely available in the system." },
-    { title: "Submit the booking request", description: "Send your details and visit reason through the form." },
-    { title: "Receive confirmation", description: "Reception confirms the final appointment and notifies you." },
-    { title: "Visit the clinic", description: "Check in at reception, then see your clinician." },
-    { title: "Follow-up after the visit", description: "Follow instructions and book follow-up when needed." },
+    {
+      title: "Choose a service or specialty",
+      description: "Select the service or specialty that best matches your visit reason.",
+    },
+    {
+      title: "Choose a doctor or leave it to reception",
+      description:
+        "Pick a published clinician, or let reception assign the right doctor.",
+    },
+    {
+      title: "Choose a suitable date and time",
+      description: "Select preferred slots within the clinic’s working hours.",
+    },
+    {
+      title: "Submit the booking request",
+      description: "Send your details and visit reason through the secure form.",
+    },
+    {
+      title: "Review and confirm the appointment",
+      description: "Reception reviews the request and confirms the final time with you.",
+    },
+    {
+      title: "Visit the clinic",
+      description: "On arrival, reception checks you in and guides you to your clinician.",
+    },
+    {
+      title: "Receive instructions and follow-up",
+      description:
+        "You receive aftercare guidance and can book follow-up when needed.",
+    },
   ],
   journeyBefore: "Before your visit",
   journeyDuring: "During your visit",
@@ -692,7 +790,7 @@ const en: PublicCopy = {
   openMenu: "Menu",
   closeMenu: "Close",
   searchPlaceholder: "Search by name",
-  emptyDoctors: "No public doctor profiles are available yet.",
+  emptyDoctors: "No published doctors are available yet.",
   emptyReviews: "No approved reviews are available yet.",
   contactFormTitle: "Send an inquiry",
   sendMessage: "Send message",
@@ -760,8 +858,37 @@ const en: PublicCopy = {
   aboutHeroTitle: "Care built on trust and attention",
   aboutHeroDescription:
     "Al-Wisam combines organized dental care, clear booking, and a wide range of services for a calm patient experience.",
-  clinicIntroTitle: "About the clinic",
+  clinicIntroTitle: "Discover Al-Wisam Clinic",
+  clinicIntroLead:
+    "Al-Wisam Dental Clinic is a medical space designed to give patients a clear, organized experience—from choosing a service and doctor to booking and post-visit follow-up.",
+  clinicIntroFeatures: [
+    {
+      title: "Book from home",
+      description: "Send your appointment request online without unnecessary travel.",
+    },
+    {
+      title: "Choose your doctor",
+      description: "Browse public profiles and select the clinician who fits your needs.",
+    },
+    {
+      title: "Organized scheduling",
+      description: "A clear path from request to confirmation with reception.",
+    },
+    {
+      title: "Follow-up after the visit",
+      description: "Aftercare guidance and organized follow-up when needed.",
+    },
+    {
+      title: "Patient privacy",
+      description: "We protect your information and use it only for care and coordination.",
+    },
+    {
+      title: "Multiple dental services",
+      description: "General care, orthodontics, surgery, cleaning, and more published services.",
+    },
+  ],
   learnMoreAbout: "Learn more about us",
+  learnMoreClinic: "Learn more about the clinic",
   locationTitle: "Location and Contact",
   locationLead:
     "Find the clinic easily, contact our team, or book your appointment before visiting.",
@@ -848,20 +975,24 @@ const en: PublicCopy = {
   doctorNoSchedule: "Schedule not available online — contact reception to book.",
   experiencesTitle: "Patient Experiences",
   experiencesLead:
-    "Real opinions and experiences shared by our patients after receiving clinic care.",
-  experiencesEmpty: "No approved patient experiences are available yet.",
+    "Opinions and experiences published after review and approval by Al-Wisam Clinic.",
+  experiencesEmpty: "No published patient experiences are available yet.",
   experiencesError: "Could not load patient experiences. Please try again.",
   experiencesVerified: "Verified patient",
   experiencesRating: "Rating",
   experiencesPrev: "Previous experience",
   experiencesNext: "Next experience",
   experiencesPause: "Pause autoplay",
+  experiencesReadMore: "Read more",
+  experiencesReadLess: "Show less",
   beforeAfterTitle: "Before and After Treatment",
   beforeAfterLead:
-    "Documented treatment cases published after obtaining the required consent.",
+    "Treatment cases published after review and the required consents.",
   beforeAfterDisclaimer:
-    "Results vary from one patient to another. Images are published for illustrative purposes after obtaining publication consent.",
-  beforeAfterEmpty: "No approved before-and-after cases are available yet.",
+    "Results vary from one case to another. The treatment plan is determined after examination and assessment by the dentist.",
+  beforeAfterPublicationNote:
+    "Images are published after obtaining the required consents and do not guarantee the same outcome.",
+  beforeAfterEmpty: "No published before-and-after cases are available yet.",
   beforeAfterError: "Could not load before-and-after cases. Please try again.",
   beforeLabel: "Before",
   afterLabel: "After",
@@ -932,16 +1063,21 @@ const fr: PublicCopy = {
   searchSpecialtyService: "Rechercher une spécialité ou un service",
   medicalTreatmentDisclaimer: "L’indication du traitement est déterminée après examen et évaluation par le dentiste ; le plan de soins peut varier selon les cas.",
   wizardService: "Service",
-  sectionDoctors: "Médecins",
+  sectionDoctors: "Nos médecins",
+  sectionDoctorsLead:
+    "Découvrez l’équipe de la clinique Al-Wisam et choisissez le dentiste adapté à votre rendez-vous.",
   sectionProcess: "Comment réserver",
   sectionFaq: "FAQ",
   sectionWhy: "Pourquoi nous",
-  sectionJourney: "Parcours patient",
+  sectionJourney: "Parcours patient à la clinique Al-Wisam",
+  sectionJourneyLead:
+    "Des étapes claires, du choix du service au suivi après la visite.",
+  journeyCta: "Commencez votre parcours et réservez",
   allServices: "Tous les services",
   allSpecialties: "Toutes les spécialités",
   allDoctors: "Tous les médecins",
-  viewProfile: "Voir le profil",
-  bookWithDoctor: "Réserver avec le médecin",
+  viewProfile: "Voir le profil du médecin",
+  bookWithDoctor: "Prendre rendez-vous",
   process1: "Choisir une spécialité ou un médecin",
   process2: "Choisir une date",
   process3: "Envoyer la demande",
@@ -960,13 +1096,36 @@ const fr: PublicCopy = {
   why2: "Agenda clair et flexible",
   why3: "Respect de la confidentialité",
   journeySteps: [
-    { title: "Choisir la spécialité", description: "Sélectionnez la spécialité la plus proche du motif." },
-    { title: "Choisir le médecin", description: "Choisissez un profil public ou laissez l’accueil orienter." },
-    { title: "Choisir date et heure", description: "Sélectionnez des créneaux réellement disponibles." },
-    { title: "Envoyer la demande", description: "Transmettez vos informations et le motif via le formulaire." },
-    { title: "Recevoir la confirmation", description: "L’accueil confirme le rendez-vous final et vous informe." },
-    { title: "Visiter la clinique", description: "Enregistrement à l’accueil, puis consultation." },
-    { title: "Suivi après la visite", description: "Suivez les consignes et réservez le suivi si besoin." },
+    {
+      title: "Choisir le service ou la spécialité",
+      description: "Sélectionnez le service ou la spécialité le plus adapté au motif.",
+    },
+    {
+      title: "Choisir le médecin ou laisser l’accueil décider",
+      description:
+        "Choisissez un profil publié, ou laissez l’accueil orienter la demande.",
+    },
+    {
+      title: "Choisir la date et l’heure adaptées",
+      description: "Sélectionnez des créneaux dans les horaires d’ouverture.",
+    },
+    {
+      title: "Envoyer la demande de rendez-vous",
+      description: "Transmettez vos informations et le motif via le formulaire sécurisé.",
+    },
+    {
+      title: "Révision et confirmation du rendez-vous",
+      description: "L’accueil examine la demande et confirme l’horaire final avec vous.",
+    },
+    {
+      title: "Visiter la clinique",
+      description: "À l’arrivée, l’accueil vous enregistre et vous oriente vers le clinicien.",
+    },
+    {
+      title: "Recevoir les consignes et le suivi",
+      description:
+        "Vous recevez les consignes après la visite et pouvez planifier le suivi si besoin.",
+    },
   ],
   journeyBefore: "Avant la visite",
   journeyDuring: "Pendant la visite",
@@ -990,7 +1149,7 @@ const fr: PublicCopy = {
   openMenu: "Menu",
   closeMenu: "Fermer",
   searchPlaceholder: "Rechercher par nom",
-  emptyDoctors: "Aucun profil médecin public pour le moment.",
+  emptyDoctors: "Aucun médecin publié pour le moment.",
   emptyReviews: "Aucun avis approuvé pour le moment.",
   contactFormTitle: "Envoyer une demande",
   sendMessage: "Envoyer le message",
@@ -1059,8 +1218,37 @@ const fr: PublicCopy = {
   aboutHeroTitle: "Des soins fondés sur la confiance et l’attention",
   aboutHeroDescription:
     "La clinique Al-Wisam allie organisation médicale, prise de rendez-vous claire et diversité de soins dentaires pour une expérience sereine.",
-  clinicIntroTitle: "Présentation de la clinique",
+  clinicIntroTitle: "Découvrez la clinique Al-Wisam",
+  clinicIntroLead:
+    "La clinique dentaire Al-Wisam est un espace médical conçu pour offrir au patient une expérience claire et organisée, du choix du service et du médecin jusqu’au suivi après la visite.",
+  clinicIntroFeatures: [
+    {
+      title: "Réserver depuis chez soi",
+      description: "Envoyez votre demande en ligne sans déplacements inutiles.",
+    },
+    {
+      title: "Choisir le médecin",
+      description: "Consultez les profils publics et sélectionnez le clinicien adapté.",
+    },
+    {
+      title: "Organisation des rendez-vous",
+      description: "Un parcours clair de la demande à la confirmation par l’accueil.",
+    },
+    {
+      title: "Suivi après la visite",
+      description: "Consignes et suivi organisé selon les indications du médecin.",
+    },
+    {
+      title: "Confidentialité des données",
+      description: "Nous protégeons vos informations et les utilisons uniquement pour les soins et la coordination.",
+    },
+    {
+      title: "Services dentaires variés",
+      description: "Soins généraux, orthodontie, chirurgie, nettoyage et autres services publiés.",
+    },
+  ],
   learnMoreAbout: "En savoir plus",
+  learnMoreClinic: "En savoir plus sur la clinique",
   locationTitle: "Localisation et contact",
   locationLead:
     "Trouvez facilement la clinique, contactez notre équipe ou réservez votre rendez-vous avant votre visite.",
@@ -1149,8 +1337,8 @@ const fr: PublicCopy = {
   doctorNoSchedule: "Planning non disponible en ligne — contactez l’accueil pour réserver.",
   experiencesTitle: "Expériences de nos patients",
   experiencesLead:
-    "Avis et expériences réels partagés par nos patients après les soins.",
-  experiencesEmpty: "Aucune expérience patient approuvée pour le moment.",
+    "Avis et expériences publiés après révision et validation par la clinique Al-Wisam.",
+  experiencesEmpty: "Aucune expérience patient publiée pour le moment.",
   experiencesError:
     "Impossible de charger les expériences. Veuillez réessayer.",
   experiencesVerified: "Patient vérifié",
@@ -1158,12 +1346,16 @@ const fr: PublicCopy = {
   experiencesPrev: "Expérience précédente",
   experiencesNext: "Expérience suivante",
   experiencesPause: "Pause du défilement automatique",
+  experiencesReadMore: "Afficher plus",
+  experiencesReadLess: "Afficher moins",
   beforeAfterTitle: "Avant et après le traitement",
   beforeAfterLead:
-    "Cas documentés publiés après obtention du consentement requis.",
+    "Cas thérapeutiques publiés après révision et obtention des consentements requis.",
   beforeAfterDisclaimer:
-    "Les résultats varient d’un patient à l’autre. Les images sont publiées à titre illustratif après obtention du consentement de publication.",
-  beforeAfterEmpty: "Aucun cas avant/après approuvé pour le moment.",
+    "Les résultats varient d’un cas à l’autre. Le plan de traitement est déterminé après examen et évaluation par le dentiste.",
+  beforeAfterPublicationNote:
+    "Les images sont publiées après obtention des consentements requis et ne garantissent pas le même résultat.",
+  beforeAfterEmpty: "Aucun cas avant/après publié pour le moment.",
   beforeAfterError:
     "Impossible de charger les cas avant/après. Veuillez réessayer.",
   beforeLabel: "Avant",

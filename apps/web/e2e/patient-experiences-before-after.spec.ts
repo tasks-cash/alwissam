@@ -32,13 +32,24 @@ test.describe("Homepage experiences and before/after", () => {
 
       const disclaimer =
         locale === "ar"
-          ? /النتائج تختلف/
+          ? /تختلف النتائج/
           : locale === "fr"
             ? /Les résultats varient/
             : /Results vary/;
 
       // Medical disclaimer is always present under the section.
-      await expect(page.getByText(disclaimer)).toBeVisible();
+      await expect(page.getByText(disclaimer).first()).toBeVisible();
+      await expect(
+        page
+          .getByText(
+            locale === "ar"
+              ? /الموافقات المطلوبة/
+              : locale === "fr"
+                ? /consentements requis/
+                : /required consents/,
+          )
+          .first(),
+      ).toBeVisible();
     });
   }
 

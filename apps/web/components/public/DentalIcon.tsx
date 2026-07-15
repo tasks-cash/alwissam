@@ -96,6 +96,60 @@ export function DentalIcon({ name, size = 28, className }: Props) {
           <path d="M12 10v4M12 16.5h.01" />
         </svg>
       );
+    case "specialty":
+    case "service":
+      return (
+        <svg {...common}>
+          <path d="M12 3c2.6 3.2 4.2 6.5 4.2 9.5A4.2 4.2 0 0 1 7.8 12.5C7.8 9.5 9.4 6.2 12 3Z" />
+          <path d="M9.5 14.5h5" />
+        </svg>
+      );
+    case "doctor":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="8" r="3.2" />
+          <path d="M6.5 19c1.4-3 3.2-4.2 5.5-4.2S16.1 16 17.5 19" />
+          <path d="M15.5 7.2c.9.3 1.6.9 2 1.7" />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg {...common}>
+          <rect x="4" y="5" width="16" height="15" rx="2" />
+          <path d="M8 3v4M16 3v4M4 10h16" />
+          <path d="M8 14h3M13 14h3M8 17h3" />
+        </svg>
+      );
+    case "send":
+      return (
+        <svg {...common}>
+          <path d="M4 12l16-7-6 14-2.5-5.5L4 12Z" />
+          <path d="M11.5 13.5L20 5" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M8.5 12.2l2.4 2.4 4.6-5" />
+        </svg>
+      );
+    case "clinic":
+      return (
+        <svg {...common}>
+          <path d="M4 20V8l8-4 8 4v12" />
+          <path d="M10 20v-6h4v6" />
+          <path d="M9 11h2M13 11h2" />
+        </svg>
+      );
+    case "followup":
+      return (
+        <svg {...common}>
+          <path d="M4 12a8 8 0 1 0 2.3-5.6" />
+          <path d="M4 4v4h4" />
+          <path d="M12 8v5l3 2" />
+        </svg>
+      );
     case "polish":
     case "fill":
     case "checkup":

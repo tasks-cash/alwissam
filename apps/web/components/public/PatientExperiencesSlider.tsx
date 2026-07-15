@@ -35,6 +35,35 @@ function Stars({ rating, label }: { rating: number; label: string }) {
   );
 }
 
+function ExperienceText({
+  text,
+  copy,
+}: {
+  text: string;
+  copy: PublicCopy;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const needsClamp = text.length > 180;
+
+  return (
+    <div className="pe-text-wrap">
+      <p className={`pe-text${needsClamp && !expanded ? " is-clamped" : ""}`}>
+        {text}
+      </p>
+      {needsClamp ? (
+        <button
+          type="button"
+          className="pe-read-more"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? copy.experiencesReadLess : copy.experiencesReadMore}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function PatientExperiencesSlider({
   locale,
   copy,
@@ -104,7 +133,7 @@ export function PatientExperiencesSlider({
 
   useEffect(() => {
     const onVis = () => {
-      if (document.hidden) setPaused(true);
+      setPaused(document.hidden);
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
@@ -203,7 +232,7 @@ export function PatientExperiencesSlider({
                   </div>
                 </div>
                 <Stars rating={exp.rating} label={copy.experiencesRating} />
-                <p className="pe-text">{exp.review}</p>
+                <ExperienceText text={exp.review} copy={copy} />
                 <footer className="pe-meta">
                   {exp.treatmentTitle ? <span>{exp.treatmentTitle}</span> : null}
                   {exp.doctorName ? <span>{exp.doctorName}</span> : null}

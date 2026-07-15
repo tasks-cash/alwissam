@@ -20,18 +20,23 @@ export function DoctorsSection({ locale, copy, doctors, limit = 3 }: Props) {
         <div>
           <p className="section-kicker">{copy.sectionDoctors}</p>
           <h2>{copy.sectionDoctors}</h2>
+          <p className="pub-lead pe-lead">{copy.sectionDoctorsLead}</p>
         </div>
-        <Link href={`/${locale}/doctors`}>{copy.allDoctors}</Link>
       </div>
       {shown.length === 0 ? (
         <p className="muted empty-state">{copy.emptyDoctors}</p>
       ) : (
-        <div className="pub-doctor-grid">
+        <div className="pub-doctor-grid pub-doctor-grid--home">
           {shown.map((d) => (
             <DoctorCard key={d.id} locale={locale} copy={copy} doctor={d} />
           ))}
         </div>
       )}
+      <div className="cta-row doctors-section-footer">
+        <Link className="btn btn-outline" href={`/${locale}/doctors`}>
+          {copy.allDoctors}
+        </Link>
+      </div>
     </>
   );
 }
