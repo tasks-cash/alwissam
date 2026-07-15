@@ -14,7 +14,17 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${apiInternal}/api/:path*`,
       },
+      {
+        source: "/uploads/:path*",
+        destination: `${apiInternal}/uploads/:path*`,
+      },
     ];
+  },
+  images: {
+    remotePatterns: [
+      { protocol: "http", hostname: "localhost" },
+      { protocol: "https", hostname: "**" },
+    ],
   },
 };
 

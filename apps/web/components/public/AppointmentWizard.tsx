@@ -6,9 +6,14 @@ import { PhoneField } from "../ui/PhoneField";
 import { apiErrorMessage, apiPost, apiRequest } from "../../lib/api";
 import type { Locale } from "../../lib/i18n/config";
 import { getPublicCopy, reasonLabel } from "../../lib/i18n/public-copy";
-import type { PublicDoctor, PublicSpecialty } from "../../lib/public-site";
+import type {
+  PublicDoctor,
+  PublicService,
+  PublicSpecialty,
+} from "../../lib/public-site";
 import {
   localizedDoctorSpecialty,
+  localizedServiceName,
   localizedSpecialtyName,
 } from "../../lib/public-site";
 import { getDictionary } from "../../lib/i18n/dictionaries";
@@ -34,8 +39,10 @@ type Props = {
   locale: Locale;
   doctors: PublicDoctor[];
   specialties: PublicSpecialty[];
+  services: PublicService[];
   preselectedDoctorId?: string;
   preselectedSpecialty?: string;
+  preselectedService?: string;
   preselectedDate?: string;
 };
 
@@ -43,8 +50,10 @@ export function AppointmentWizard({
   locale,
   doctors,
   specialties,
+  services: initialServices,
   preselectedDoctorId,
   preselectedSpecialty,
+  preselectedService,
   preselectedDate,
 }: Props) {
   const copy = useMemo(() => getPublicCopy(locale), [locale]);
@@ -55,8 +64,13 @@ export function AppointmentWizard({
   const [error, setError] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [services, setServices] = useState<PublicService[]>(initialServices);
+  const [serviceDoctors, setServiceDoctors] = useState<PublicDoctor[] | null>(
+    null,
+  );
   const [form, setForm] = useState({
-    specialty: preselectedSpecialty || "",
+    specialtySlug: preselectedSpecialty || "",
+    serviceSlug: preselectedService || "",
     preferredDoctorId: preselectedDoctorId || "",
     preferredDate: preselectedDate || "",
     preferredTime: "",
@@ -70,25 +84,81 @@ export function AppointmentWizard({
 
   const steps = [
     copy.wizardSpecialty,
+    copy.wizardService,
     copy.wizardDoctor,
     copy.wizardSchedule,
     copy.wizardPatient,
     copy.wizardReview,
   ];
 
+  useEffect(() => {
+    if (!form.specialtySlug) {
+      setServices(initialServices);
+      return;
+    }
+    let cancelled = false;
+    void apiRequest<{ services?: PublicService[] }>(
+      `/api/public/services?locale=${locale}&specialty=${encodeURIComponent(form.specialtySlug)}&limit=48`,
+    ).then(({ ok, data }) => {
+      if (cancelled || !ok) return;
+      setServices(Array.isArray(data.services) ? data.services : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.specialtySlug, initialServices, locale]);
+
+  useEffect(() => {
+    if (!form.serviceSlug) {
+      setServiceDoctors(null);
+      return;
+    }
+    let cancelled = false;
+    void apiRequest<{ doctors?: PublicDoctor[] }>(
+      `/api/public/services/${encodeURIComponent(form.serviceSlug)}?locale=${locale}`,
+    ).then(({ ok, data }) => {
+      if (cancelled || !ok) return;
+      setServiceDoctors(Array.isArray(data.doctors) ? data.doctors : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.serviceSlug, locale]);
+
   const filteredDoctors = useMemo(() => {
-    if (!form.specialty.trim()) return doctors;
-    const key = form.specialty.trim().toLowerCase();
+    if (serviceDoctors) {
+      return serviceDoctors.length ? serviceDoctors : doctors;
+    }
+    if (!form.specialtySlug) return doctors;
+    const specialty = specialties.find((s) => s.slug === form.specialtySlug);
+    if (!specialty) return doctors;
+    const keys = [
+      specialty.nameAr,
+      specialty.nameEn,
+      specialty.nameFr,
+      specialty.slug,
+    ]
+      .filter(Boolean)
+      .map((s) => String(s).toLowerCase());
     return doctors.filter((d) => {
       const blob = [d.specialtyAr, d.specialtyEn, d.specialtyFr, d.type]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      return blob.includes(key) || key.includes(blob.slice(0, 8));
+      return keys.some((k) => blob.includes(k) || k.includes(blob.slice(0, 8)));
     });
-  }, [doctors, form.specialty]);
+  }, [
+    doctors,
+    form.specialtySlug,
+    serviceDoctors,
+    specialties,
+  ]);
 
   const selectedDoctor = doctors.find((d) => d.id === form.preferredDoctorId);
+  const selectedSpecialty = specialties.find(
+    (s) => s.slug === form.specialtySlug,
+  );
+  const selectedService = services.find((s) => s.slug === form.serviceSlug);
 
   useEffect(() => {
     if (!filteredDoctors.some((d) => d.id === form.preferredDoctorId)) {
@@ -97,6 +167,16 @@ export function AppointmentWizard({
       );
     }
   }, [filteredDoctors, form.preferredDoctorId]);
+
+  useEffect(() => {
+    if (
+      form.serviceSlug &&
+      services.length &&
+      !services.some((s) => s.slug === form.serviceSlug)
+    ) {
+      setForm((f) => ({ ...f, serviceSlug: "" }));
+    }
+  }, [form.serviceSlug, services]);
 
   useEffect(() => {
     if (!form.preferredDate) {
@@ -135,7 +215,7 @@ export function AppointmentWizard({
 
   function validateStep(): boolean {
     setError("");
-    if (step === 2) {
+    if (step === 3) {
       if (!form.preferredDate) {
         setError(copy.preferredDate);
         return false;
@@ -153,7 +233,7 @@ export function AppointmentWizard({
         return false;
       }
     }
-    if (step === 3) {
+    if (step === 4) {
       if (!form.firstName.trim() || !form.lastName.trim() || !form.phone.trim()) {
         setError(
           locale === "en"
@@ -195,13 +275,9 @@ export function AppointmentWizard({
         preferredDoctorId: form.preferredDoctorId || undefined,
         preferredDate: form.preferredDate || undefined,
         preferredTime: form.preferredTime || undefined,
-        additionalNotes:
-          [
-            form.specialty ? `specialty:${form.specialty}` : "",
-            form.additionalNotes,
-          ]
-            .filter(Boolean)
-            .join(" | ") || undefined,
+        specialtySlug: form.specialtySlug || undefined,
+        serviceSlug: form.serviceSlug || undefined,
+        additionalNotes: form.additionalNotes || undefined,
       });
       if (!ok) {
         setError(apiErrorMessage(data));
@@ -253,18 +329,19 @@ export function AppointmentWizard({
             <select
               id="specialty"
               className="input"
-              value={form.specialty}
+              value={form.specialtySlug}
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
-                  specialty: e.target.value,
+                  specialtySlug: e.target.value,
+                  serviceSlug: "",
                   preferredDoctorId: "",
                 }))
               }
             >
               <option value="">{copy.anyDoctor}</option>
               {specialties.map((s) => (
-                <option key={s.slug} value={localizedSpecialtyName(locale, s)}>
+                <option key={s.slug} value={s.slug}>
                   {localizedSpecialtyName(locale, s)}
                 </option>
               ))}
@@ -292,6 +369,37 @@ export function AppointmentWizard({
 
       {step === 1 ? (
         <div className="field">
+          <label htmlFor="serviceSlug">{copy.wizardService}</label>
+          <select
+            id="serviceSlug"
+            className="input"
+            value={form.serviceSlug}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                serviceSlug: e.target.value,
+                preferredDoctorId: "",
+              }))
+            }
+          >
+            <option value="">
+              {locale === "en"
+                ? "Any service"
+                : locale === "fr"
+                  ? "Tout service"
+                  : "أي خدمة"}
+            </option>
+            {services.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {localizedServiceName(locale, s)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {step === 2 ? (
+        <div className="field">
           <label htmlFor="doctorId">{copy.wizardDoctor}</label>
           <select
             id="doctorId"
@@ -318,7 +426,7 @@ export function AppointmentWizard({
         </div>
       ) : null}
 
-      {step === 2 ? (
+      {step === 3 ? (
         <div className="stack-form">
           <div className="field">
             <label htmlFor="preferredDate">{copy.preferredDate}</label>
@@ -364,7 +472,7 @@ export function AppointmentWizard({
         </div>
       ) : null}
 
-      {step === 3 ? (
+      {step === 4 ? (
         <form
           className="stack-form"
           onSubmit={(e: FormEvent) => {
@@ -442,56 +550,66 @@ export function AppointmentWizard({
         </form>
       ) : null}
 
-      {step === 4 ? (
+      {step === 5 ? (
         <div className="review-box card-surface">
           <h3>{copy.reviewSummary}</h3>
-          <ul className="contact-list">
+          <ul>
             <li>
-              {copy.visitReason}: {reasonLabel(locale, form.appointmentType)}
+              {copy.wizardSpecialty}:{" "}
+              {selectedSpecialty
+                ? localizedSpecialtyName(locale, selectedSpecialty)
+                : "—"}
+            </li>
+            <li>
+              {copy.wizardService}:{" "}
+              {selectedService
+                ? localizedServiceName(locale, selectedService)
+                : "—"}
             </li>
             <li>
               {copy.wizardDoctor}: {selectedDoctor?.fullName || copy.anyDoctor}
             </li>
             <li>
-              {copy.preferredDate}:{" "}
-              <span dir="ltr">{form.preferredDate}</span>
+              {copy.preferredDate}: {form.preferredDate || "—"}
             </li>
             <li>
               {copy.preferredTime}:{" "}
-              <span dir="ltr">{form.preferredTime}</span>
+              <span dir="ltr">{form.preferredTime || "—"}</span>
             </li>
             <li>
-              {dict.fullName}: {form.firstName} {form.lastName}
+              {copy.visitReason}: {reasonLabel(locale, form.appointmentType)}
+            </li>
+            <li>
+              {copy.fullNameLabel}: {form.firstName} {form.lastName}
             </li>
             <li>
               {dict.phone}: <span dir="ltr">{form.phone}</span>
             </li>
           </ul>
+          <p className="muted">{copy.medicalTreatmentDisclaimer}</p>
         </div>
       ) : null}
 
-      <div className="wizard-actions cta-row">
-        {step > 0 ? (
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setStep((s) => s - 1)}
-            disabled={saving}
-          >
-            {copy.previous}
-          </button>
-        ) : null}
+      <div className="cta-row wizard-actions">
+        <button
+          type="button"
+          className="btn btn-outline"
+          disabled={step === 0 || saving}
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+        >
+          {copy.previous}
+        </button>
         <button
           type="button"
           className="btn btn-primary"
+          disabled={saving}
           onClick={goNext}
-          disabled={saving || (step === 2 && slotsLoading)}
         >
-          {saving
-            ? dict.saving
-            : step === steps.length - 1
-              ? copy.navBook
-              : copy.next}
+          {step >= steps.length - 1
+            ? saving
+              ? copy.sending
+              : copy.navBook
+            : copy.next}
         </button>
       </div>
     </div>

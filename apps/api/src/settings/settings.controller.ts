@@ -36,6 +36,13 @@ export class SettingsController {
     return this.settingsService.getPublicSite();
   }
 
+  /** Public-safe clinic contact settings only (no private admin fields). */
+  @Get("public/clinic-settings")
+  async publicClinicSettings() {
+    const site = await this.settingsService.getPublicSite();
+    return { ok: true, clinic: site.clinic };
+  }
+
   @Post("public/contact")
   @HttpCode(200)
   contact(

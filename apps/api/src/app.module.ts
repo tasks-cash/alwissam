@@ -12,8 +12,12 @@ import { HealthModule } from "./health/health.module";
 import { PatientsModule } from "./patients/patients.module";
 import { SecretariesModule } from "./secretaries/secretaries.module";
 import { SecurityModule } from "./security/security.module";
+import { BeforeAfterModule } from "./before-after/before-after.module";
+import { MediaModule } from "./media/media.module";
+import { PatientExperiencesModule } from "./patient-experiences/patient-experiences.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SettingsModule } from "./settings/settings.module";
+import { CatalogModule } from "./catalog/catalog.module";
 
 @Module({
   imports: [
@@ -39,7 +43,11 @@ import { SettingsModule } from "./settings/settings.module";
     DashboardModule,
     FinanceModule,
     SettingsModule,
+    CatalogModule,
     ReviewsModule,
+    PatientExperiencesModule,
+    BeforeAfterModule,
+    MediaModule,
     SecurityModule,
   ],
 })

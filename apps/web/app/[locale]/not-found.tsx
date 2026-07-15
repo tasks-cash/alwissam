@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { GlobalWhatsAppButton } from "../../components/public/GlobalWhatsAppButton";
 import { getDictionary } from "../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
 import { isLocale, type Locale } from "../../lib/i18n/config";
+import { fetchPublicSite } from "../../lib/public-site";
 
 export default async function LocaleNotFound({
   params,
@@ -12,6 +14,7 @@ export default async function LocaleNotFound({
   const locale: Locale = raw && isLocale(raw) ? raw : "ar";
   const dict = getDictionary(locale);
   const copy = getPublicCopy(locale);
+  const site = await fetchPublicSite().catch(() => ({ clinic: undefined }));
 
   const title =
     locale === "en"
@@ -27,7 +30,7 @@ export default async function LocaleNotFound({
         : "الصفحة المطلوبة غير متاحة. يمكنكم العودة للرئيسية أو حجز موعد.";
 
   return (
-    <main className="public-shell">
+    <main className="public-shell" dir={locale === "ar" ? "rtl" : "ltr"} lang={locale}>
       <section className="pub-band pub-band-mist page-hero">
         <div className="pub-container">
           <p className="muted">404</p>
@@ -46,6 +49,7 @@ export default async function LocaleNotFound({
           </p>
         </div>
       </section>
+      <GlobalWhatsAppButton locale={locale} clinic={site.clinic} />
     </main>
   );
 }

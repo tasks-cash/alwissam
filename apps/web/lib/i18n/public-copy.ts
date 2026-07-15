@@ -14,6 +14,19 @@ export type PublicCopy = {
   heroCtaDoctors: string;
   sectionServices: string;
   sectionSpecialties: string;
+  sectionSpecialtiesLead: string;
+  sectionDentalServices: string;
+  sectionDentalServicesLead: string;
+  viewSpecialtyDetails: string;
+  viewServiceDetails: string;
+  serviceCountLabel: string;
+  consultationRequired: string;
+  parentSpecialtyLabel: string;
+  serviceInfoAction: string;
+  emptyServices: string;
+  searchSpecialtyService: string;
+  medicalTreatmentDisclaimer: string;
+  wizardService: string;
   sectionDoctors: string;
   sectionProcess: string;
   sectionFaq: string;
@@ -43,8 +56,26 @@ export type PublicCopy = {
   clinicIntroTitle: string;
   learnMoreAbout: string;
   locationTitle: string;
+  locationLead: string;
+  locationImageAlt: string;
+  addressLabel: string;
+  phoneNumberLabel: string;
+  emailLabel: string;
+  whatsappLabel: string;
+  facebookLabel: string;
+  callClinic: string;
   directionsLabel: string;
   contactClinic: string;
+  bookingConvenienceKicker: string;
+  bookingConvenienceTitle: string;
+  bookingConvenienceSupport: string;
+  bookingConvenienceMain: string;
+  bookingConvenienceClose: string;
+  bookingConveniencePrimary: string;
+  bookingConvenienceSecondary: string;
+  bookingConvenienceTrust: string;
+  bookingConvenienceImageAlt: string;
+  bookingConvenienceBenefits: string[];
   emptySpecialties: string;
   emptyFaq: string;
   retryLabel: string;
@@ -109,6 +140,26 @@ export type PublicCopy = {
   why3: string;
   hoursLabel: string;
   reviewsTitle: string;
+  experiencesTitle: string;
+  experiencesLead: string;
+  experiencesEmpty: string;
+  experiencesError: string;
+  experiencesVerified: string;
+  experiencesRating: string;
+  experiencesPrev: string;
+  experiencesNext: string;
+  experiencesPause: string;
+  beforeAfterTitle: string;
+  beforeAfterLead: string;
+  beforeAfterDisclaimer: string;
+  beforeAfterEmpty: string;
+  beforeAfterError: string;
+  beforeLabel: string;
+  afterLabel: string;
+  beforeAfterPrev: string;
+  beforeAfterNext: string;
+  comparisonControl: string;
+  bookTreatmentCta: string;
   availabilityLabel: string;
   heroVisualCaption: string;
   quickBookTitle: string;
@@ -196,13 +247,26 @@ const ar: PublicCopy = {
   navStaff: "دخول الطاقم",
   heroCtaDoctors: "تعرّف على الأطباء",
   sectionServices: "خدماتنا",
-  sectionSpecialties: "تخصصاتنا",
+  sectionSpecialties: "تخصصاتنا الطبية",
+  sectionSpecialtiesLead: "مجموعة من تخصصات طب الأسنان لتوفير التشخيص والعلاج المناسب لكل حالة.",
+  sectionDentalServices: "خدمات طب الأسنان",
+  sectionDentalServicesLead: "اختر الخدمة التي تحتاجها، ثم اطّلع على الأطباء والمواعيد المتاحة للحجز.",
+  viewSpecialtyDetails: "عرض التخصص",
+  viewServiceDetails: "تفاصيل الخدمة",
+  serviceCountLabel: "خدمة متاحة",
+  consultationRequired: "يتطلب استشارة مسبقة",
+  parentSpecialtyLabel: "التخصص",
+  serviceInfoAction: "معلومات الخدمة",
+  emptyServices: "لا تتوفر خدمات عامة للعرض حاليًا.",
+  searchSpecialtyService: "ابحث عن تخصص أو خدمة",
+  medicalTreatmentDisclaimer: "تحدد ملاءمة العلاج بعد الفحص والتقييم من طرف الطبيب، وقد تختلف الخطة العلاجية من حالة إلى أخرى.",
+  wizardService: "الخدمة",
   sectionDoctors: "الأطباء",
   sectionProcess: "مسار الحجز",
   sectionFaq: "أسئلة شائعة",
   sectionWhy: "لماذا عيادتنا؟",
   sectionJourney: "رحلة المريض",
-  allServices: "كل الخدمات",
+  allServices: "عرض جميع الخدمات",
   allSpecialties: "عرض جميع التخصصات",
   allDoctors: "عرض جميع الأطباء",
   viewProfile: "عرض ملف الطبيب",
@@ -259,7 +323,7 @@ const ar: PublicCopy = {
   emptyReviews: "لا توجد تقييمات معتمدة للعرض حاليًا.",
   contactFormTitle: "إرسال استفسار",
   sendMessage: "إرسال الرسالة",
-  sendInquiry: "إرسال الاستفسار",
+  sendInquiry: "إرسال استفسار",
   sending: "جارٍ الإرسال...",
   subject: "موضوع الرسالة",
   message: "تفاصيل الرسالة",
@@ -308,8 +372,35 @@ const ar: PublicCopy = {
   clinicIntroTitle: "تعريف بالعيادة",
   learnMoreAbout: "اعرف المزيد عنّا",
   locationTitle: "الموقع والتواصل",
-  directionsLabel: "الاتجاهات",
+  locationLead:
+    "يمكنك الوصول إلى عيادة الوسام بسهولة، أو التواصل معنا للاستفسار وحجز موعدك قبل الحضور.",
+  locationImageAlt: "موقع العيادة ومعلومات التواصل",
+  addressLabel: "عنوان العيادة",
+  phoneNumberLabel: "رقم الهاتف",
+  emailLabel: "البريد الإلكتروني",
+  whatsappLabel: "تواصل عبر واتساب",
+  facebookLabel: "صفحتنا على فيسبوك",
+  callClinic: "اتصل بالعيادة",
+  directionsLabel: "عرض الاتجاهات",
   contactClinic: "تواصل مع العيادة",
+  bookingConvenienceKicker: "حجز من المنزل",
+  bookingConvenienceTitle: "لماذا تتعب من أجل حجز موعد؟",
+  bookingConvenienceSupport:
+    "هل سئمت من إضاعة الوقت والمال في التنقل، أو استئجار سيارة فقط من أجل البحث عن موعد؟",
+  bookingConvenienceMain:
+    "مع عيادتنا، يمكنك اختيار التخصص والطبيب والموعد المناسب لك، وإرسال طلب الحجز من منزلك بكل سهولة، دون عناء التنقل أو الانتظار.",
+  bookingConvenienceClose: "احجز موعدك من بيتك، واترك لنا مهمة تنظيم زيارتك.",
+  bookingConveniencePrimary: "احجز موعدك الآن",
+  bookingConvenienceSecondary: "تعرّف على أطبائنا",
+  bookingConvenienceTrust:
+    "اختر الطبيب والموعد المناسب، ثم انتظر تأكيد الحجز من فريق العيادة.",
+  bookingConvenienceImageAlt: "حجز موعد طبي من المنزل",
+  bookingConvenienceBenefits: [
+    "الحجز من المنزل",
+    "اختيار الطبيب المناسب",
+    "عرض المواعيد المتاحة",
+    "تأكيد من فريق العيادة",
+  ],
   emptySpecialties: "لا تتوفر تخصصات عامة للعرض حاليًا.",
   emptyFaq: "لا تتوفر أسئلة شائعة للعرض حاليًا.",
   retryLabel: "إعادة المحاولة",
@@ -317,6 +408,29 @@ const ar: PublicCopy = {
   relatedCta: "احجز موعدًا",
   hoursLabel: "ساعات العمل",
   reviewsTitle: "آراء مرضى موثّقة",
+  experiencesTitle: "تجارب مرضانا",
+  experiencesLead:
+    "آراء وتجارب حقيقية يشاركها مرضانا بعد تلقي خدمات العيادة.",
+  experiencesEmpty: "لا توجد تجارب معتمدة للعرض حاليًا.",
+  experiencesError: "تعذر تحميل تجارب المرضى. يرجى المحاولة مرة أخرى.",
+  experiencesVerified: "مريض موثّق",
+  experiencesRating: "التقييم",
+  experiencesPrev: "التجربة السابقة",
+  experiencesNext: "التجربة التالية",
+  experiencesPause: "إيقاف التشغيل التلقائي",
+  beforeAfterTitle: "نتائج قبل وبعد العلاج",
+  beforeAfterLead:
+    "نماذج موثقة لحالات علاجية منشورة بعد الحصول على الموافقة اللازمة.",
+  beforeAfterDisclaimer:
+    "النتائج تختلف من حالة إلى أخرى، والصور المعروضة لأغراض توضيحية وبعد الحصول على موافقة النشر.",
+  beforeAfterEmpty: "لا توجد حالات معتمدة للعرض حاليًا.",
+  beforeAfterError: "تعذر تحميل نتائج قبل وبعد. يرجى المحاولة مرة أخرى.",
+  beforeLabel: "قبل العلاج",
+  afterLabel: "بعد العلاج",
+  beforeAfterPrev: "الحالة السابقة",
+  beforeAfterNext: "الحالة التالية",
+  comparisonControl: "مقارنة صور قبل وبعد العلاج",
+  bookTreatmentCta: "احجز استشارة",
   availabilityLabel: "التوفّر",
   heroVisualCaption: "رعاية فموية هادئة ودقيقة",
   quickBookTitle: "بحث سريع عن موعد",
@@ -350,7 +464,20 @@ const en: PublicCopy = {
   navStaff: "Staff login",
   heroCtaDoctors: "Meet our doctors",
   sectionServices: "Our services",
-  sectionSpecialties: "Specialties",
+  sectionSpecialties: "Our Medical Specialties",
+  sectionSpecialtiesLead: "A range of dental specialties to support accurate diagnosis and appropriate care for each case.",
+  sectionDentalServices: "Dental Services",
+  sectionDentalServicesLead: "Choose the service you need, then review available doctors and appointment times to book.",
+  viewSpecialtyDetails: "View specialty",
+  viewServiceDetails: "Service details",
+  serviceCountLabel: "available services",
+  consultationRequired: "Consultation required",
+  parentSpecialtyLabel: "Specialty",
+  serviceInfoAction: "Service information",
+  emptyServices: "No public services are available yet.",
+  searchSpecialtyService: "Search for a specialty or service",
+  medicalTreatmentDisclaimer: "Suitability of treatment is determined after examination and assessment by the dentist, and the care plan may vary from one case to another.",
+  wizardService: "Service",
   sectionDoctors: "Doctors",
   sectionProcess: "How booking works",
   sectionFaq: "FAQ",
@@ -413,7 +540,7 @@ const en: PublicCopy = {
   emptyReviews: "No approved reviews are available yet.",
   contactFormTitle: "Send an inquiry",
   sendMessage: "Send message",
-  sendInquiry: "Send inquiry",
+  sendInquiry: "Send an Inquiry",
   sending: "Sending...",
   subject: "Subject",
   message: "Message details",
@@ -461,9 +588,36 @@ const en: PublicCopy = {
   aboutHeroTitle: "Care built on trust and attention",
   clinicIntroTitle: "About the clinic",
   learnMoreAbout: "Learn more about us",
-  locationTitle: "Location & contact",
-  directionsLabel: "Directions",
+  locationTitle: "Location and Contact",
+  locationLead:
+    "Find the clinic easily, contact our team, or book your appointment before visiting.",
+  locationImageAlt: "Clinic location and contact information",
+  addressLabel: "Clinic Address",
+  phoneNumberLabel: "Phone Number",
+  emailLabel: "Email Address",
+  whatsappLabel: "Contact via WhatsApp",
+  facebookLabel: "Facebook Page",
+  callClinic: "Call the Clinic",
+  directionsLabel: "Get Directions",
   contactClinic: "Contact the clinic",
+  bookingConvenienceKicker: "Book from home",
+  bookingConvenienceTitle: "Why travel just to book an appointment?",
+  bookingConvenienceSupport:
+    "There is no need to spend time and money travelling to the clinic before confirming an available appointment.",
+  bookingConvenienceMain:
+    "Choose the specialty, doctor, date, and available time from home, then submit your appointment request in just a few simple steps.",
+  bookingConvenienceClose: "Book from home and let our clinic organize your visit.",
+  bookingConveniencePrimary: "Book an Appointment",
+  bookingConvenienceSecondary: "Meet Our Doctors",
+  bookingConvenienceTrust:
+    "Choose your preferred doctor and time, then wait for confirmation from the clinic team.",
+  bookingConvenienceImageAlt: "Booking a medical appointment from home",
+  bookingConvenienceBenefits: [
+    "Book from home",
+    "Choose your doctor",
+    "View available times",
+    "Receive clinic confirmation",
+  ],
   emptySpecialties: "No public specialties are available yet.",
   emptyFaq: "No FAQ entries are available yet.",
   retryLabel: "Retry",
@@ -471,6 +625,29 @@ const en: PublicCopy = {
   relatedCta: "Book appointment",
   hoursLabel: "Working hours",
   reviewsTitle: "Verified patient reviews",
+  experiencesTitle: "Patient Experiences",
+  experiencesLead:
+    "Real opinions and experiences shared by our patients after receiving clinic care.",
+  experiencesEmpty: "No approved patient experiences are available yet.",
+  experiencesError: "Could not load patient experiences. Please try again.",
+  experiencesVerified: "Verified patient",
+  experiencesRating: "Rating",
+  experiencesPrev: "Previous experience",
+  experiencesNext: "Next experience",
+  experiencesPause: "Pause autoplay",
+  beforeAfterTitle: "Before and After Treatment",
+  beforeAfterLead:
+    "Documented treatment cases published after obtaining the required consent.",
+  beforeAfterDisclaimer:
+    "Results vary from one patient to another. Images are published for illustrative purposes after obtaining publication consent.",
+  beforeAfterEmpty: "No approved before-and-after cases are available yet.",
+  beforeAfterError: "Could not load before-and-after cases. Please try again.",
+  beforeLabel: "Before",
+  afterLabel: "After",
+  beforeAfterPrev: "Previous case",
+  beforeAfterNext: "Next case",
+  comparisonControl: "Compare before and after treatment images",
+  bookTreatmentCta: "Book a consultation",
   availabilityLabel: "Availability",
   heroVisualCaption: "Calm, precise oral care",
   quickBookTitle: "Quick appointment search",
@@ -504,7 +681,20 @@ const fr: PublicCopy = {
   navStaff: "Espace personnel",
   heroCtaDoctors: "Nos médecins",
   sectionServices: "Nos services",
-  sectionSpecialties: "Spécialités",
+  sectionSpecialties: "Nos spécialités médicales",
+  sectionSpecialtiesLead: "Un ensemble de spécialités dentaires pour un diagnostic et une prise en charge adaptés à chaque cas.",
+  sectionDentalServices: "Services dentaires",
+  sectionDentalServicesLead: "Choisissez le service dont vous avez besoin, puis consultez les médecins et créneaux disponibles.",
+  viewSpecialtyDetails: "Voir la spécialité",
+  viewServiceDetails: "Détails du service",
+  serviceCountLabel: "services disponibles",
+  consultationRequired: "Consultation requise",
+  parentSpecialtyLabel: "Spécialité",
+  serviceInfoAction: "Informations sur le service",
+  emptyServices: "Aucun service public pour le moment.",
+  searchSpecialtyService: "Rechercher une spécialité ou un service",
+  medicalTreatmentDisclaimer: "L’indication du traitement est déterminée après examen et évaluation par le dentiste ; le plan de soins peut varier selon les cas.",
+  wizardService: "Service",
   sectionDoctors: "Médecins",
   sectionProcess: "Comment réserver",
   sectionFaq: "FAQ",
@@ -567,7 +757,7 @@ const fr: PublicCopy = {
   emptyReviews: "Aucun avis approuvé pour le moment.",
   contactFormTitle: "Envoyer une demande",
   sendMessage: "Envoyer le message",
-  sendInquiry: "Envoyer la demande",
+  sendInquiry: "Envoyer une demande",
   sending: "Envoi...",
   subject: "Objet",
   message: "Détails du message",
@@ -616,9 +806,38 @@ const fr: PublicCopy = {
   aboutHeroTitle: "Des soins fondés sur la confiance et l’attention",
   clinicIntroTitle: "Présentation de la clinique",
   learnMoreAbout: "En savoir plus",
-  locationTitle: "Lieu et contact",
-  directionsLabel: "Itinéraire",
+  locationTitle: "Localisation et contact",
+  locationLead:
+    "Trouvez facilement la clinique, contactez notre équipe ou réservez votre rendez-vous avant votre visite.",
+  locationImageAlt: "Localisation et informations de contact de la clinique",
+  addressLabel: "Adresse de la clinique",
+  phoneNumberLabel: "Numéro de téléphone",
+  emailLabel: "Adresse e-mail",
+  whatsappLabel: "Contacter via WhatsApp",
+  facebookLabel: "Page Facebook",
+  callClinic: "Appeler la clinique",
+  directionsLabel: "Afficher l’itinéraire",
   contactClinic: "Contacter la clinique",
+  bookingConvenienceKicker: "Réservation à domicile",
+  bookingConvenienceTitle:
+    "Pourquoi vous déplacer uniquement pour prendre rendez-vous ?",
+  bookingConvenienceSupport:
+    "Il n’est plus nécessaire de perdre du temps et de l’argent en vous déplaçant avant de confirmer la disponibilité d’un rendez-vous.",
+  bookingConvenienceMain:
+    "Choisissez la spécialité, le médecin, la date et l’heure disponible depuis chez vous, puis envoyez votre demande en quelques étapes simples.",
+  bookingConvenienceClose:
+    "Réservez depuis chez vous et laissez notre clinique organiser votre visite.",
+  bookingConveniencePrimary: "Prendre rendez-vous",
+  bookingConvenienceSecondary: "Découvrir nos médecins",
+  bookingConvenienceTrust:
+    "Choisissez le médecin et l’horaire souhaités, puis attendez la confirmation de l’équipe de la clinique.",
+  bookingConvenienceImageAlt: "Prise de rendez-vous médical depuis le domicile",
+  bookingConvenienceBenefits: [
+    "Réserver depuis chez vous",
+    "Choisir votre médecin",
+    "Voir les horaires disponibles",
+    "Recevoir la confirmation de la clinique",
+  ],
   emptySpecialties: "Aucune spécialité publique pour le moment.",
   emptyFaq: "Aucune FAQ disponible pour le moment.",
   retryLabel: "Réessayer",
@@ -626,6 +845,31 @@ const fr: PublicCopy = {
   relatedCta: "Prendre rendez-vous",
   hoursLabel: "Horaires",
   reviewsTitle: "Avis patients vérifiés",
+  experiencesTitle: "Expériences de nos patients",
+  experiencesLead:
+    "Avis et expériences réels partagés par nos patients après les soins.",
+  experiencesEmpty: "Aucune expérience patient approuvée pour le moment.",
+  experiencesError:
+    "Impossible de charger les expériences. Veuillez réessayer.",
+  experiencesVerified: "Patient vérifié",
+  experiencesRating: "Évaluation",
+  experiencesPrev: "Expérience précédente",
+  experiencesNext: "Expérience suivante",
+  experiencesPause: "Pause du défilement automatique",
+  beforeAfterTitle: "Avant et après le traitement",
+  beforeAfterLead:
+    "Cas documentés publiés après obtention du consentement requis.",
+  beforeAfterDisclaimer:
+    "Les résultats varient d’un patient à l’autre. Les images sont publiées à titre illustratif après obtention du consentement de publication.",
+  beforeAfterEmpty: "Aucun cas avant/après approuvé pour le moment.",
+  beforeAfterError:
+    "Impossible de charger les cas avant/après. Veuillez réessayer.",
+  beforeLabel: "Avant",
+  afterLabel: "Après",
+  beforeAfterPrev: "Cas précédent",
+  beforeAfterNext: "Cas suivant",
+  comparisonControl: "Comparer les images avant et après le traitement",
+  bookTreatmentCta: "Prendre rendez-vous",
   availabilityLabel: "Disponibilité",
   heroVisualCaption: "Des soins bucco-dentaires calmes et précis",
   quickBookTitle: "Recherche rapide de rendez-vous",

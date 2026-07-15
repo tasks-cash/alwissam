@@ -43,6 +43,7 @@ export default async function DoctorsPage({
       locale={locale}
       dict={dict}
       brand={name}
+      clinic={site.clinic}
       phone={site.clinic?.phone}
       email={site.clinic?.email}
       address={site.clinic?.address}

@@ -7,6 +7,7 @@ import {
   RolesGuard,
 } from "../common/auth/permissions.guard";
 import { JwtAuthGuard } from "../common/auth/session.guard";
+import { CatalogModule } from "../catalog/catalog.module";
 import { PatientsModule } from "../patients/patients.module";
 import { Patient, PatientSchema } from "../patients/schemas/patient.schema";
 import { AppointmentsController } from "./appointments.controller";
@@ -27,6 +28,7 @@ import {
   imports: [
     AuthModule,
     PatientsModule,
+    CatalogModule,
     MongooseModule.forFeature([
       { name: Appointment.name, schema: AppointmentSchema },
       { name: WaitingRoomEntry.name, schema: WaitingRoomEntrySchema },

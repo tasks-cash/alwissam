@@ -65,6 +65,75 @@ test.describe("Homepage premium sections", () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
+  test("booking convenience and location contact on all locales", async ({
+    page,
+  }) => {
+    await page.goto("/ar");
+    await expect(
+      page.getByRole("heading", { name: "لماذا تتعب من أجل حجز موعد؟" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "الموقع والتواصل" }),
+    ).toBeVisible();
+    await expect(page.getByText(/حي الأمير عبد القادر/)).toBeVisible();
+    await expect(page.locator('a[href="tel:+213663098208"]')).toBeVisible();
+    await expect(page.locator(".wa-float")).toBeVisible();
+    await expect(page.locator(".wa-float")).toHaveAttribute(
+      "href",
+      /wa\.me\/213663098208\?text=/,
+    );
+
+    await page.goto("/en");
+    await expect(
+      page.getByRole("heading", {
+        name: "Why travel just to book an appointment?",
+      }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    await expect(page.locator(".wa-float")).toBeVisible();
+    const enBox = await page.locator(".wa-float").boundingBox();
+    expect(enBox).toBeTruthy();
+    if (enBox) {
+      expect(enBox.x + enBox.width).toBeGreaterThan(700);
+    }
+
+    await page.goto("/ar");
+    const arBox = await page.locator(".wa-float").boundingBox();
+    expect(arBox).toBeTruthy();
+    if (arBox) {
+      expect(arBox.x).toBeLessThan(80);
+    }
+
+    await page.goto("/fr");
+    await expect(
+      page.getByRole("heading", {
+        name: /Pourquoi vous déplacer uniquement pour prendre rendez-vous/,
+      }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  });
+
+  test("WhatsApp button is absent from owner dashboard shell", async ({
+    page,
+  }) => {
+    await page.goto("/ar/doctor/specialist/dashboard");
+    await expect(page.locator(".wa-float")).toHaveCount(0);
+  });
+
+  test("contact and Facebook links are functional", async ({ page }) => {
+    await page.goto("/ar/contact");
+    await expect(page.locator('a[href="tel:+213663098208"]').first()).toBeVisible();
+    await expect(
+      page.locator('a[href="mailto:clinic.elwissam@gmail.com"]').first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('a[href="https://web.facebook.com/Clinic.ElWissam"]')
+        .first(),
+    ).toBeVisible();
+    await expect(page.locator(".public-shell a[href='#']")).toHaveCount(0);
+  });
+
   test("specialties section includes dentistry without href='#'", async ({
     page,
   }) => {
@@ -107,7 +176,7 @@ test.describe("Contact page", () => {
     await page.getByLabel(/رقم الهاتف/).fill("0123456789");
     await page.getByLabel(/موضوع/).fill("استفسار تجربة");
     await page.getByLabel(/تفاصيل/).fill("تفاصيل كافية للاختبار هنا");
-    await page.getByRole("button", { name: /إرسال الاستفسار/ }).click();
+    await page.getByRole("button", { name: /إرسال استفسار/ }).click();
     await expect(page.locator(".field-error, .alert-error").first()).toBeVisible();
   });
 

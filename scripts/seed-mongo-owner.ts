@@ -167,6 +167,62 @@ async function main() {
     createdAt: now,
   });
 
+  const settings = db.collection("clinic_settings");
+  const clinicInfo = {
+    nameAr: "عيادة الوسام لطب الأسنان",
+    nameEn: "Al Wissam Dental Clinic",
+    nameFr: "Clinique Dentaire El Wissam",
+    phone: "0663098208",
+    phoneDisplay: "0663 09 82 08",
+    phoneInternational: "+213663098208",
+    email: "clinic.elwissam@gmail.com",
+    publicEmail: "clinic.elwissam@gmail.com",
+    address:
+      "حي الأمير عبد القادر، بجانب ابتدائية زكور فرحات الصغير، الوادي، الجزائر 39009",
+    addressAr:
+      "حي الأمير عبد القادر، بجانب ابتدائية زكور فرحات الصغير، الوادي، الجزائر 39009",
+    addressEn:
+      "Emir Abdelkader District, next to Zakour Farhat Essaghir Primary School, El Oued 39009, Algeria",
+    addressFr:
+      "Cité Emir Abdelkader, à côté de l’école primaire Zakour Farhat Essaghir, El Oued 39009, Algérie",
+    city: "El Oued",
+    stateOrWilaya: "El Oued",
+    postalCode: "39009",
+    countryAr: "الجزائر",
+    countryEn: "Algeria",
+    countryFr: "Algérie",
+    whatsappNumber: "213663098208",
+    whatsappEnabled: true,
+    facebookUrl: "https://web.facebook.com/Clinic.ElWissam",
+    mapsEmbedUrl: "",
+    mapsLink: "",
+    mapUrl: "",
+    directionsUrl: "",
+    timezone: "Africa/Algiers",
+    workingHoursAr:
+      "من السبت إلى الخميس\nمن الساعة 08:00 إلى الساعة 17:00\nالجمعة: مغلق",
+    workingHoursEn: "Saturday to Thursday\n08:00–17:00\nFriday: Closed",
+    workingHoursFr: "Du samedi au jeudi\n08:00–17:00\nVendredi : fermé",
+    fridayClosed: true,
+  };
+  const existingClinic = await settings.findOne({ key: "clinic_info" });
+  const prev =
+    existingClinic && typeof existingClinic.value === "object"
+      ? (existingClinic.value as Record<string, unknown>)
+      : {};
+  await settings.updateOne(
+    { key: "clinic_info" },
+    {
+      $set: {
+        key: "clinic_info",
+        value: { ...prev, ...clinicInfo },
+        updatedAt: now,
+      },
+      $setOnInsert: { createdAt: now },
+    },
+    { upsert: true },
+  );
+
   const verify = await users.findOne({ email });
   if (!verify) {
     throw new Error("Owner user missing after upsert");

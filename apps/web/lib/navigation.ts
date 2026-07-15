@@ -63,6 +63,26 @@ export const DASHBOARD_NAV: NavItem[] = [
     roles: ["ADMIN", "DOCTOR_SPECIALIST"],
   },
   {
+    href: "/doctor/specialist/public-content/patient-experiences",
+    labelKey: "navPatientExperiences",
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+  },
+  {
+    href: "/doctor/specialist/public-content/before-after",
+    labelKey: "navBeforeAfter",
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+  },
+  {
+    href: "/doctor/specialist/public-content/specialties",
+    labelKey: "navSpecialtiesAdmin",
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+  },
+  {
+    href: "/doctor/specialist/public-content/services",
+    labelKey: "navServicesAdmin",
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+  },
+  {
     href: "/doctor/specialist/audit-logs",
     labelKey: "navAuditLogs",
     roles: ["ADMIN", "DOCTOR_SPECIALIST"],

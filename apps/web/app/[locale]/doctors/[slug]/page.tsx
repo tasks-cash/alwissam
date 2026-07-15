@@ -5,6 +5,7 @@ import { PublicSection } from "../../../../components/public/PublicSection";
 import { isLocale, type Locale } from "../../../../lib/i18n/config";
 import { getDictionary } from "../../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../../lib/i18n/public-copy";
+import { contextualWhatsAppMessage } from "../../../../lib/clinic-contact";
 import {
   fetchPublicDoctor,
   fetchPublicSite,
@@ -40,10 +41,15 @@ export default async function DoctorProfilePage({
       locale={locale}
       dict={dict}
       brand={name}
+      clinic={site.clinic}
       phone={site.clinic?.phone}
       email={site.clinic?.email}
       address={site.clinic?.address}
       hours={hours}
+      whatsappMessage={contextualWhatsAppMessage(locale, {
+        kind: "doctor",
+        name: doctor.fullName,
+      })}
     >
       <PublicSection>
         <div className="doctor-profile">

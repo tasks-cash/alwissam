@@ -48,6 +48,10 @@ export type Dictionary = {
   navPatientDashboard: string;
   navPayments: string;
   navSettings: string;
+  navPatientExperiences: string;
+  navBeforeAfter: string;
+  navSpecialtiesAdmin: string;
+  navServicesAdmin: string;
   navAuditLogs: string;
   patientsTotal: string;
   patientsToday: string;
@@ -104,7 +108,7 @@ export type Dictionary = {
 };
 
 const ar: Dictionary = {
-  brand: "عيادة الوسام",
+  brand: "عيادة الوسام لطب الأسنان",
   brandSubtitle: "منصة إدارة طب الأسنان",
   homeTitle: "رعاية طبية متخصصة تبدأ من احتياجاتك",
   homeLead:
@@ -153,6 +157,10 @@ const ar: Dictionary = {
   navPatientDashboard: "حسابي",
   navPayments: "المدفوعات",
   navSettings: "إعدادات العيادة",
+  navPatientExperiences: "تجارب المرضى",
+  navBeforeAfter: "قبل وبعد العلاج",
+  navSpecialtiesAdmin: "إدارة التخصصات",
+  navServicesAdmin: "إدارة الخدمات",
   navAuditLogs: "سجل التدقيق",
   patientsTotal: "إجمالي المرضى",
   patientsToday: "مرضى جدد اليوم",
@@ -209,7 +217,7 @@ const ar: Dictionary = {
 };
 
 const en: Dictionary = {
-  brand: "Al-Wisam Clinic",
+  brand: "Al Wissam Dental Clinic",
   brandSubtitle: "Dental clinic management platform",
   homeTitle: "Professional clinic platform",
   homeLead:
@@ -245,7 +253,7 @@ const en: Dictionary = {
   accountActive: "Active",
   unauthorized: "Authentication required",
   connectionError: "Unable to reach the server. Please try again.",
-  footerRights: "© Al-Wisam Dental Clinic",
+  footerRights: "© Al Wissam Dental Clinic",
   navOwnerDashboard: "Owner dashboard",
   navSecretaryDashboard: "Reception dashboard",
   navDoctorDashboard: "Doctor dashboard",
@@ -258,6 +266,10 @@ const en: Dictionary = {
   navPatientDashboard: "My account",
   navPayments: "Payments",
   navSettings: "Clinic settings",
+  navPatientExperiences: "Patient experiences",
+  navBeforeAfter: "Before & after",
+  navSpecialtiesAdmin: "Specialties",
+  navServicesAdmin: "Services",
   navAuditLogs: "Audit logs",
   patientsTotal: "Active patients",
   patientsToday: "New patients today",
@@ -315,7 +327,7 @@ const en: Dictionary = {
 };
 
 const fr: Dictionary = {
-  brand: "Clinique Al-Wisam",
+  brand: "Clinique Dentaire El Wissam",
   brandSubtitle: "Plateforme de gestion dentaire",
   homeTitle: "Plateforme clinique professionnelle",
   homeLead:
@@ -352,7 +364,7 @@ const fr: Dictionary = {
   accountActive: "Actif",
   unauthorized: "Authentification requise",
   connectionError: "Impossible de joindre le serveur. Réessayez.",
-  footerRights: "© Clinique Dentaire Al-Wisam",
+  footerRights: "© Clinique Dentaire El Wissam",
   navOwnerDashboard: "Tableau propriétaire",
   navSecretaryDashboard: "Tableau réception",
   navDoctorDashboard: "Tableau médecin",
@@ -365,6 +377,10 @@ const fr: Dictionary = {
   navPatientDashboard: "Mon compte",
   navPayments: "Paiements",
   navSettings: "Paramètres clinique",
+  navPatientExperiences: "Expériences patients",
+  navBeforeAfter: "Avant / après",
+  navSpecialtiesAdmin: "Spécialités",
+  navServicesAdmin: "Services",
   navAuditLogs: "Journal d’audit",
   patientsTotal: "Patients actifs",
   patientsToday: "Nouveaux aujourd’hui",

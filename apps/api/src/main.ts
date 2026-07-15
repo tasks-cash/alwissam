@@ -1,7 +1,10 @@
 import "reflect-metadata";
+import { existsSync, mkdirSync } from "fs";
+import { join } from "path";
 import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
@@ -9,7 +12,12 @@ import { ApiExceptionFilter } from "./common/filters/api-exception.filter";
 import { ErrorCodes } from "./common/errors/error-codes";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const uploadRoot =
+    process.env.UPLOAD_DIR || join(process.cwd(), "uploads");
+  if (!existsSync(uploadRoot)) mkdirSync(uploadRoot, { recursive: true });
+  app.useStaticAssets(uploadRoot, { prefix: "/uploads/" });
 
   app.setGlobalPrefix("");
   app.use(cookieParser());

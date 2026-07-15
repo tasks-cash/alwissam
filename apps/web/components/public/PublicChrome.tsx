@@ -7,6 +7,14 @@ import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
 import type { Dictionary } from "../../lib/i18n/dictionaries";
 import type { Locale } from "../../lib/i18n/config";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
+import {
+  buildWhatsAppUrl,
+  facebookAriaLabel,
+  resolveClinicContact,
+  type ClinicContact,
+} from "../../lib/clinic-contact";
+import { BidiSafeValue } from "./BidiSafeValue";
+import { GlobalWhatsAppButton } from "./GlobalWhatsAppButton";
 
 type Props = {
   locale: Locale;
@@ -17,6 +25,8 @@ type Props = {
   email?: string;
   address?: string;
   hours?: string;
+  clinic?: ClinicContact | null;
+  whatsappMessage?: string;
 };
 
 function ClinicMark({ name }: { name: string }) {
@@ -49,12 +59,33 @@ export function PublicChrome({
   email,
   address,
   hours,
+  clinic,
+  whatsappMessage,
 }: Props) {
   const copy = getPublicCopy(locale);
   const name = brand || dict.brand;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const year = new Date().getFullYear();
+  const contact = resolveClinicContact(
+    locale,
+    {
+      ...clinic,
+      phone: clinic?.phone || phone,
+      email: clinic?.email || email,
+      address: clinic?.address || address,
+      addressAr: clinic?.addressAr || address,
+    },
+    name,
+  );
+  const displayHours = contact.hours || hours || "";
+  const waHref = contact.whatsappEnabled
+    ? buildWhatsAppUrl(locale, {
+        ...clinic,
+        whatsappNumber: contact.whatsappNumber,
+        whatsappEnabled: true,
+      })
+    : "";
 
   useEffect(() => {
     setOpen(false);
@@ -225,12 +256,43 @@ export function PublicChrome({
           <div>
             <h2>{copy.footerContact}</h2>
             <ul>
-              {phone ? <li dir="ltr">{phone}</li> : null}
-              {email ? <li>{email}</li> : null}
-              {address ? <li>{address}</li> : null}
-              {hours ? (
+              {contact.phoneDisplay && contact.phoneTel ? (
+                <li>
+                  <a href={contact.phoneTel}>
+                    <BidiSafeValue>{contact.phoneDisplay}</BidiSafeValue>
+                  </a>
+                </li>
+              ) : null}
+              {contact.email ? (
+                <li>
+                  <a href={`mailto:${contact.email}`}>
+                    <BidiSafeValue>{contact.email}</BidiSafeValue>
+                  </a>
+                </li>
+              ) : null}
+              {contact.address ? <li>{contact.address}</li> : null}
+              {displayHours ? (
                 <li className="working-hours-footer" style={{ whiteSpace: "pre-line" }}>
-                  {hours}
+                  <BidiSafeValue>{displayHours}</BidiSafeValue>
+                </li>
+              ) : null}
+              {waHref ? (
+                <li>
+                  <a href={waHref} target="_blank" rel="noopener noreferrer">
+                    {copy.whatsappLabel}
+                  </a>
+                </li>
+              ) : null}
+              {contact.facebookUrl ? (
+                <li>
+                  <a
+                    href={contact.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={facebookAriaLabel(locale)}
+                  >
+                    {copy.facebookLabel}
+                  </a>
                 </li>
               ) : null}
               <li>
@@ -252,6 +314,17 @@ export function PublicChrome({
           </div>
         </div>
       </footer>
+
+      <GlobalWhatsAppButton
+        locale={locale}
+        clinic={{
+          ...clinic,
+          phone: clinic?.phone || phone,
+          whatsappNumber: contact.whatsappNumber,
+          whatsappEnabled: contact.whatsappEnabled,
+        }}
+        message={whatsappMessage}
+      />
     </div>
   );
 }

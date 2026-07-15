@@ -3,6 +3,11 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { AuditService } from "../common/audit/audit.service";
 import type { AuthUser } from "../common/auth/session.guard";
+import {
+  formatClinicPhoneDisplay,
+  toInternationalAlgeriaPhone,
+  toWhatsAppNumber,
+} from "./clinic-contact.util";
 import { UpsertSettingsDto } from "./dto/settings.dto";
 import { ClinicSetting } from "./schemas/clinic-setting.schema";
 import { ContactMessage } from "./schemas/contact-message.schema";
@@ -11,9 +16,9 @@ const DEFAULT_PUBLIC_PAGES = {
   aboutAr:
     "عيادة الوسام لطب الأسنان — رعاية احترافية تجمع بين الخبرة والتقنيات الحديثة في بيئة هادئة وموثوقة.",
   aboutEn:
-    "Al-Wisam Dental Clinic — professional care combining expertise and modern techniques in a calm, trustworthy setting.",
+    "Al Wissam Dental Clinic — professional care combining expertise and modern techniques in a calm, trustworthy setting.",
   aboutFr:
-    "Clinique dentaire Al-Wisam — des soins professionnels alliant expertise et techniques modernes dans un cadre serein.",
+    "Clinique Dentaire El Wissam — des soins professionnels alliant expertise et techniques modernes dans un cadre serein.",
   missionAr: "تقديم رعاية فموية آمنة ودقيقة تضع راحة المريض أولاً.",
   missionEn: "Deliver safe, precise oral care that puts patient comfort first.",
   missionFr:
@@ -318,19 +323,45 @@ const DEFAULT_PUBLIC_PAGES = {
 
 const DEFAULT_CLINIC_INFO = {
   nameAr: "عيادة الوسام لطب الأسنان",
-  nameEn: "Al-Wisam Dental Clinic",
-  nameFr: "Clinique Dentaire Al-Wisam",
-  phone: "",
-  email: "",
-  address: "",
+  nameEn: "Al Wissam Dental Clinic",
+  nameFr: "Clinique Dentaire El Wissam",
+  phone: "0663098208",
+  phoneDisplay: "0663 09 82 08",
+  phoneInternational: "+213663098208",
+  email: "clinic.elwissam@gmail.com",
+  publicEmail: "clinic.elwissam@gmail.com",
+  address:
+    "حي الأمير عبد القادر، بجانب ابتدائية زكور فرحات الصغير، الوادي، الجزائر 39009",
+  addressAr:
+    "حي الأمير عبد القادر، بجانب ابتدائية زكور فرحات الصغير، الوادي، الجزائر 39009",
+  addressEn:
+    "Emir Abdelkader District, next to Zakour Farhat Essaghir Primary School, El Oued 39009, Algeria",
+  addressFr:
+    "Cité Emir Abdelkader, à côté de l’école primaire Zakour Farhat Essaghir, El Oued 39009, Algérie",
+  city: "El Oued",
+  stateOrWilaya: "El Oued",
+  postalCode: "39009",
+  countryAr: "الجزائر",
+  countryEn: "Algeria",
+  countryFr: "Algérie",
+  whatsappNumber: "213663098208",
+  whatsappEnabled: true,
+  facebookUrl: "https://web.facebook.com/Clinic.ElWissam",
   descriptionAr: "",
   descriptionEn: "",
   descriptionFr: "",
   mapsEmbedUrl: "",
   mapsLink: "",
-  workingHoursAr: "من السبت إلى الخميس\nمن الساعة 08:00 إلى الساعة 17:00\nالجمعة: مغلق",
+  mapUrl: "",
+  directionsUrl: "",
+  latitude: "",
+  longitude: "",
+  timezone: "Africa/Algiers",
+  workingHoursAr:
+    "من السبت إلى الخميس\nمن الساعة 08:00 إلى الساعة 17:00\nالجمعة: مغلق",
   workingHoursEn: "Saturday to Thursday\n08:00–17:00\nFriday: Closed",
   workingHoursFr: "Du samedi au jeudi\n08:00–17:00\nVendredi : fermé",
+  fridayClosed: true,
 };
 
 @Injectable()
@@ -348,10 +379,133 @@ export class SettingsService {
     return (row?.value as Record<string, unknown>) || null;
   }
 
-  async getClinicInfo() {
-    const stored = await this.getKey("clinic_info");
-    const merged = { ...DEFAULT_CLINIC_INFO, ...(stored || {}) };
-    // Prefer Sat–Thu schedule when stored values still use legacy Sun–Thu defaults.
+  /**
+   * Merge defaults and backfill critical public contact fields when empty/legacy.
+   * Idempotent — does not overwrite intentionally customized non-empty values
+   * except for known obsolete placeholders.
+   */
+  private mergeClinicInfo(stored: Record<string, unknown> | null) {
+    const merged: Record<string, unknown> = {
+      ...DEFAULT_CLINIC_INFO,
+      ...(stored || {}),
+    };
+
+    // Canonical public brand names (idempotent correction of older defaults).
+    const nameEn = String(merged.nameEn || "");
+    if (
+      !nameEn.trim() ||
+      /Al-Wisam|Al‑Wisam/i.test(nameEn) ||
+      nameEn === "Al-Wisam Dental Clinic"
+    ) {
+      merged.nameEn = DEFAULT_CLINIC_INFO.nameEn;
+    }
+    const nameFr = String(merged.nameFr || "");
+    if (
+      !nameFr.trim() ||
+      /Al-Wisam|Al‑Wisam/i.test(nameFr) ||
+      nameFr === "Clinique Dentaire Al-Wisam"
+    ) {
+      merged.nameFr = DEFAULT_CLINIC_INFO.nameFr;
+    }
+    if (!String(merged.nameAr || "").trim()) {
+      merged.nameAr = DEFAULT_CLINIC_INFO.nameAr;
+    }
+
+    const staleAddress =
+      !String(merged.address || "").trim() ||
+      String(merged.address) === "الجزائر" ||
+      String(merged.addressAr || "") === "الجزائر";
+    if (staleAddress) {
+      merged.address = DEFAULT_CLINIC_INFO.address;
+      merged.addressAr = DEFAULT_CLINIC_INFO.addressAr;
+      merged.addressEn = DEFAULT_CLINIC_INFO.addressEn;
+      merged.addressFr = DEFAULT_CLINIC_INFO.addressFr;
+    }
+    if (!String(merged.addressAr || "").trim()) {
+      merged.addressAr = DEFAULT_CLINIC_INFO.addressAr;
+    }
+    if (!String(merged.addressEn || "").trim()) {
+      merged.addressEn = DEFAULT_CLINIC_INFO.addressEn;
+    }
+    if (!String(merged.addressFr || "").trim()) {
+      merged.addressFr = DEFAULT_CLINIC_INFO.addressFr;
+    }
+
+    for (const [key, fallback] of [
+      ["city", DEFAULT_CLINIC_INFO.city],
+      ["stateOrWilaya", DEFAULT_CLINIC_INFO.stateOrWilaya],
+      ["postalCode", DEFAULT_CLINIC_INFO.postalCode],
+      ["countryAr", DEFAULT_CLINIC_INFO.countryAr],
+      ["countryEn", DEFAULT_CLINIC_INFO.countryEn],
+      ["countryFr", DEFAULT_CLINIC_INFO.countryFr],
+      ["timezone", DEFAULT_CLINIC_INFO.timezone],
+    ] as const) {
+      if (!String(merged[key] || "").trim()) merged[key] = fallback;
+    }
+    if (merged.fridayClosed === undefined || merged.fridayClosed === null) {
+      merged.fridayClosed = true;
+    }
+
+    const phone = String(merged.phone || "").replace(/\D/g, "");
+    if (!phone || phone === "0550000000") {
+      merged.phone = DEFAULT_CLINIC_INFO.phone;
+      merged.phoneDisplay = DEFAULT_CLINIC_INFO.phoneDisplay;
+      merged.phoneInternational = DEFAULT_CLINIC_INFO.phoneInternational;
+      merged.whatsappNumber = DEFAULT_CLINIC_INFO.whatsappNumber;
+    } else {
+      merged.phone = phone.startsWith("0") || phone.startsWith("213")
+        ? String(merged.phone).replace(/\s/g, "") || phone
+        : phone;
+      // Keep canonical local string form for this clinic.
+      if (phone === "0663098208" || phone === "213663098208") {
+        merged.phone = "0663098208";
+        merged.phoneDisplay = "0663 09 82 08";
+        merged.phoneInternational = "+213663098208";
+        merged.whatsappNumber = "213663098208";
+      } else {
+        if (!String(merged.phoneDisplay || "").trim()) {
+          merged.phoneDisplay = DEFAULT_CLINIC_INFO.phoneDisplay;
+        }
+        if (!String(merged.phoneInternational || "").trim()) {
+          const local = phone.replace(/^0/, "");
+          merged.phoneInternational = phone.startsWith("213")
+            ? `+${phone}`
+            : `+213${local}`;
+        }
+        if (!String(merged.whatsappNumber || "").trim()) {
+          const intl = String(merged.phoneInternational).replace(/\D/g, "");
+          merged.whatsappNumber = intl.startsWith("213")
+            ? intl
+            : DEFAULT_CLINIC_INFO.whatsappNumber;
+        }
+      }
+    }
+
+    const email = String(merged.email || merged.publicEmail || "")
+      .trim()
+      .toLowerCase();
+    if (!email || email === "contact@alwisam.dz") {
+      merged.email = DEFAULT_CLINIC_INFO.email;
+      merged.publicEmail = DEFAULT_CLINIC_INFO.publicEmail;
+    } else {
+      merged.email = email;
+      merged.publicEmail = email;
+    }
+    if (!String(merged.facebookUrl || "").trim()) {
+      merged.facebookUrl = DEFAULT_CLINIC_INFO.facebookUrl;
+    }
+    if (merged.whatsappEnabled === undefined || merged.whatsappEnabled === null) {
+      merged.whatsappEnabled = true;
+    }
+
+    // Preserve map/directions when present; never invent.
+    if (!String(merged.directionsUrl || "").trim() && String(merged.mapsLink || "").trim()) {
+      merged.directionsUrl = merged.mapsLink;
+    }
+    if (!String(merged.mapUrl || "").trim() && String(merged.mapsEmbedUrl || "").trim()) {
+      merged.mapUrl = merged.mapsEmbedUrl;
+    }
+
     for (const [key, fallback] of [
       ["workingHoursAr", DEFAULT_CLINIC_INFO.workingHoursAr],
       ["workingHoursEn", DEFAULT_CLINIC_INFO.workingHoursEn],
@@ -365,9 +519,108 @@ export class SettingsService {
         merged[key] = fallback;
       }
     }
+    return merged;
+  }
+
+  private toPublicClinic(clinicInfo: Record<string, unknown>) {
+    const email = String(
+      clinicInfo.email || clinicInfo.publicEmail || "",
+    ).trim();
+    const phone = String(clinicInfo.phone || "");
+    const phoneDisplay = String(
+      clinicInfo.phoneDisplay || formatClinicPhoneDisplay(phone),
+    );
+    const phoneInternational = String(
+      clinicInfo.phoneInternational || toInternationalAlgeriaPhone(phone),
+    );
+    const whatsappNumber = toWhatsAppNumber(
+      String(clinicInfo.whatsappNumber || phoneInternational || phone),
+    );
+    const whatsappEnabled = clinicInfo.whatsappEnabled !== false && Boolean(whatsappNumber);
+    const mapsEmbedUrl = String(
+      clinicInfo.mapsEmbedUrl || clinicInfo.mapUrl || "",
+    ).trim();
+    const mapsLink = String(
+      clinicInfo.mapsLink || clinicInfo.directionsUrl || "",
+    ).trim();
+    const latitude = String(clinicInfo.latitude || "").trim();
+    const longitude = String(clinicInfo.longitude || "").trim();
+
+    return {
+      nameAr: String(clinicInfo.nameAr || ""),
+      nameEn: String(clinicInfo.nameEn || ""),
+      nameFr: String(clinicInfo.nameFr || ""),
+      clinicNameAr: String(clinicInfo.nameAr || ""),
+      clinicNameEn: String(clinicInfo.nameEn || ""),
+      clinicNameFr: String(clinicInfo.nameFr || ""),
+      address: String(clinicInfo.addressAr || clinicInfo.address || ""),
+      addressAr: String(clinicInfo.addressAr || clinicInfo.address || ""),
+      addressEn: String(clinicInfo.addressEn || ""),
+      addressFr: String(clinicInfo.addressFr || ""),
+      city: String(clinicInfo.city || ""),
+      stateOrWilaya: String(clinicInfo.stateOrWilaya || ""),
+      postalCode: String(clinicInfo.postalCode || ""),
+      countryAr: String(clinicInfo.countryAr || ""),
+      countryEn: String(clinicInfo.countryEn || ""),
+      countryFr: String(clinicInfo.countryFr || ""),
+      email,
+      publicEmail: email,
+      phone,
+      publicPhone: phone,
+      phoneDisplay,
+      publicPhoneDisplay: phoneDisplay,
+      phoneInternational,
+      publicPhoneInternational: phoneInternational,
+      telephoneUrl: phoneInternational ? `tel:${phoneInternational}` : "",
+      whatsappNumber,
+      whatsappEnabled,
+      whatsappUrl: whatsappEnabled
+        ? `https://wa.me/${whatsappNumber}`
+        : "",
+      facebookUrl: String(clinicInfo.facebookUrl || "").trim(),
+      workingHoursAr: String(clinicInfo.workingHoursAr || ""),
+      workingHoursEn: String(clinicInfo.workingHoursEn || ""),
+      workingHoursFr: String(clinicInfo.workingHoursFr || ""),
+      fridayClosed: clinicInfo.fridayClosed !== false,
+      timezone: String(clinicInfo.timezone || "Africa/Algiers"),
+      mapsEmbedUrl,
+      mapsLink,
+      mapUrl: mapsEmbedUrl,
+      directionsUrl: mapsLink,
+      ...(latitude ? { latitude } : {}),
+      ...(longitude ? { longitude } : {}),
+      descriptionAr: String(clinicInfo.descriptionAr || ""),
+      descriptionEn: String(clinicInfo.descriptionEn || ""),
+      descriptionFr: String(clinicInfo.descriptionFr || ""),
+    };
+  }
+
+  async getClinicInfo() {
+    const stored = await this.getKey("clinic_info");
+    const clinicInfo = this.mergeClinicInfo(stored);
+    // Persist backfilled contact so all consumers share one Mongo record.
+    const needsWrite =
+      !stored ||
+      String(stored.phone || "") !== String(clinicInfo.phone || "") ||
+      String(stored.email || "") !== String(clinicInfo.email || "") ||
+      String(stored.addressAr || stored.address || "") !==
+        String(clinicInfo.addressAr || "") ||
+      String(stored.facebookUrl || "") !== String(clinicInfo.facebookUrl || "") ||
+      String(stored.whatsappNumber || "") !==
+        String(clinicInfo.whatsappNumber || "") ||
+      String(stored.nameEn || "") !== String(clinicInfo.nameEn || "") ||
+      String(stored.nameFr || "") !== String(clinicInfo.nameFr || "") ||
+      String(stored.timezone || "") !== String(clinicInfo.timezone || "");
+    if (needsWrite) {
+      await this.settings.findOneAndUpdate(
+        { key: "clinic_info" },
+        { $set: { value: clinicInfo } },
+        { upsert: true, new: true },
+      );
+    }
     return {
       ok: true,
-      clinicInfo: merged,
+      clinicInfo,
     };
   }
 
@@ -489,7 +742,7 @@ export class SettingsService {
     ]);
     return {
       ok: true,
-      clinic: info.clinicInfo,
+      clinic: this.toPublicClinic(info.clinicInfo as Record<string, unknown>),
       content: pages.publicPages,
     };
   }
@@ -497,7 +750,26 @@ export class SettingsService {
   async upsert(dto: UpsertSettingsDto, actor: AuthUser) {
     if (dto.section === "clinic_info") {
       const prev = (await this.getKey("clinic_info")) || {};
-      const next = { ...prev, ...(dto.clinicInfo || {}) };
+      const next = this.mergeClinicInfo({
+        ...prev,
+        ...(dto.clinicInfo || {}),
+      });
+      // Normalize phones as strings; never persist numeric phone types.
+      next.phone = String(next.phone || "");
+      next.phoneDisplay = String(
+        next.phoneDisplay || formatClinicPhoneDisplay(String(next.phone)),
+      );
+      next.phoneInternational = String(
+        next.phoneInternational ||
+          toInternationalAlgeriaPhone(String(next.phone)),
+      );
+      next.whatsappNumber = toWhatsAppNumber(
+        String(next.whatsappNumber || next.phoneInternational || next.phone),
+      );
+      next.publicEmail = String(next.email || next.publicEmail || "");
+      next.email = next.publicEmail;
+        next.updatedAt = new Date().toISOString();
+      next.updatedBy = actor.id;
       await this.settings.findOneAndUpdate(
         { key: "clinic_info" },
         { $set: { value: next } },

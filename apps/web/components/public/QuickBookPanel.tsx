@@ -34,12 +34,23 @@ export function QuickBookPanel({ locale, doctors, specialties }: Props) {
 
   const filteredDoctors = useMemo(() => {
     if (!specialty) return doctors;
-    const name = specialty.toLowerCase();
+    const selected = specialties.find((s) => s.slug === specialty);
+    const keys = [
+      selected?.nameAr,
+      selected?.nameEn,
+      selected?.nameFr,
+      specialty,
+    ]
+      .filter(Boolean)
+      .map((v) => String(v).toLowerCase());
     return doctors.filter((d) => {
-      const s = localizedDoctorSpecialty(locale, d).toLowerCase();
-      return !s || s.includes(name) || name.includes(s);
+      const blob = [d.specialtyAr, d.specialtyEn, d.specialtyFr]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return keys.some((k) => blob.includes(k) || k.includes(blob.slice(0, 8)));
     });
-  }, [doctors, specialty, locale]);
+  }, [doctors, specialty, specialties]);
 
   useEffect(() => {
     if (doctorId && !filteredDoctors.some((d) => d.id === doctorId)) {
@@ -111,14 +122,11 @@ export function QuickBookPanel({ locale, doctors, specialties }: Props) {
             onChange={(e) => setSpecialty(e.target.value)}
           >
             <option value="">{copy.anyDoctor}</option>
-            {specialties.map((s) => {
-              const label = localizedSpecialtyName(locale, s);
-              return (
-                <option key={s.slug} value={label}>
-                  {label}
-                </option>
-              );
-            })}
+            {specialties.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {localizedSpecialtyName(locale, s)}
+              </option>
+            ))}
           </select>
         </div>
         <div className="field">

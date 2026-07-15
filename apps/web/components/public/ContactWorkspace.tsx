@@ -5,15 +5,25 @@ import { AppointmentWizard } from "./AppointmentWizard";
 import { ContactForm } from "./ContactForm";
 import type { Locale } from "../../lib/i18n/config";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
-import type { PublicDoctor, PublicSpecialty } from "../../lib/public-site";
+import type {
+  PublicDoctor,
+  PublicService,
+  PublicSpecialty,
+} from "../../lib/public-site";
 
 type Props = {
   locale: Locale;
   doctors: PublicDoctor[];
   specialties: PublicSpecialty[];
+  services: PublicService[];
 };
 
-export function ContactWorkspace({ locale, doctors, specialties }: Props) {
+export function ContactWorkspace({
+  locale,
+  doctors,
+  specialties,
+  services,
+}: Props) {
   const copy = getPublicCopy(locale);
   const [tab, setTab] = useState<"inquiry" | "book">("inquiry");
 
@@ -68,6 +78,7 @@ export function ContactWorkspace({ locale, doctors, specialties }: Props) {
             locale={locale}
             doctors={doctors}
             specialties={specialties}
+            services={services}
           />
         </div>
       )}

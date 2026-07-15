@@ -7,7 +7,9 @@ import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
   fetchPublicDoctors,
+  fetchPublicServicesCatalog,
   fetchPublicSite,
+  fetchPublicSpecialties,
   localizedClinicName,
   localizedWorkingHours,
 } from "../../../lib/public-site";
@@ -47,19 +49,21 @@ export default async function ContactPage({
   const locale = raw as Locale;
   const dict = getDictionary(locale);
   const copy = getPublicCopy(locale);
-  const [site, doctors] = await Promise.all([
+  const [site, doctors, specialtyRes, serviceRes] = await Promise.all([
     fetchPublicSite(),
     fetchPublicDoctors(),
+    fetchPublicSpecialties({ locale, limit: 48 }),
+    fetchPublicServicesCatalog({ locale, limit: 48 }),
   ]);
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const hours = localizedWorkingHours(locale, site.clinic);
-  const specialties = site.content?.specialties || [];
 
   return (
     <PublicChrome
       locale={locale}
       dict={dict}
       brand={name}
+      clinic={site.clinic}
       phone={site.clinic?.phone}
       email={site.clinic?.email}
       address={site.clinic?.address}
@@ -71,7 +75,8 @@ export default async function ContactPage({
         hours={hours}
         clinic={site.clinic}
         doctors={doctors}
-        specialties={specialties}
+        specialties={specialtyRes.specialties}
+        services={serviceRes.services}
       />
     </PublicChrome>
   );

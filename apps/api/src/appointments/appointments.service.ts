@@ -18,6 +18,7 @@ import {
   UpdateAppointmentStatusDto,
   WaitingRoomActionDto,
 } from "./dto/appointment.dto";
+import { CatalogService } from "../catalog/catalog.service";
 import { PublicBookAppointmentDto } from "./dto/public-book.dto";
 import { AppointmentRequest } from "./schemas/appointment-request.schema";
 import {
@@ -47,6 +48,7 @@ export class AppointmentsService {
     @InjectModel(Patient.name) private readonly patients: Model<Patient>,
     @InjectModel(User.name) private readonly users: Model<User>,
     private readonly audit: AuditService,
+    private readonly catalog: CatalogService,
   ) {}
 
   private async nextAppointmentNumber(): Promise<string> {
@@ -529,26 +531,12 @@ export class AppointmentsService {
       });
     }
 
-    if (dto.preferredDoctorId) {
-      if (!Types.ObjectId.isValid(dto.preferredDoctorId)) {
-        throw new BadRequestException({
-          code: ErrorCodes.VALIDATION_ERROR,
-          message: "معرّف الطبيب غير صالح.",
-        });
-      }
-      const doctor = await this.users.findOne({
-        _id: dto.preferredDoctorId,
-        deletedAt: null,
-        status: "ACTIVE",
-        doctor: { $exists: true },
-        "doctor.isActive": { $ne: false },
+    if (dto.specialtySlug || dto.serviceSlug || dto.preferredDoctorId) {
+      await this.catalog.assertBookingRelation({
+        specialtySlug: dto.specialtySlug,
+        serviceSlug: dto.serviceSlug,
+        doctorId: dto.preferredDoctorId,
       });
-      if (!doctor) {
-        throw new NotFoundException({
-          code: ErrorCodes.NOT_FOUND,
-          message: "الطبيب غير متاح للحجز.",
-        });
-      }
     }
 
     if (dto.preferredDate) {
@@ -610,7 +598,13 @@ export class AppointmentsService {
       preferredTime: dto.preferredTime,
       consentAccepted: true,
       status,
-      additionalNotes: dto.additionalNotes,
+      additionalNotes: [
+        dto.specialtySlug ? `specialty:${dto.specialtySlug}` : "",
+        dto.serviceSlug ? `service:${dto.serviceSlug}` : "",
+        dto.additionalNotes || "",
+      ]
+        .filter(Boolean)
+        .join(" | ") || undefined,
     });
 
     return {

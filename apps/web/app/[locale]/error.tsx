@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { GlobalWhatsAppButton } from "../../components/public/GlobalWhatsAppButton";
 import { isLocale, type Locale } from "../../lib/i18n/config";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
+
+const FALLBACK_CLINIC = {
+  phone: "0663098208",
+  phoneInternational: "+213663098208",
+  whatsappNumber: "213663098208",
+  whatsappEnabled: true,
+};
 
 export default function LocaleError({
   reset,
@@ -30,7 +38,11 @@ export default function LocaleError({
         : "يرجى إعادة المحاولة. إذا استمرّت المشكلة، تواصلوا مع العيادة.";
 
   return (
-    <main className="public-shell">
+    <main
+      className="public-shell"
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      lang={locale}
+    >
       <section className="pub-band pub-band-mist page-hero">
         <div className="pub-container">
           <h1>{title}</h1>
@@ -52,6 +64,7 @@ export default function LocaleError({
           </div>
         </div>
       </section>
+      <GlobalWhatsAppButton locale={locale} clinic={FALLBACK_CLINIC} />
     </main>
   );
 }

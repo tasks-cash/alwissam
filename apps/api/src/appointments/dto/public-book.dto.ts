@@ -81,4 +81,14 @@ export class PublicBookAppointmentDto {
   @IsString()
   @ValidateIf((_, v) => v !== undefined && v !== "")
   additionalNotes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  specialtySlug?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  serviceSlug?: string;
 }

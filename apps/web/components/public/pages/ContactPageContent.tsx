@@ -4,6 +4,7 @@ import type { Locale } from "../../../lib/i18n/config";
 import type { PublicCopy } from "../../../lib/i18n/public-copy";
 import type {
   PublicDoctor,
+  PublicService,
   PublicSpecialty,
   PublicSitePayload,
 } from "../../../lib/public-site";
@@ -19,6 +20,7 @@ export type ContactPageContentProps = {
   clinic?: PublicSitePayload["clinic"];
   doctors: PublicDoctor[];
   specialties: PublicSpecialty[];
+  services: PublicService[];
 };
 
 export function ContactPageContent({
@@ -28,6 +30,7 @@ export function ContactPageContent({
   clinic,
   doctors,
   specialties,
+  services,
 }: ContactPageContentProps) {
   return (
     <>
@@ -62,11 +65,8 @@ export function ContactPageContent({
         <ClinicLocation
           locale={locale}
           copy={copy}
-          phone={clinic?.phone}
-          address={clinic?.address}
+          clinic={clinic}
           hours={hours}
-          mapsEmbedUrl={clinic?.mapsEmbedUrl}
-          mapsLink={(clinic as { mapsLink?: string } | undefined)?.mapsLink}
         />
       </PublicSection>
 
@@ -75,6 +75,7 @@ export function ContactPageContent({
           locale={locale}
           doctors={doctors}
           specialties={specialties}
+          services={services}
         />
       </PublicSection>
     </>

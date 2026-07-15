@@ -6,6 +6,7 @@ import { PublicSection } from "../../../../components/public/PublicSection";
 import { isLocale, type Locale } from "../../../../lib/i18n/config";
 import { getDictionary } from "../../../../lib/i18n/dictionaries";
 import { getPublicCopy, reasonLabel } from "../../../../lib/i18n/public-copy";
+import { contextualWhatsAppMessage } from "../../../../lib/clinic-contact";
 import {
   fetchPublicAppointmentRef,
   fetchPublicSite,
@@ -30,16 +31,26 @@ export default async function BookingConfirmationPage({
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const hours = localizedWorkingHours(locale, site.clinic);
   const request = ref ? await fetchPublicAppointmentRef(ref) : null;
+  const publicReference = String(request?.requestNumber || ref || "").trim();
 
   return (
     <PublicChrome
       locale={locale}
       dict={dict}
       brand={name}
+      clinic={site.clinic}
       phone={site.clinic?.phone}
       email={site.clinic?.email}
       address={site.clinic?.address}
       hours={hours}
+      whatsappMessage={
+        publicReference
+          ? contextualWhatsAppMessage(locale, {
+              kind: "confirmation",
+              publicReference,
+            })
+          : contextualWhatsAppMessage(locale, { kind: "booking" })
+      }
     >
       <PageHero
         title={copy.confirmationTitle}

@@ -1,6 +1,7 @@
 import type { Locale } from "./i18n/config";
 
 export type PublicService = {
+  id?: string;
   slug: string;
   name?: string;
   nameAr?: string;
@@ -10,16 +11,37 @@ export type PublicService = {
   descriptionAr?: string;
   descriptionEn?: string;
   descriptionFr?: string;
+  shortDescription?: string;
+  shortDescriptionAr?: string;
+  shortDescriptionEn?: string;
+  shortDescriptionFr?: string;
+  icon?: string;
+  image?: string | null;
+  specialties?: Array<{ id: string; slug: string; name: string }>;
+  doctorCount?: number;
+  durationMinutes?: number | null;
+  priceFrom?: number | null;
+  currency?: string | null;
+  requiresConsultation?: boolean;
+  isFeatured?: boolean;
 };
 
 export type PublicSpecialty = {
+  id?: string;
   slug: string;
+  name?: string;
   nameAr?: string;
   nameEn?: string;
   nameFr?: string;
+  description?: string;
   descriptionAr?: string;
   descriptionEn?: string;
   descriptionFr?: string;
+  icon?: string;
+  image?: string | null;
+  serviceCount?: number;
+  doctorCount?: number;
+  isFeatured?: boolean;
 };
 
 export type PublicFaq = {
@@ -41,18 +63,47 @@ export type PublicSitePayload = {
     nameAr?: string;
     nameEn?: string;
     nameFr?: string;
+    clinicNameAr?: string;
+    clinicNameEn?: string;
+    clinicNameFr?: string;
     phone?: string;
+    publicPhone?: string;
+    phoneDisplay?: string;
+    publicPhoneDisplay?: string;
+    phoneInternational?: string;
+    publicPhoneInternational?: string;
+    telephoneUrl?: string;
     email?: string;
+    publicEmail?: string;
     address?: string;
+    addressAr?: string;
+    addressEn?: string;
+    addressFr?: string;
     descriptionAr?: string;
     descriptionEn?: string;
     descriptionFr?: string;
     mapsEmbedUrl?: string;
     mapsLink?: string;
+    mapUrl?: string;
+    directionsUrl?: string;
+    latitude?: string;
+    longitude?: string;
+    timezone?: string;
     whatsapp?: string;
+    whatsappNumber?: string;
+    whatsappEnabled?: boolean;
+    whatsappUrl?: string;
+    facebookUrl?: string;
     workingHoursAr?: string;
     workingHoursEn?: string;
     workingHoursFr?: string;
+    fridayClosed?: boolean;
+    city?: string;
+    stateOrWilaya?: string;
+    postalCode?: string;
+    countryAr?: string;
+    countryEn?: string;
+    countryFr?: string;
   };
   content?: {
     aboutAr?: string;
@@ -136,6 +187,116 @@ export async function fetchPublicSite(): Promise<PublicSitePayload> {
   }
 }
 
+export async function fetchPublicSpecialties(opts?: {
+  locale?: Locale;
+  featured?: boolean;
+  limit?: number;
+  page?: number;
+}): Promise<{ specialties: PublicSpecialty[]; total: number }> {
+  try {
+    const params = new URLSearchParams({
+      locale: opts?.locale || "ar",
+      limit: String(Math.min(48, Math.max(1, opts?.limit ?? 24))),
+      page: String(Math.max(1, opts?.page ?? 1)),
+    });
+    if (opts?.featured) params.set("featured", "true");
+    const res = await fetch(`${apiBase()}/api/public/specialties?${params}`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return { specialties: [], total: 0 };
+    const data = await res.json();
+    return {
+      specialties: Array.isArray(data.specialties) ? data.specialties : [],
+      total: Number(data.total) || 0,
+    };
+  } catch {
+    return { specialties: [], total: 0 };
+  }
+}
+
+export async function fetchPublicSpecialty(
+  slug: string,
+  locale?: Locale,
+): Promise<{
+  specialty: PublicSpecialty;
+  services: PublicService[];
+  doctors: PublicDoctor[];
+} | null> {
+  try {
+    const qs = locale ? `?locale=${locale}` : "";
+    const res = await fetch(
+      `${apiBase()}/api/public/specialties/${encodeURIComponent(slug)}${qs}`,
+      { next: { revalidate: 30 } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.specialty) return null;
+    return {
+      specialty: data.specialty,
+      services: Array.isArray(data.services) ? data.services : [],
+      doctors: Array.isArray(data.doctors) ? data.doctors : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublicServicesCatalog(opts?: {
+  locale?: Locale;
+  specialty?: string;
+  featured?: boolean;
+  limit?: number;
+  page?: number;
+  search?: string;
+}): Promise<{ services: PublicService[]; total: number }> {
+  try {
+    const params = new URLSearchParams({
+      locale: opts?.locale || "ar",
+      limit: String(Math.min(48, Math.max(1, opts?.limit ?? 24))),
+      page: String(Math.max(1, opts?.page ?? 1)),
+    });
+    if (opts?.featured) params.set("featured", "true");
+    if (opts?.specialty) params.set("specialty", opts.specialty);
+    if (opts?.search) params.set("search", opts.search);
+    const res = await fetch(`${apiBase()}/api/public/services?${params}`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return { services: [], total: 0 };
+    const data = await res.json();
+    return {
+      services: Array.isArray(data.services) ? data.services : [],
+      total: Number(data.total) || 0,
+    };
+  } catch {
+    return { services: [], total: 0 };
+  }
+}
+
+export async function fetchPublicServiceDetail(
+  slug: string,
+  locale?: Locale,
+): Promise<{
+  service: PublicService;
+  doctors: PublicDoctor[];
+} | null> {
+  try {
+    const qs = locale ? `?locale=${locale}` : "";
+    const res = await fetch(
+      `${apiBase()}/api/public/services/${encodeURIComponent(slug)}${qs}`,
+      { next: { revalidate: 30 } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.service) return null;
+    return {
+      service: data.service,
+      doctors: Array.isArray(data.doctors) ? data.doctors : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchPublicDoctors(opts?: {
   q?: string;
   specialty?: string;
@@ -210,6 +371,82 @@ export async function fetchPublicReviews(limit = 24): Promise<PublicReview[]> {
   }
 }
 
+export type PublicPatientExperience = {
+  id: string;
+  displayName: string;
+  review: string;
+  rating: number;
+  patientImageUrl?: string | null;
+  treatmentTitle?: string | null;
+  doctorName?: string | null;
+  serviceSlug?: string | null;
+  isVerifiedPatient?: boolean;
+  reviewDate?: string | null;
+};
+
+export type PublicBeforeAfterCase = {
+  id: string;
+  title: string;
+  description?: string | null;
+  beforeImageUrl: string;
+  afterImageUrl: string;
+  beforeAlt: string;
+  afterAlt: string;
+  doctorName?: string | null;
+  specialtySlug?: string | null;
+  serviceSlug?: string | null;
+  treatmentDuration?: string | null;
+  resultDate?: string | null;
+};
+
+export async function fetchPublicPatientExperiences(opts?: {
+  locale?: Locale;
+  featured?: boolean;
+  limit?: number;
+}): Promise<PublicPatientExperience[]> {
+  try {
+    const limit = Math.min(10, Math.max(1, opts?.limit ?? 10));
+    const qs = new URLSearchParams({
+      limit: String(limit),
+      locale: opts?.locale || "ar",
+    });
+    if (opts?.featured) qs.set("featured", "true");
+    const res = await fetch(
+      `${apiBase()}/api/public/patient-experiences?${qs}`,
+      { next: { revalidate: 30 } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.experiences) ? data.experiences : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchPublicBeforeAfter(opts?: {
+  locale?: Locale;
+  featured?: boolean;
+  limit?: number;
+}): Promise<PublicBeforeAfterCase[]> {
+  try {
+    const limit = Math.min(10, Math.max(1, opts?.limit ?? 10));
+    const qs = new URLSearchParams({
+      limit: String(limit),
+      locale: opts?.locale || "ar",
+    });
+    if (opts?.featured) qs.set("featured", "true");
+    const res = await fetch(
+      `${apiBase()}/api/public/before-after?${qs}`,
+      { next: { revalidate: 30 } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.cases) ? data.cases : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPublicAppointmentRef(ref: string) {
   try {
     const res = await fetch(
@@ -229,10 +466,19 @@ export function localizedClinicName(
   clinic?: PublicSitePayload["clinic"],
 ) {
   if (!clinic) return "";
-  if (locale === "en") return clinic.nameEn || clinic.nameAr || "";
+  if (locale === "en")
+    return clinic.nameEn || clinic.clinicNameEn || clinic.nameAr || clinic.clinicNameAr || "";
   if (locale === "fr")
-    return clinic.nameFr || clinic.nameEn || clinic.nameAr || "";
-  return clinic.nameAr || clinic.nameEn || "";
+    return (
+      clinic.nameFr ||
+      clinic.clinicNameFr ||
+      clinic.nameEn ||
+      clinic.clinicNameEn ||
+      clinic.nameAr ||
+      clinic.clinicNameAr ||
+      ""
+    );
+  return clinic.nameAr || clinic.clinicNameAr || clinic.nameEn || clinic.clinicNameEn || "";
 }
 
 export function localizedAbout(
@@ -265,18 +511,23 @@ export function localizedServiceName(locale: Locale, s: PublicService) {
 export function localizedServiceDesc(locale: Locale, s: PublicService) {
   return pickLocalized(
     locale,
-    s.descriptionAr || s.description,
-    s.descriptionEn,
-    s.descriptionFr,
+    s.shortDescriptionAr || s.descriptionAr || s.shortDescription || s.description,
+    s.shortDescriptionEn || s.descriptionEn,
+    s.shortDescriptionFr || s.descriptionFr,
   );
 }
 
 export function localizedSpecialtyName(locale: Locale, s: PublicSpecialty) {
-  return pickLocalized(locale, s.nameAr, s.nameEn, s.nameFr);
+  return pickLocalized(locale, s.nameAr || s.name, s.nameEn, s.nameFr);
 }
 
 export function localizedSpecialtyDesc(locale: Locale, s: PublicSpecialty) {
-  return pickLocalized(locale, s.descriptionAr, s.descriptionEn, s.descriptionFr);
+  return pickLocalized(
+    locale,
+    s.descriptionAr || s.description,
+    s.descriptionEn,
+    s.descriptionFr,
+  );
 }
 
 export function localizedDoctorSpecialty(locale: Locale, d: PublicDoctor) {

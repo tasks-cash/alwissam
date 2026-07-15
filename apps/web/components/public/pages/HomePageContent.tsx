@@ -4,27 +4,25 @@ import type { Dictionary } from "../../../lib/i18n/dictionaries";
 import type { Locale } from "../../../lib/i18n/config";
 import type { PublicCopy } from "../../../lib/i18n/public-copy";
 import type {
+  PublicBeforeAfterCase,
   PublicDoctor,
   PublicFaq,
-  PublicReview,
+  PublicPatientExperience,
   PublicService,
   PublicSpecialty,
   PublicSitePayload,
 } from "../../../lib/public-site";
-import {
-  localizedFaqA,
-  localizedFaqQ,
-  localizedReviewName,
-  localizedReviewQuote,
-  localizedServiceDesc,
-  localizedServiceName,
-} from "../../../lib/public-site";
+import { localizedFaqA, localizedFaqQ } from "../../../lib/public-site";
+import { BeforeAfterSlider } from "../BeforeAfterSlider";
+import { BookingConvenience } from "../BookingConvenience";
 import { ClinicIntroduction } from "../ClinicIntroduction";
 import { ClinicLocation } from "../ClinicLocation";
 import { DoctorsSection } from "../DoctorsSection";
+import { PatientExperiencesSlider } from "../PatientExperiencesSlider";
 import { PatientJourney } from "../PatientJourney";
 import { PublicSection } from "../PublicSection";
 import { QuickBookPanel } from "../QuickBookPanel";
+import { DentalServicesSection } from "../DentalServicesSection";
 import { SpecialtiesSection } from "../SpecialtiesSection";
 import { WhyChooseClinic } from "../WhyChooseClinic";
 
@@ -40,7 +38,8 @@ export type HomePageContentProps = {
   specialties: PublicSpecialty[];
   services: PublicService[];
   faqs: PublicFaq[];
-  reviews: PublicReview[];
+  experiences: PublicPatientExperience[];
+  beforeAfterCases: PublicBeforeAfterCase[];
 };
 
 export function HomePageContent({
@@ -55,7 +54,8 @@ export function HomePageContent({
   specialties,
   services,
   faqs,
-  reviews,
+  experiences,
+  beforeAfterCases,
 }: HomePageContentProps) {
   const heroLead =
     locale === "ar" ? dict.homeLead : about || dict.homeLead;
@@ -112,71 +112,70 @@ export function HomePageContent({
         />
       </PublicSection>
 
-      <PublicSection>
-        <p className="section-kicker">{copy.sectionWhy}</p>
-        <h2>{copy.sectionWhy}</h2>
-        <WhyChooseClinic copy={copy} />
-      </PublicSection>
-
-      <PublicSection tone="soft">
-        <p className="section-kicker">{copy.sectionJourney}</p>
-        <h2>{copy.sectionJourney}</h2>
-        <PatientJourney locale={locale} copy={copy} />
-      </PublicSection>
-
-      <PublicSection>
-        <div className="section-head">
-          <div>
-            <p className="section-kicker">{copy.sectionServices}</p>
-            <h2>{copy.sectionServices}</h2>
-          </div>
-          <Link href={`/${locale}/services`}>{copy.allServices}</Link>
-        </div>
-        <div className="pub-tile-grid">
-          {services.slice(0, 4).map((s) => (
-            <Link
-              key={s.slug}
-              href={`/${locale}/services/${s.slug}`}
-              className="pub-tile"
-            >
-              <h3>{localizedServiceName(locale, s)}</h3>
-              <p>{localizedServiceDesc(locale, s)}</p>
-            </Link>
-          ))}
-        </div>
-      </PublicSection>
-
       <PublicSection tone="mist">
         <SpecialtiesSection
           locale={locale}
           copy={copy}
-          specialties={specialties}
+          specialties={specialties.slice(0, 6)}
         />
       </PublicSection>
+
+      <PublicSection tone="soft" className="dental-services-section">
+        <DentalServicesSection
+          locale={locale}
+          copy={copy}
+          services={services.slice(0, 8)}
+        />
+      </PublicSection>
+
+      <BookingConvenience locale={locale} copy={copy} />
 
       <PublicSection>
         <DoctorsSection locale={locale} copy={copy} doctors={doctors} limit={3} />
       </PublicSection>
 
-      {reviews.length > 0 ? (
-        <PublicSection tone="soft">
-          <div className="section-head">
-            <div>
-              <p className="section-kicker">{copy.reviewsTitle}</p>
-              <h2>{copy.reviewsTitle}</h2>
-            </div>
-            <Link href={`/${locale}/reviews`}>{copy.navReviews}</Link>
+      <PublicSection tone="soft">
+        <p className="section-kicker">{copy.sectionWhy}</p>
+        <h2>{copy.sectionWhy}</h2>
+        <WhyChooseClinic copy={copy} />
+      </PublicSection>
+
+      <PublicSection>
+        <p className="section-kicker">{copy.sectionJourney}</p>
+        <h2>{copy.sectionJourney}</h2>
+        <PatientJourney locale={locale} copy={copy} />
+      </PublicSection>
+
+      <PublicSection tone="mist">
+        <div className="section-head">
+          <div>
+            <p className="section-kicker">{copy.beforeAfterTitle}</p>
+            <h2>{copy.beforeAfterTitle}</h2>
+            <p className="pub-lead pe-lead">{copy.beforeAfterLead}</p>
           </div>
-          <div className="pub-review-grid">
-            {reviews.slice(0, 3).map((r, i) => (
-              <blockquote key={r.id || i} className="pub-review">
-                <p>{localizedReviewQuote(locale, r)}</p>
-                <footer>{localizedReviewName(locale, r)}</footer>
-              </blockquote>
-            ))}
+        </div>
+        <BeforeAfterSlider
+          locale={locale}
+          copy={copy}
+          cases={beforeAfterCases}
+        />
+        <p className="ba-disclaimer">{copy.beforeAfterDisclaimer}</p>
+      </PublicSection>
+
+      <PublicSection tone="soft">
+        <div className="section-head">
+          <div>
+            <p className="section-kicker">{copy.experiencesTitle}</p>
+            <h2>{copy.experiencesTitle}</h2>
+            <p className="pub-lead pe-lead">{copy.experiencesLead}</p>
           </div>
-        </PublicSection>
-      ) : null}
+        </div>
+        <PatientExperiencesSlider
+          locale={locale}
+          copy={copy}
+          experiences={experiences}
+        />
+      </PublicSection>
 
       <PublicSection>
         <div className="section-head">
@@ -204,11 +203,8 @@ export function HomePageContent({
         <ClinicLocation
           locale={locale}
           copy={copy}
-          phone={clinic?.phone}
-          address={clinic?.address}
+          clinic={clinic}
           hours={hours}
-          mapsEmbedUrl={clinic?.mapsEmbedUrl}
-          mapsLink={(clinic as { mapsLink?: string } | undefined)?.mapsLink}
         />
       </PublicSection>
 

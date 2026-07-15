@@ -8,21 +8,16 @@ type Props = {
   locale: Locale;
   copy: PublicCopy;
   specialties: PublicSpecialty[];
-  doctorCounts?: Record<string, number>;
 };
 
-export function SpecialtiesSection({
-  locale,
-  copy,
-  specialties,
-  doctorCounts = {},
-}: Props) {
+export function SpecialtiesSection({ locale, copy, specialties }: Props) {
   return (
     <>
       <div className="section-head">
         <div>
           <p className="section-kicker">{copy.sectionSpecialties}</p>
           <h2>{copy.sectionSpecialties}</h2>
+          <p className="pub-lead">{copy.sectionSpecialtiesLead}</p>
         </div>
         <Link href={`/${locale}/specialties`}>{copy.allSpecialties}</Link>
       </div>
@@ -36,7 +31,6 @@ export function SpecialtiesSection({
               locale={locale}
               copy={copy}
               specialty={s}
-              doctorCount={doctorCounts[s.slug]}
             />
           ))}
         </div>

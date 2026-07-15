@@ -143,11 +143,8 @@ export function AboutPageContent({
         <ClinicLocation
           locale={locale}
           copy={copy}
-          phone={clinic?.phone}
-          address={clinic?.address}
+          clinic={clinic}
           hours={hours}
-          mapsEmbedUrl={clinic?.mapsEmbedUrl}
-          mapsLink={(clinic as { mapsLink?: string } | undefined)?.mapsLink}
         />
       </PublicSection>
 
