@@ -7,6 +7,8 @@ import {
 } from "../../lib/clinic-contact";
 import { pickLocalized } from "../../lib/public-site";
 import { BidiSafeValue } from "./BidiSafeValue";
+import { FloatingImage } from "./motion/FloatingImage";
+import { SectionReveal } from "./motion/SectionReveal";
 
 type Props = {
   locale: Locale;
@@ -14,6 +16,28 @@ type Props = {
   clinic?: ClinicContact | null;
   hours?: string;
 };
+
+function heroOverlayLabels(locale: Locale) {
+  if (locale === "en") {
+    return {
+      primary: "Our team is ready to help you",
+      secondary: "Inquiries and booking in one place",
+      alt: "A dental clinic team ready to receive inquiries and book appointments",
+    };
+  }
+  if (locale === "fr") {
+    return {
+      primary: "Notre équipe est prête à vous aider",
+      secondary: "Demande et rendez-vous au même endroit",
+      alt: "Une équipe de clinique dentaire prête à recevoir les demandes et à prendre rendez-vous",
+    };
+  }
+  return {
+    primary: "فريقنا جاهز لمساعدتك",
+    secondary: "استفسار وحجز من مكان واحد",
+    alt: "فريق عيادة أسنان جاهز لاستقبال الاستفسارات وحجز المواعيد",
+  };
+}
 
 export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
   const clinicName = pickLocalized(
@@ -26,6 +50,7 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
   const contact = resolveClinicContact(locale, clinic, clinicName);
   const displayHours = contact.hours || hours || "";
   const mapsHref = contact.mapsLink || "";
+  const overlays = heroOverlayLabels(locale);
 
   return (
     <section className="pub-band pub-band-mist page-hero contact-premium-hero">
@@ -33,9 +58,10 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
         <span className="contact-hero-deco-ring" />
         <span className="contact-hero-deco-cross" />
         <span className="contact-hero-deco-dot" />
+        <span className="contact-hero-glow" />
       </div>
       <div className="pub-container page-hero-split">
-        <div className="page-hero-copy contact-hero-copy">
+        <SectionReveal from="start" className="page-hero-copy contact-hero-copy">
           <nav className="breadcrumbs" aria-label="Breadcrumb">
             <ol>
               <li>
@@ -67,7 +93,9 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
           <ul className="contact-hero-trust">
             {contact.phoneDisplay ? (
               <li>
-                <span className="contact-hero-trust-label">{copy.phoneNumberLabel}</span>
+                <span className="contact-hero-trust-label">
+                  {copy.phoneNumberLabel}
+                </span>
                 <strong>
                   <BidiSafeValue>{contact.phoneDisplay}</BidiSafeValue>
                 </strong>
@@ -75,7 +103,9 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
             ) : null}
             {contact.email ? (
               <li>
-                <span className="contact-hero-trust-label">{copy.emailLabel}</span>
+                <span className="contact-hero-trust-label">
+                  {copy.emailLabel}
+                </span>
                 <strong>
                   <BidiSafeValue>{contact.email}</BidiSafeValue>
                 </strong>
@@ -83,26 +113,40 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
             ) : null}
             {displayHours ? (
               <li>
-                <span className="contact-hero-trust-label">{copy.hoursLabel}</span>
+                <span className="contact-hero-trust-label">
+                  {copy.hoursLabel}
+                </span>
                 <strong>
                   <BidiSafeValue>{displayHours}</BidiSafeValue>
                 </strong>
               </li>
             ) : null}
           </ul>
-        </div>
-        <div className="page-hero-media contact-hero-media">
-          <Image
-            src="/images/contact-clinic.svg"
-            alt={copy.contactHeroTitle}
-            width={1200}
-            height={700}
-            className="page-hero-image contact-hero-image"
-            priority
-            unoptimized
-            sizes="(max-width: 900px) 100vw, 42vw"
-          />
-        </div>
+        </SectionReveal>
+
+        <SectionReveal from="end" delayMs={100} className="page-hero-media contact-hero-media">
+          <div className="contact-hero-frame">
+            <FloatingImage className="contact-hero-float">
+              <Image
+                src="/images/stock/dental-team-care.jpg"
+                alt={overlays.alt}
+                width={1200}
+                height={700}
+                className="page-hero-image contact-hero-image"
+                priority
+                sizes="(max-width: 900px) 100vw, 42vw"
+              />
+            </FloatingImage>
+            <div className="contact-hero-overlays" aria-hidden={false}>
+              <span className="contact-hero-chip contact-hero-chip--primary">
+                {overlays.primary}
+              </span>
+              <span className="contact-hero-chip contact-hero-chip--secondary">
+                {overlays.secondary}
+              </span>
+            </div>
+          </div>
+        </SectionReveal>
       </div>
     </section>
   );

@@ -38,8 +38,14 @@ export function DoctorsSection({
         <div
           className={`pub-doctor-grid${homeVariant ? " pub-doctor-grid--home" : ""}`}
         >
-          {shown.map((d) => (
-            <DoctorCard key={d.id} locale={locale} copy={copy} doctor={d} />
+          {shown.map((d, index) => (
+            <DoctorCard
+              key={d.id}
+              locale={locale}
+              copy={copy}
+              doctor={d}
+              index={index}
+            />
           ))}
         </div>
       )}

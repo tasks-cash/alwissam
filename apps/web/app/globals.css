@@ -2471,7 +2471,263 @@ body.font-latin {
 
 .contact-hero-image,
 .page-hero-image {
-  transform: none !important;
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 1.15rem;
+  object-fit: cover;
+}
+
+.contact-hero-frame {
+  position: relative;
+  isolation: isolate;
+}
+
+.contact-hero-frame::before {
+  content: "";
+  position: absolute;
+  inset: -8% -6% auto auto;
+  width: min(70%, 280px);
+  height: min(55%, 220px);
+  border-radius: 40% 60% 55% 45%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--pub-green) 35%, transparent),
+    transparent 70%
+  );
+  z-index: 0;
+  pointer-events: none;
+  animation: contact-hero-glow 6s ease-in-out infinite alternate;
+}
+
+.contact-hero-float {
+  position: relative;
+  z-index: 1;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pub-green) 22%, white);
+  box-shadow: 0 18px 42px rgba(11, 56, 48, 0.14);
+}
+
+.contact-hero-overlays {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 1rem;
+  z-index: 2;
+  display: grid;
+  gap: 0.45rem;
+  max-width: min(86%, 260px);
+  pointer-events: none;
+}
+
+.contact-hero-chip {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  color: #f4fffb;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: color-mix(in srgb, #0b4036 72%, transparent);
+  backdrop-filter: blur(8px);
+  animation: contact-chip-in 0.55s ease both;
+}
+
+.contact-hero-chip--secondary {
+  animation-delay: 0.12s;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.contact-hero-glow {
+  position: absolute;
+  inset-inline-end: 12%;
+  top: 18%;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(11, 122, 104, 0.22), transparent 70%);
+  filter: blur(2px);
+}
+
+.floating-image--motion {
+  animation: floating-image-y 5.5s ease-in-out infinite;
+}
+
+.floating-image--static {
+  animation: none;
+}
+
+@keyframes floating-image-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--float-amp, 6px) * -1));
+  }
+}
+
+@keyframes contact-hero-glow {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.95;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes contact-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clinic-google-map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 1.1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pub-green) 22%, var(--pub-line));
+  box-shadow: 0 14px 36px rgba(11, 56, 48, 0.1);
+  background: #eef7f4;
+}
+
+.clinic-google-map-frame,
+.clinic-google-map iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.clinic-google-map--fallback {
+  display: grid;
+  place-content: center;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.clinic-google-map-fallback-text {
+  margin: 0;
+  color: var(--pub-muted);
+  max-width: 28rem;
+}
+
+.clinic-address-map {
+  min-height: 280px;
+}
+
+.clinic-address-name {
+  margin: 0 0 0.65rem;
+  font-weight: 800;
+  color: var(--pub-green-deep);
+}
+
+.clinic-hours-float {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--pub-line);
+  box-shadow: 0 8px 20px rgba(11, 56, 48, 0.06);
+}
+
+.clinic-address-route {
+  position: absolute;
+  inset-inline-start: 1.4rem;
+  top: 4.5rem;
+  width: 2px;
+  height: 4.5rem;
+  background: linear-gradient(180deg, var(--pub-green), transparent);
+  opacity: 0.45;
+  transform-origin: top;
+  animation: clinic-route-draw 0.9s ease both;
+}
+
+@keyframes clinic-route-draw {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 0.45;
+  }
+}
+
+.pub-doctor-grid--premium {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.35rem;
+  align-items: stretch;
+}
+
+.pub-doctor-grid--premium .doctor-card {
+  animation: doctor-card-in 0.55s ease both;
+}
+
+@keyframes doctor-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.doctors-section-footer {
+  margin-top: 1.75rem;
+  justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .pub-doctor-grid--premium {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .pub-doctor-grid--premium {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-hero-chip--secondary {
+    display: none;
+  }
+
+  .contact-hero-overlays {
+    inset-inline-start: 0.75rem;
+    bottom: 0.75rem;
+  }
+
+  .clinic-google-map {
+    aspect-ratio: 1 / 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-image--motion,
+  .contact-hero-frame::before,
+  .contact-hero-chip,
+  .clinic-address-route,
+  .pub-doctor-grid--premium .doctor-card,
+  .pub-doctor-premium .doctor-photo,
+  .pub-doctor-premium:hover .doctor-photo {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 .contact-inquiry-form {

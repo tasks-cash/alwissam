@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "../../lib/i18n/config";
 import type { PublicCopy } from "../../lib/i18n/public-copy";
@@ -10,7 +9,10 @@ import {
 } from "../../lib/clinic-contact";
 import { pickLocalized } from "../../lib/public-site";
 import { BidiSafeValue } from "./BidiSafeValue";
+import { ClinicDirectionsButton } from "./ClinicDirectionsButton";
+import { ClinicGoogleMap } from "./ClinicGoogleMap";
 import { WorkingHours } from "./WorkingHours";
+import { SectionReveal } from "./motion/SectionReveal";
 
 type Props = {
   locale: Locale;
@@ -58,7 +60,6 @@ export function ClinicLocation({
     clinicName,
   );
 
-  // Only show directions when Admin configured a real URL — never invent one.
   const directions = contact.mapsLink || "";
   const waHref = contact.whatsappEnabled
     ? buildWhatsAppUrl(locale, {
@@ -67,13 +68,10 @@ export function ClinicLocation({
         whatsappEnabled: true,
       })
     : "";
-  const hasMap =
-    Boolean(contact.mapsEmbedUrl) &&
-    !/maps\.app\.goo\.gl|goo\.gl\//i.test(contact.mapsEmbedUrl);
 
   return (
     <div className="clinic-location-premium">
-      <div className="clinic-location-info">
+      <SectionReveal from="start" className="clinic-location-info">
         <p className="section-kicker">{copy.locationTitle}</p>
         <h2>{copy.locationTitle}</h2>
         <p className="pub-lead location-lead">{copy.locationLead}</p>
@@ -170,41 +168,26 @@ export function ClinicLocation({
             </a>
           ) : null}
           {directions ? (
-            <a
-              className="btn btn-outline"
+            <ClinicDirectionsButton
+              locale={locale}
+              copy={copy}
               href={directions}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {copy.directionsLabel}
-            </a>
+              className="btn btn-outline clinic-directions-btn"
+              label={copy.directionsLabel}
+            />
           ) : null}
         </div>
-      </div>
+      </SectionReveal>
 
-      <div className="clinic-location-visual">
-        {hasMap ? (
-          <iframe
-            title={copy.locationTitle}
-            src={contact.mapsEmbedUrl}
-            className="contact-map"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-          />
-        ) : (
-          <Image
-            src="/images/contact-clinic.svg"
-            alt={copy.locationImageAlt}
-            width={960}
-            height={720}
-            className="clinic-location-image"
-            loading="lazy"
-            unoptimized
-            sizes="(max-width: 900px) 100vw, 46vw"
-          />
-        )}
-      </div>
+      <SectionReveal from="end" delayMs={90} className="clinic-location-visual">
+        <ClinicGoogleMap
+          locale={locale}
+          copy={copy}
+          address={contact.address}
+          mapsEmbedUrl={contact.mapsEmbedUrl}
+          mapsLink={directions}
+        />
+      </SectionReveal>
     </div>
   );
 }

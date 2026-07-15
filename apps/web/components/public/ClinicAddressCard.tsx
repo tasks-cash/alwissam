@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { Locale } from "../../lib/i18n/config";
 import type { PublicCopy } from "../../lib/i18n/public-copy";
 import {
@@ -9,7 +8,9 @@ import {
 import { pickLocalized } from "../../lib/public-site";
 import { BidiSafeValue } from "./BidiSafeValue";
 import { ClinicDirectionsButton } from "./ClinicDirectionsButton";
+import { ClinicGoogleMap } from "./ClinicGoogleMap";
 import { WorkingHours } from "./WorkingHours";
+import { SectionReveal } from "./motion/SectionReveal";
 
 type Props = {
   locale: Locale;
@@ -54,7 +55,6 @@ export function ClinicAddressCard({ locale, copy, clinic, hours }: Props) {
         whatsappEnabled: true,
       })
     : "";
-  const hasSafeEmbed = Boolean(contact.mapsEmbedUrl);
 
   return (
     <aside
@@ -63,14 +63,21 @@ export function ClinicAddressCard({ locale, copy, clinic, hours }: Props) {
     >
       <div className="clinic-address-card-deco" aria-hidden>
         <span className="clinic-address-pin-pulse" />
+        <span className="clinic-address-route" />
       </div>
       <div className="clinic-address-card-grid">
-        <div className="clinic-address-card-main">
+        <SectionReveal from="start" className="clinic-address-card-main">
           <p className="section-kicker">{copy.addressCardKicker}</p>
           <h2 id="clinic-address-title">{copy.addressCardTitle}</h2>
+          {contact.name ? (
+            <p className="clinic-address-name">{contact.name}</p>
+          ) : null}
           {contact.address ? (
             <p className="clinic-address-text">
-              <span className="clinic-directions-icon clinic-pin-icon" aria-hidden>
+              <span
+                className="clinic-directions-icon clinic-pin-icon"
+                aria-hidden
+              >
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
                   <path
                     d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"
@@ -98,8 +105,18 @@ export function ClinicAddressCard({ locale, copy, clinic, hours }: Props) {
             </p>
           ) : null}
 
+          {contact.email ? (
+            <p className="clinic-address-meta">
+              <a href={`mailto:${contact.email}`}>
+                <BidiSafeValue>{contact.email}</BidiSafeValue>
+              </a>
+            </p>
+          ) : null}
+
           {contact.hours || hours ? (
-            <WorkingHours copy={copy} hours={contact.hours || hours || ""} />
+            <div className="clinic-hours-float card-surface">
+              <WorkingHours copy={copy} hours={contact.hours || hours || ""} />
+            </div>
           ) : null}
 
           {directions ? (
@@ -145,33 +162,18 @@ export function ClinicAddressCard({ locale, copy, clinic, hours }: Props) {
               </a>
             ) : null}
           </div>
-        </div>
+        </SectionReveal>
 
-        <div className="clinic-address-visual">
-          {hasSafeEmbed ? (
-            <iframe
-              title={copy.addressCardTitle}
-              src={contact.mapsEmbedUrl}
-              className="contact-map"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
-          ) : (
-            <div className="clinic-location-visual-panel">
-              <Image
-                src="/images/contact-clinic.svg"
-                alt={copy.locationImageAlt}
-                width={960}
-                height={720}
-                className="clinic-location-image"
-                loading="lazy"
-                unoptimized
-                sizes="(max-width: 900px) 100vw, 40vw"
-              />
-            </div>
-          )}
-        </div>
+        <SectionReveal from="end" delayMs={80} className="clinic-address-visual">
+          <ClinicGoogleMap
+            locale={locale}
+            copy={copy}
+            address={contact.address}
+            mapsEmbedUrl={contact.mapsEmbedUrl}
+            mapsLink={directions}
+            className="clinic-address-map"
+          />
+        </SectionReveal>
       </div>
     </aside>
   );

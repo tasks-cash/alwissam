@@ -1,4 +1,5 @@
 import type { Locale } from "./i18n/config";
+import { CLINIC_DIRECTIONS_URL } from "./maps";
 import type { PublicSitePayload } from "./public-site";
 import { localizedWorkingHours, pickLocalized } from "./public-site";
 
@@ -164,7 +165,9 @@ export function resolveClinicContact(
     whatsappEnabled: enabled,
     facebookUrl: String(clinic?.facebookUrl || "").trim(),
     mapsEmbedUrl: String(clinic?.mapsEmbedUrl || clinic?.mapUrl || "").trim(),
-    mapsLink: String(clinic?.mapsLink || clinic?.directionsUrl || "").trim(),
+    mapsLink:
+      String(clinic?.mapsLink || clinic?.directionsUrl || "").trim() ||
+      CLINIC_DIRECTIONS_URL,
     name: clinicName,
   };
 }

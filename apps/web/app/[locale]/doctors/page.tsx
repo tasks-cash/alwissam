@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DoctorCard } from "../../../components/public/DoctorCard";
 import { PageHero } from "../../../components/public/PageHero";
 import { PublicChrome } from "../../../components/public/PublicChrome";
+import { PublicDoctorsGrid } from "../../../components/public/PublicDoctorsGrid";
 import { PublicSection } from "../../../components/public/PublicSection";
 import { isLocale, type Locale } from "../../../lib/i18n/config";
 import {
@@ -17,7 +17,6 @@ import {
   localizedClinicName,
   localizedWorkingHours,
 } from "../../../lib/public-site";
-
 
 export async function generateMetadata({
   params,
@@ -59,6 +58,13 @@ export default async function DoctorsPage({
     limit: 24,
   });
 
+  const heroDescription =
+    locale === "ar"
+      ? "تعرّف على فريق عيادة الوسام واختر الطبيب المناسب للخدمة والموعد الذي تحتاجه."
+      : locale === "fr"
+        ? "Découvrez l’équipe de la Clinique El Wissam et choisissez le médecin adapté au soin et au rendez-vous dont vous avez besoin."
+        : "Meet the Al Wissam clinic team and choose the right doctor for the care and appointment you need.";
+
   return (
     <PublicChrome
       locale={locale}
@@ -71,14 +77,8 @@ export default async function DoctorsPage({
       hours={hours}
     >
       <PageHero
-        title={copy.sectionDoctors}
-        description={
-          locale === "ar"
-            ? "تعرّف على فريق عيادة الوسام واختر الطبيب المناسب لحجز موعدك."
-            : locale === "fr"
-              ? "Découvrez l’équipe de la Clinique El Wissam et choisissez le médecin adapté pour votre rendez-vous."
-              : "Meet the Al Wissam clinic team and choose the right doctor for your appointment."
-        }
+        title={locale === "ar" ? "أطباؤنا" : copy.sectionDoctors}
+        description={heroDescription}
         crumbs={[
           { href: `/${locale}`, label: copy.navHome },
           { label: copy.navDoctors },
@@ -86,17 +86,15 @@ export default async function DoctorsPage({
         tone="mist"
       />
       <PublicSection>
-        {doctors.length === 0 ? (
-          <div className="empty-state card-surface">
-            <p>{copy.emptyDoctors}</p>
-          </div>
-        ) : (
-          <div className="pub-doctor-grid">
-            {doctors.map((d) => (
-              <DoctorCard key={d.id} locale={locale} copy={copy} doctor={d} />
-            ))}
-          </div>
-        )}
+        <PublicDoctorsGrid locale={locale} copy={copy} doctors={doctors} />
+        <div className="doctors-section-footer cta-row">
+          <a className="btn btn-primary" href={`/${locale}/book-appointment`}>
+            {copy.navBook}
+          </a>
+          <a className="btn btn-outline" href={`/${locale}/contact`}>
+            {copy.navContact}
+          </a>
+        </div>
       </PublicSection>
     </PublicChrome>
   );
