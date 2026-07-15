@@ -198,9 +198,17 @@ function Body() {
           </button>
         ) : null}
         {a.status === "COMPLETED" ? (
-          <Link className="btn btn-outline" href={`/${locale}/book-appointment`}>
-            حجز متابعة
-          </Link>
+          <>
+            <Link
+              className="btn btn-primary"
+              href={`/${locale}/patient/appointments/${encodeURIComponent(reference)}/review`}
+            >
+              شارك تجربتك
+            </Link>
+            <Link className="btn btn-outline" href={`/${locale}/book-appointment`}>
+              حجز متابعة
+            </Link>
+          </>
         ) : null}
         {["CANCELLED_BY_PATIENT", "CANCELLED_BY_CLINIC"].includes(a.status) ? (
           <Link className="btn btn-primary" href={`/${locale}/book-appointment`}>

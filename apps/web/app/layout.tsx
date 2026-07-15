@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&family=Libre+Baskerville:wght@700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

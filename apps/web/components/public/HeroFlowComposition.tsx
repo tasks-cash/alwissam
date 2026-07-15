@@ -7,21 +7,24 @@ import type { Locale } from "../../lib/i18n/config";
 type Props = {
   locale: Locale;
   caption: string;
-  badgePrimary: string;
-  badgeSecondary: string;
+  overlayMain: string;
+  overlayAccent: string;
+  overlayBadge: string;
 };
 
 /**
- * Layered floating hero imagery. Motion is CSS-driven and disabled when
- * prefers-reduced-motion is set (via body class + media query).
+ * Premium photographic hero composition with restrained motion and overlays.
+ * Photographs are never mirrored; dir only controls overlay text direction.
  */
 export function HeroFlowComposition({
   locale,
   caption,
-  badgePrimary,
-  badgeSecondary,
+  overlayMain,
+  overlayAccent,
+  overlayBadge,
 }: Props) {
   const [reduced, setReduced] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -31,48 +34,55 @@ export function HeroFlowComposition({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  useEffect(() => {
+    if (reduced) {
+      setVisible(true);
+      return;
+    }
+    const id = window.requestAnimationFrame(() => setVisible(true));
+    return () => window.cancelAnimationFrame(id);
+  }, [reduced]);
+
   return (
     <div
-      className={`hero-flow${reduced ? " hero-flow--reduced" : ""}`}
+      className={`hero-plane${reduced ? " hero-plane--reduced" : ""}${
+        visible ? " hero-plane--in" : ""
+      }`}
       dir={locale === "ar" ? "rtl" : "ltr"}
-      aria-hidden={false}
     >
-      <div className="hero-flow-shapes" aria-hidden>
-        <span className="hero-flow-blob hero-flow-blob--a" />
-        <span className="hero-flow-blob hero-flow-blob--b" />
-        <span className="hero-flow-ring" />
-      </div>
-
-      <figure className="hero-flow-main">
+      <div className="hero-plane-glow" aria-hidden />
+      <figure className="hero-plane-frame">
         <Image
           src="/images/stock/dental-care-hero.jpg"
           alt={caption}
-          width={920}
-          height={1100}
-          className="hero-flow-img"
+          width={1100}
+          height={1320}
+          className="hero-plane-img"
           priority
-          sizes="(max-width: 900px) 88vw, 42vw"
+          sizes="(max-width: 900px) 92vw, 46vw"
         />
+        <span className="hero-plane-overlay hero-plane-overlay--main">
+          {overlayMain}
+        </span>
+        <span className="hero-plane-overlay hero-plane-overlay--badge">
+          {overlayBadge}
+        </span>
         <figcaption className="sr-only">{caption}</figcaption>
       </figure>
-
-      <figure className="hero-flow-support">
+      <figure className="hero-plane-accent">
         <Image
           src="/images/stock/dental-clinic-interior.jpg"
           alt=""
-          width={640}
-          height={480}
-          className="hero-flow-img"
-          sizes="(max-width: 900px) 52vw, 22vw"
+          width={720}
+          height={540}
+          className="hero-plane-img"
+          loading="lazy"
+          sizes="(max-width: 900px) 48vw, 22vw"
         />
+        <span className="hero-plane-overlay hero-plane-overlay--accent" aria-hidden>
+          {overlayAccent}
+        </span>
       </figure>
-
-      <div className="hero-flow-badge hero-flow-badge--primary" aria-hidden>
-        {badgePrimary}
-      </div>
-      <div className="hero-flow-badge hero-flow-badge--secondary" aria-hidden>
-        {badgeSecondary}
-      </div>
     </div>
   );
 }

@@ -25,6 +25,7 @@ type Props = {
   whatsapp?: string;
 };
 
+/** Shared location/contact block used by About and other public pages. */
 export function ClinicLocation({
   locale,
   copy,
@@ -66,7 +67,9 @@ export function ClinicLocation({
         whatsappEnabled: true,
       })
     : "";
-  const hasMap = Boolean(contact.mapsEmbedUrl);
+  const hasMap =
+    Boolean(contact.mapsEmbedUrl) &&
+    !/maps\.app\.goo\.gl|goo\.gl\//i.test(contact.mapsEmbedUrl);
 
   return (
     <div className="clinic-location-premium">

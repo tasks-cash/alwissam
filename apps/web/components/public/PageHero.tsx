@@ -20,7 +20,7 @@ export function PageHero({
   media,
 }: Props) {
   return (
-    <section className={`pub-band pub-band-${tone} page-hero`}>
+    <section className={`pub-band pub-band-${tone} page-hero page-hero--premium`}>
       <div className={`pub-container${media ? " page-hero-split" : ""}`}>
         <div className="page-hero-copy">
           {crumbs?.length ? (

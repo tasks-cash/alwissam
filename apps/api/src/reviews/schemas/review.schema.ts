@@ -53,6 +53,21 @@ export class Review {
   @Prop()
   patientImage?: string;
 
+  @Prop({ trim: true })
+  subjectAr?: string;
+
+  @Prop({ trim: true })
+  subjectEn?: string;
+
+  @Prop({ trim: true })
+  subjectFr?: string;
+
+  @Prop({ type: Types.ObjectId, ref: "Patient", index: true })
+  patientId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  appointmentId?: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
 
@@ -96,6 +111,20 @@ export class Review {
     index: true,
   })
   status!: string;
+
+  /** Patient-facing moderation workflow (public submissions start as pending_review). */
+  @Prop({
+    enum: [
+      "pending_review",
+      "approved",
+      "rejected",
+      "published",
+      "archived",
+    ],
+    default: "pending_review",
+    index: true,
+  })
+  moderationStatus!: string;
 
   @Prop({ default: "clinic", index: true })
   source!: string;

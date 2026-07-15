@@ -1,7 +1,43 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "../../lib/i18n/config";
 import type { PublicCopy } from "../../lib/i18n/public-copy";
+import { BookingFlowVisual } from "./BookingFlowVisual";
+
+const STEP_ICONS = [
+  // Service
+  <svg key="s" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+    <path
+      d="M4 7h16M4 12h10M4 17h7"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>,
+  // Doctor
+  <svg key="d" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+    <circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
+    <path
+      d="M5.5 19c1.6-3.2 3.8-4.8 6.5-4.8S16.9 15.8 18.5 19"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+    />
+  </svg>,
+  // Calendar
+  <svg key="c" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+    <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M8 3.5V7M16 3.5V7M3.5 10h17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>,
+  // Send
+  <svg key="r" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden>
+    <path
+      d="M4 12 20 4l-6.5 16L11 13 4 12Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+  </svg>,
+];
 
 type Props = {
   locale: Locale;
@@ -11,7 +47,7 @@ type Props = {
 export function BookingConvenience({ locale, copy }: Props) {
   return (
     <section
-      className="booking-convenience"
+      className="booking-convenience booking-convenience--premium"
       aria-labelledby="booking-convenience-title"
     >
       <div className="pub-container booking-convenience-inner">
@@ -21,31 +57,32 @@ export function BookingConvenience({ locale, copy }: Props) {
           <p className="booking-convenience-support">
             {copy.bookingConvenienceSupport}
           </p>
-          <p className="booking-convenience-main">
-            {copy.bookingConvenienceMain}
-          </p>
+          {copy.bookingConvenienceMain ? (
+            <p className="booking-convenience-main">
+              {copy.bookingConvenienceMain}
+            </p>
+          ) : null}
           <p className="booking-convenience-close">
             {copy.bookingConvenienceClose}
           </p>
-          <ul className="booking-convenience-benefits">
-            {copy.bookingConvenienceBenefits.map((item) => (
-              <li key={item}>
-                <span className="booking-benefit-icon" aria-hidden>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
-                    <path
-                      d="M7.5 12.2 10.4 15l6.1-6.4"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+
+          <ol className="booking-home-steps">
+            {copy.bookingSteps.map((step, index) => (
+              <li key={step.label}>
+                <span className="booking-step-num" aria-hidden>
+                  {index + 1}
                 </span>
-                <span>{item}</span>
+                <span className="booking-step-icon" aria-hidden>
+                  {STEP_ICONS[index]}
+                </span>
+                <div>
+                  <strong>{step.label}</strong>
+                  <p>{step.description}</p>
+                </div>
               </li>
             ))}
-          </ul>
+          </ol>
+
           <div className="cta-row">
             <Link
               className="btn btn-primary"
@@ -61,15 +98,14 @@ export function BookingConvenience({ locale, copy }: Props) {
             {copy.bookingConvenienceTrust}
           </p>
         </div>
+
         <div className="booking-convenience-media">
-          <Image
-            src="/images/stock/dental-treatment.jpg"
-            alt={copy.bookingConvenienceImageAlt}
-            width={1600}
-            height={1067}
-            className="booking-convenience-image"
-            loading="lazy"
-            sizes="(max-width: 900px) 100vw, 44vw"
+          <BookingFlowVisual
+            locale={locale}
+            imageAlt={copy.bookingConvenienceImageAlt}
+            cardAppointment={copy.bookingFloatAppointment}
+            cardCalendar={copy.bookingFloatCalendar}
+            cardConfirm={copy.bookingFloatConfirm}
           />
         </div>
       </div>

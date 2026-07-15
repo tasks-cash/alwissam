@@ -1,87 +1,42 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { ForgotPasswordForm } from "../../../components/public/ForgotPasswordForm";
+import { PatientAuthShell } from "../../../components/public/PatientAuthShell";
+import { isLocale, type Locale } from "../../../lib/i18n/config";
+import { CLINIC_TITLE_BRAND } from "../../../lib/seo/page-metadata";
 
-import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useParams } from "next/navigation";
-import { forgotPasswordSchema } from "@alwisam/shared-validation";
-import { apiPost } from "../../../lib/api";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  if (!isLocale(raw)) return {};
+  const locale = raw as Locale;
+  const title =
+    locale === "en"
+      ? "Forgot password"
+      : locale === "fr"
+        ? "Mot de passe oublié"
+        : "استعادة كلمة المرور";
+  return {
+    title: { absolute: `${CLINIC_TITLE_BRAND[locale]} | ${title}` },
+    robots: { index: false, follow: false },
+  };
+}
 
-export default function ForgotPasswordPage() {
-  const params = useParams();
-  const locale = String(params?.locale || "ar");
-  const [identifier, setIdentifier] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [devToken, setDevToken] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setDevToken("");
-    const parsed = forgotPasswordSchema.safeParse({ identifier });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message || "بيانات غير صالحة");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { ok, data } = await apiPost<{
-        ok?: boolean;
-        message?: string;
-        error?: string;
-        devToken?: string;
-      }>("/api/auth/password-reset", parsed.data);
-      if (!ok) {
-        setError(data.error || "تعذر إرسال الطلب");
-        return;
-      }
-      setSuccess(data.message || "تم إرسال الطلب");
-      if (data.devToken) setDevToken(data.devToken);
-    } catch {
-      setError("تعذر الاتصال بالخادم");
-    } finally {
-      setLoading(false);
-    }
-  }
+export default async function ForgotPasswordPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale: raw } = await params;
+  if (!isLocale(raw)) notFound();
+  const locale = raw as Locale;
 
   return (
-    <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: "2rem 1rem" }}>
-      <form
-        onSubmit={onSubmit}
-        className="card-surface"
-        style={{ width: "100%", maxWidth: 440, padding: "1.75rem", display: "grid", gap: "1rem" }}
-      >
-        <h1 style={{ margin: 0, fontSize: "1.4rem" }}>استعادة كلمة المرور</h1>
-        {error ? <div className="alert-error">{error}</div> : null}
-        {success ? <div className="alert-success">{success}</div> : null}
-        {devToken ? (
-          <div className="alert-success">
-            رمز التطوير فقط:{" "}
-            <Link href={`/${locale}/reset-password?token=${encodeURIComponent(devToken)}`}>
-              افتح صفحة التعيين
-            </Link>
-          </div>
-        ) : null}
-        <div className="field">
-          <label htmlFor="identifier">
-            البريد أو الهاتف <span className="required">*</span>
-          </label>
-          <input
-            id="identifier"
-            className="input"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            required
-            autoComplete="username"
-          />
-        </div>
-        <button className="btn btn-primary" type="submit" disabled={loading}>
-          {loading ? "جارٍ الإرسال..." : "إرسال"}
-        </button>
-        <Link href={`/${locale}/staff/login`}>العودة لتسجيل الدخول</Link>
-      </form>
-    </main>
+    <PatientAuthShell locale={locale}>
+      <ForgotPasswordForm locale={locale} />
+    </PatientAuthShell>
   );
 }

@@ -1,34 +1,33 @@
 # Public Website Redesign Status
 
-**Updated:** 2026-07-14  
+**Updated:** 2026-07-15  
 **Scope:** Visitor-facing pages only (dashboards untouched)
 
-## Delivered
+## Delivered this iteration
 
-- Design system: [`docs/public-design/WORLD_CLASS_DESIGN_SYSTEM.md`](WORLD_CLASS_DESIGN_SYSTEM.md)
-- White + medical green token system under `.public-shell`
-- Full-bleed sections via `PublicSection` + `pub-container` (max ~1520px)
-- Premium hero: brand-first display, one headline, one lead, CTA group, full-width visual plane
-- Restyled header/footer (no dark admin chrome on public)
-- Home, about, services, specialties, doctors, doctor profile, book, FAQ, contact, policy content pages
-- Nest public data: clinic hours, reviews array (render only when verified Mongo content exists), doctor availability fields
+- Cinematic homepage hero (brand-first, no floating overlay badges)
+- Photographic `HeroFlowComposition` plane with soft green wash
+- Doctor specialty moved from media overlay into body chip
+- Service / doctor card hover polish (white + medical green)
+- PageHero premium heading scale
+- Typography: Cairo + Source Sans 3 only on public (no decorative serif)
+- Design system refreshed: [`WORLD_CLASS_DESIGN_SYSTEM.md`](WORLD_CLASS_DESIGN_SYSTEM.md)
+
+## Already in place (preserved)
+
+- Nest public APIs: site, doctors, services, specialties, FAQ, reviews, booking, contact
+- Routes: home, about, services, specialties, doctors, book, reviews, FAQ, contact, policies
 - ar / en / fr with RTL for Arabic
-
-## Data rules honored
-
-- No fake reviews (empty `reviews` until CMS/Mongo has verified ones)
-- Doctors/services/FAQ/policies from `GET /api/public/site` + `GET /api/public/doctors`
-- Booking via `POST /api/public/appointments`
+- Full-bleed `PublicSection` + `pub-container` (~1520px)
 
 ## Quality
 
 | Check | Result |
 | --- | --- |
-| `@alwisam/api` typecheck | PASS |
 | `@alwisam/web` typecheck | PASS |
 
-## Next (optional polish)
+## Remaining gaps vs full brief seal
 
-- Populate doctor `workingHours` / `availabilityNote*` from owner settings UI
-- Add verified reviews through CMS when marketing supplies them
-- Visual QA screenshots (desktop + mobile) for ar/en/fr
+- Playwright visual suite + exhaustive RTL screenshot QA
+- Docker public smoke not re-run this session
+- CMS population of verified reviews / hours still depends on data

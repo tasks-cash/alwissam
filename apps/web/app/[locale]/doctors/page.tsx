@@ -54,10 +54,9 @@ export default async function DoctorsPage({
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const hours = localizedWorkingHours(locale, site.clinic);
   const doctors = await fetchPublicDoctors({
-    featured: true,
     bookable: true,
     publicOnly: true,
-    limit: 3,
+    limit: 24,
   });
 
   return (
@@ -75,10 +74,10 @@ export default async function DoctorsPage({
         title={copy.sectionDoctors}
         description={
           locale === "ar"
-            ? "تعرّف على أطباء العيادة المميزين المتاحين للحجز."
+            ? "تعرّف على فريق عيادة الوسام واختر الطبيب المناسب لحجز موعدك."
             : locale === "fr"
-              ? "Découvrez les médecins mis en avant disponibles pour la réservation."
-              : "Meet featured clinic doctors available for booking."
+              ? "Découvrez l’équipe de la Clinique El Wissam et choisissez le médecin adapté pour votre rendez-vous."
+              : "Meet the Al Wissam clinic team and choose the right doctor for your appointment."
         }
         crumbs={[
           { href: `/${locale}`, label: copy.navHome },

@@ -10,6 +10,8 @@ export type PublicCopy = {
   navFaq: string;
   navContact: string;
   navBook: string;
+  navCreateAccount: string;
+  navLogin: string;
   navStaff: string;
   heroCtaDoctors: string;
   sectionServices: string;
@@ -29,6 +31,7 @@ export type PublicCopy = {
   wizardService: string;
   sectionDoctors: string;
   sectionDoctorsLead: string;
+  homeDoctorsLead: string;
   sectionProcess: string;
   sectionFaq: string;
   sectionWhy: string;
@@ -64,6 +67,7 @@ export type PublicCopy = {
   learnMoreClinic: string;
   locationTitle: string;
   locationLead: string;
+  homeLocationLead: string;
   locationImageAlt: string;
   addressLabel: string;
   phoneNumberLabel: string;
@@ -97,6 +101,15 @@ export type PublicCopy = {
   bookingConvenienceTrust: string;
   bookingConvenienceImageAlt: string;
   bookingConvenienceBenefits: string[];
+  bookingSteps: Array<{ label: string; description: string }>;
+  bookingFloatAppointment: string;
+  bookingFloatCalendar: string;
+  bookingFloatConfirm: string;
+  patientFloatAppointment: string;
+  patientFloatProgress: string;
+  patientFloatNotice: string;
+  patientFloatFile: string;
+  patientSecurityBadge: string;
   emptySpecialties: string;
   emptyFaq: string;
   retryLabel: string;
@@ -227,6 +240,13 @@ export type PublicCopy = {
   bookTreatmentCta: string;
   availabilityLabel: string;
   heroVisualCaption: string;
+  heroEyebrow: string;
+  heroTrustHome: string;
+  heroTrustDoctor: string;
+  heroTrustFollowUp: string;
+  heroOverlayMain: string;
+  heroOverlayAccent: string;
+  heroOverlayBadge: string;
   quickBookTitle: string;
   quickBookCta: string;
   wizardSpecialty: string;
@@ -248,6 +268,9 @@ export type PublicCopy = {
   patientAccountLogin: string;
   patientAccountImageAlt: string;
   patientAccountMockLabel: string;
+  locationEmailAction: string;
+  locationWhatsappAction: string;
+  locationContactPage: string;
   benefitAppointments: string;
   benefitStatus: string;
   benefitHistory: string;
@@ -324,6 +347,8 @@ const ar: PublicCopy = {
   navFaq: "الأسئلة",
   navContact: "تواصل",
   navBook: "احجز موعدًا",
+  navCreateAccount: "إنشاء حساب جديد",
+  navLogin: "تسجيل الدخول",
   navStaff: "دخول الطاقم",
   heroCtaDoctors: "تعرّف على الأطباء",
   sectionServices: "خدماتنا",
@@ -344,6 +369,8 @@ const ar: PublicCopy = {
   sectionDoctors: "أطباؤنا",
   sectionDoctorsLead:
     "تعرّف على فريق عيادة الوسام واختر الطبيب المناسب لحجز موعدك.",
+  homeDoctorsLead:
+    "فريق طبي متخصص لمساعدتك في اختيار الرعاية المناسبة وحجز موعدك بسهولة.",
   sectionProcess: "مسار الحجز",
   sectionFaq: "أسئلة شائعة",
   sectionWhy: "لماذا عيادتنا؟",
@@ -530,7 +557,9 @@ const ar: PublicCopy = {
   locationTitle: "الموقع والتواصل",
   locationLead:
     "يمكنك الوصول إلى عيادة الوسام بسهولة، أو التواصل معنا للاستفسار وحجز موعدك قبل الحضور.",
-  locationImageAlt: "موقع العيادة ومعلومات التواصل",
+  homeLocationLead:
+    "تواصل معنا أو افتح اتجاهات الوصول إلى عيادة الوسام قبل زيارتك.",
+  locationImageAlt: "موقع عيادة الوسام ومعلومات التواصل",
   addressLabel: "عنوان العيادة",
   phoneNumberLabel: "رقم الهاتف",
   emailLabel: "البريد الإلكتروني",
@@ -555,23 +584,49 @@ const ar: PublicCopy = {
     "تواصل معنا هاتفيًا أو عبر واتساب، أو أرسل استفسارك، أو احجز موعدًا مع أحد أطباء العيادة.",
   contactClinic: "تواصل مع العيادة",
   bookingConvenienceKicker: "حجز من المنزل",
-  bookingConvenienceTitle: "لماذا تتعب من أجل حجز موعد؟",
+  bookingConvenienceTitle: "احجز موعدك من منزلك بكل سهولة",
   bookingConvenienceSupport:
-    "هل سئمت من إضاعة الوقت والمال في التنقل، أو استئجار سيارة فقط من أجل البحث عن موعد؟",
-  bookingConvenienceMain:
-    "مع عيادتنا، يمكنك اختيار التخصص والطبيب والموعد المناسب لك، وإرسال طلب الحجز من منزلك بكل سهولة، دون عناء التنقل أو الانتظار.",
-  bookingConvenienceClose: "احجز موعدك من بيتك، واترك لنا مهمة تنظيم زيارتك.",
+    "لا حاجة إلى إضاعة الوقت والمال في التنقل فقط للبحث عن موعد. اختر الخدمة والطبيب والتاريخ المناسب، وأرسل طلب الحجز من منزلك.",
+  bookingConvenienceMain: "",
+  bookingConvenienceClose:
+    "اترك لفريق عيادة الوسام مهمة تنظيم زيارتك والتواصل معك لتأكيد الموعد.",
   bookingConveniencePrimary: "احجز موعدك الآن",
   bookingConvenienceSecondary: "تعرّف على أطبائنا",
   bookingConvenienceTrust:
-    "اختر الطبيب والموعد المناسب، ثم انتظر تأكيد الحجز من فريق العيادة.",
+    "اختر الخدمة والطبيب والموعد، ثم انتظر تأكيد فريق العيادة.",
   bookingConvenienceImageAlt: "حجز موعد طبي من المنزل",
   bookingConvenienceBenefits: [
-    "الحجز من المنزل",
-    "اختيار الطبيب المناسب",
-    "عرض المواعيد المتاحة",
-    "تأكيد من فريق العيادة",
+    "اختر الخدمة",
+    "اختر الطبيب",
+    "حدد الموعد",
+    "أرسل طلب الحجز",
   ],
+  bookingSteps: [
+    {
+      label: "اختر الخدمة",
+      description: "اختر الخدمة أو التخصص المناسب لحالتك.",
+    },
+    {
+      label: "اختر الطبيب",
+      description: "اطّلع على الأطباء المنشورين واختر الأنسب لك.",
+    },
+    {
+      label: "حدد الموعد",
+      description: "اختر التاريخ والوقت المفضّلين لديك.",
+    },
+    {
+      label: "أرسل طلب الحجز",
+      description: "أرسل الطلب وانتظر تأكيد فريق العيادة.",
+    },
+  ],
+  bookingFloatAppointment: "طلب حجز",
+  bookingFloatCalendar: "التقويم",
+  bookingFloatConfirm: "بانتظار التأكيد",
+  patientFloatAppointment: "موعد قادم",
+  patientFloatProgress: "متابعة العلاج",
+  patientFloatNotice: "تذكير",
+  patientFloatFile: "ملف طبي",
+  patientSecurityBadge: "خصوصية محسّنة",
   emptySpecialties: "لا تتوفر تخصصات عامة للعرض حاليًا.",
   emptyFaq: "لا تتوفر أسئلة شائعة للعرض حاليًا.",
   retryLabel: "إعادة المحاولة",
@@ -643,6 +698,13 @@ const ar: PublicCopy = {
   bookTreatmentCta: "احجز استشارة",
   availabilityLabel: "التوفّر",
   heroVisualCaption: "رعاية فموية هادئة ودقيقة",
+  heroEyebrow: "رعاية أسنان متخصصة في الوادي",
+  heroTrustHome: "حجز سهل من المنزل",
+  heroTrustDoctor: "اختيار الطبيب المناسب",
+  heroTrustFollowUp: "متابعة منظمة للمواعيد",
+  heroOverlayMain: "رعاية دقيقة واهتمام بكل خطوة",
+  heroOverlayAccent: "بيئة طبية منظمة ومريحة",
+  heroOverlayBadge: "حجز ومتابعة من مكان واحد",
   quickBookTitle: "بحث سريع عن موعد",
   quickBookCta: "البحث عن موعد متاح",
   wizardSpecialty: "التخصص",
@@ -661,19 +723,22 @@ const ar: PublicCopy = {
   patientAccountKicker: "حساب المريض",
   patientAccountTitle: "كل تفاصيل حالتك العلاجية في حساب واحد",
   patientAccountLead:
-    "تابع مواعيدك وزياراتك السابقة وصورك وتقاريرك وتعليمات طبيبك من لوحة تحكم خاصة وآمنة.",
+    "أنشئ حساب مريض لمتابعة مواعيدك وزياراتك السابقة وصورك وتقاريرك وتعليمات طبيبك من لوحة تحكم خاصة وآمنة.",
   patientAccountRegister: "إنشاء حساب جديد",
   patientAccountLogin: "تسجيل الدخول",
   patientAccountImageAlt: "بيئة رعاية أسنان احترافية للمرضى",
   patientAccountMockLabel: "معاينة توضيحية للوحة التحكم (بيانات وهمية)",
-  benefitAppointments: "مواعيدك في مكان واحد",
+  locationEmailAction: "إرسال بريد إلكتروني",
+  locationWhatsappAction: "تواصل عبر واتساب",
+  locationContactPage: "صفحة التواصل",
+  benefitAppointments: "متابعة جميع المواعيد",
   benefitStatus: "معرفة حالة كل حجز",
-  benefitHistory: "الاطلاع على الزيارات السابقة",
-  benefitFiles: "صورك وتقاريرك خاصة بك",
-  benefitInstructions: "تعليمات الطبيب متاحة دائمًا",
-  benefitReminders: "تذكيرات المتابعة",
+  benefitHistory: "عرض الزيارات السابقة",
+  benefitFiles: "الاطلاع على الصور والتقارير الخاصة بك",
+  benefitInstructions: "مراجعة تعليمات الطبيب",
+  benefitReminders: "استلام تذكيرات المتابعة",
   benefitProfile: "تحديث معلوماتك الشخصية",
-  benefitMessaging: "تواصل آمن بعد الزيارة",
+  benefitMessaging: "التواصل بخصوص الزيارات المكتملة",
   reasons: baseReasons("ar"),
 };
 
@@ -687,6 +752,8 @@ const en: PublicCopy = {
   navFaq: "FAQ",
   navContact: "Contact",
   navBook: "Book appointment",
+  navCreateAccount: "Create Account",
+  navLogin: "Login",
   navStaff: "Staff login",
   heroCtaDoctors: "Meet our doctors",
   sectionServices: "Our services",
@@ -707,6 +774,8 @@ const en: PublicCopy = {
   sectionDoctors: "Doctors",
   sectionDoctorsLead:
     "Meet the Al-Wisam clinical team and choose the right dentist for your appointment.",
+  homeDoctorsLead:
+    "A specialized medical team to help you choose the right care and book with ease.",
   sectionProcess: "How booking works",
   sectionFaq: "FAQ",
   sectionWhy: "Why our clinic",
@@ -892,6 +961,8 @@ const en: PublicCopy = {
   locationTitle: "Location and Contact",
   locationLead:
     "Find the clinic easily, contact our team, or book your appointment before visiting.",
+  homeLocationLead:
+    "Contact us or open directions to Al-Wisam Clinic before your visit.",
   locationImageAlt: "Clinic location and contact information",
   addressLabel: "Clinic Address",
   phoneNumberLabel: "Phone Number",
@@ -917,23 +988,49 @@ const en: PublicCopy = {
     "Call or WhatsApp us, send an inquiry, or book an appointment with a clinic doctor.",
   contactClinic: "Contact the clinic",
   bookingConvenienceKicker: "Book from home",
-  bookingConvenienceTitle: "Why travel just to book an appointment?",
+  bookingConvenienceTitle: "Book your appointment from home with ease",
   bookingConvenienceSupport:
-    "There is no need to spend time and money travelling to the clinic before confirming an available appointment.",
-  bookingConvenienceMain:
-    "Choose the specialty, doctor, date, and available time from home, then submit your appointment request in just a few simple steps.",
-  bookingConvenienceClose: "Book from home and let our clinic organize your visit.",
-  bookingConveniencePrimary: "Book an Appointment",
-  bookingConvenienceSecondary: "Meet Our Doctors",
+    "No need to waste time and money travelling just to look for an appointment. Choose the service, doctor, and date that suit you, then send your booking request from home.",
+  bookingConvenienceMain: "",
+  bookingConvenienceClose:
+    "Leave visit coordination and confirmation to the Al-Wisam clinic team.",
+  bookingConveniencePrimary: "Book your appointment now",
+  bookingConvenienceSecondary: "Meet our doctors",
   bookingConvenienceTrust:
-    "Choose your preferred doctor and time, then wait for confirmation from the clinic team.",
+    "Choose the service, doctor, and time, then wait for confirmation from the clinic team.",
   bookingConvenienceImageAlt: "Booking a medical appointment from home",
   bookingConvenienceBenefits: [
-    "Book from home",
-    "Choose your doctor",
-    "View available times",
-    "Receive clinic confirmation",
+    "Choose the service",
+    "Choose the doctor",
+    "Pick a time",
+    "Send the booking request",
   ],
+  bookingSteps: [
+    {
+      label: "Choose the service",
+      description: "Select the service or specialty that fits your needs.",
+    },
+    {
+      label: "Choose the doctor",
+      description: "Browse published doctors and pick the right clinician.",
+    },
+    {
+      label: "Pick a time",
+      description: "Choose your preferred date and time.",
+    },
+    {
+      label: "Send the booking request",
+      description: "Submit your request and wait for clinic confirmation.",
+    },
+  ],
+  bookingFloatAppointment: "Booking request",
+  bookingFloatCalendar: "Calendar",
+  bookingFloatConfirm: "Awaiting confirmation",
+  patientFloatAppointment: "Upcoming visit",
+  patientFloatProgress: "Care progress",
+  patientFloatNotice: "Reminder",
+  patientFloatFile: "Medical file",
+  patientSecurityBadge: "Privacy protected",
   emptySpecialties: "No public specialties are available yet.",
   emptyFaq: "No FAQ entries are available yet.",
   retryLabel: "Retry",
@@ -1002,6 +1099,13 @@ const en: PublicCopy = {
   bookTreatmentCta: "Book a consultation",
   availabilityLabel: "Availability",
   heroVisualCaption: "Calm, precise oral care",
+  heroEyebrow: "Specialized dental care in El Oued",
+  heroTrustHome: "Easy booking from home",
+  heroTrustDoctor: "Choose the right doctor",
+  heroTrustFollowUp: "Organized appointment follow-up",
+  heroOverlayMain: "Precise care at every step",
+  heroOverlayAccent: "An organized, comfortable clinic",
+  heroOverlayBadge: "Book and follow up in one place",
   quickBookTitle: "Quick appointment search",
   quickBookCta: "Continue booking",
   wizardSpecialty: "Specialty",
@@ -1020,19 +1124,22 @@ const en: PublicCopy = {
   patientAccountKicker: "Patient account",
   patientAccountTitle: "All your care details in one secure account",
   patientAccountLead:
-    "Track appointments, past visits, shared images and reports, and doctor instructions from your private patient dashboard.",
+    "Create a patient account to follow appointments, past visits, images and reports, and doctor instructions from a private, secure dashboard.",
   patientAccountRegister: "Create an account",
   patientAccountLogin: "Sign in",
   patientAccountImageAlt: "Professional dental care environment for patients",
   patientAccountMockLabel: "Decorative dashboard preview (mock data)",
-  benefitAppointments: "Your appointments in one place",
+  locationEmailAction: "Send an email",
+  locationWhatsappAction: "Contact via WhatsApp",
+  locationContactPage: "Contact page",
+  benefitAppointments: "Follow all appointments",
   benefitStatus: "Know each booking status",
-  benefitHistory: "Review past visits",
-  benefitFiles: "Your private images and reports",
-  benefitInstructions: "Doctor instructions when shared",
-  benefitReminders: "Follow-up reminders",
+  benefitHistory: "View past visits",
+  benefitFiles: "Access your private images and reports",
+  benefitInstructions: "Review doctor instructions",
+  benefitReminders: "Receive follow-up reminders",
   benefitProfile: "Update your personal details",
-  benefitMessaging: "Secure messaging after completed visits",
+  benefitMessaging: "Message about completed visits",
   reasons: baseReasons("en"),
 };
 
@@ -1046,6 +1153,8 @@ const fr: PublicCopy = {
   navFaq: "FAQ",
   navContact: "Contact",
   navBook: "Prendre rendez-vous",
+  navCreateAccount: "Créer un compte",
+  navLogin: "Se connecter",
   navStaff: "Espace personnel",
   heroCtaDoctors: "Nos médecins",
   sectionServices: "Nos services",
@@ -1066,6 +1175,8 @@ const fr: PublicCopy = {
   sectionDoctors: "Nos médecins",
   sectionDoctorsLead:
     "Découvrez l’équipe de la clinique Al-Wisam et choisissez le dentiste adapté à votre rendez-vous.",
+  homeDoctorsLead:
+    "Une équipe médicale spécialisée pour vous aider à choisir les soins adaptés et réserver facilement.",
   sectionProcess: "Comment réserver",
   sectionFaq: "FAQ",
   sectionWhy: "Pourquoi nous",
@@ -1252,6 +1363,8 @@ const fr: PublicCopy = {
   locationTitle: "Localisation et contact",
   locationLead:
     "Trouvez facilement la clinique, contactez notre équipe ou réservez votre rendez-vous avant votre visite.",
+  homeLocationLead:
+    "Contactez-nous ou ouvrez l’itinéraire vers la clinique El Wissam avant votre visite.",
   locationImageAlt: "Localisation et informations de contact de la clinique",
   addressLabel: "Adresse de la clinique",
   phoneNumberLabel: "Numéro de téléphone",
@@ -1277,25 +1390,49 @@ const fr: PublicCopy = {
     "Appelez-nous ou écrivez sur WhatsApp, envoyez une demande, ou réservez avec un médecin de la clinique.",
   contactClinic: "Contacter la clinique",
   bookingConvenienceKicker: "Réservation à domicile",
-  bookingConvenienceTitle:
-    "Pourquoi vous déplacer uniquement pour prendre rendez-vous ?",
+  bookingConvenienceTitle: "Réservez votre rendez-vous depuis chez vous en toute simplicité",
   bookingConvenienceSupport:
-    "Il n’est plus nécessaire de perdre du temps et de l’argent en vous déplaçant avant de confirmer la disponibilité d’un rendez-vous.",
-  bookingConvenienceMain:
-    "Choisissez la spécialité, le médecin, la date et l’heure disponible depuis chez vous, puis envoyez votre demande en quelques étapes simples.",
+    "Plus besoin de perdre du temps et de l’argent en vous déplaçant uniquement pour chercher un rendez-vous. Choisissez le service, le médecin et la date qui vous conviennent, puis envoyez votre demande depuis chez vous.",
+  bookingConvenienceMain: "",
   bookingConvenienceClose:
-    "Réservez depuis chez vous et laissez notre clinique organiser votre visite.",
-  bookingConveniencePrimary: "Prendre rendez-vous",
+    "Laissez à l’équipe de la clinique El Wissam le soin d’organiser votre visite et de vous contacter pour confirmer le rendez-vous.",
+  bookingConveniencePrimary: "Réservez votre rendez-vous maintenant",
   bookingConvenienceSecondary: "Découvrir nos médecins",
   bookingConvenienceTrust:
-    "Choisissez le médecin et l’horaire souhaités, puis attendez la confirmation de l’équipe de la clinique.",
+    "Choisissez le service, le médecin et l’horaire, puis attendez la confirmation de l’équipe de la clinique.",
   bookingConvenienceImageAlt: "Prise de rendez-vous médical depuis le domicile",
   bookingConvenienceBenefits: [
-    "Réserver depuis chez vous",
-    "Choisir votre médecin",
-    "Voir les horaires disponibles",
-    "Recevoir la confirmation de la clinique",
+    "Choisir le service",
+    "Choisir le médecin",
+    "Choisir l’horaire",
+    "Envoyer la demande",
   ],
+  bookingSteps: [
+    {
+      label: "Choisir le service",
+      description: "Sélectionnez le service ou la spécialité adaptés à votre besoin.",
+    },
+    {
+      label: "Choisir le médecin",
+      description: "Consultez les médecins publiés et choisissez le clinicien adapté.",
+    },
+    {
+      label: "Choisir l’horaire",
+      description: "Indiquez la date et l’heure que vous préférez.",
+    },
+    {
+      label: "Envoyer la demande",
+      description: "Envoyez votre demande et attendez la confirmation de la clinique.",
+    },
+  ],
+  bookingFloatAppointment: "Demande de RDV",
+  bookingFloatCalendar: "Calendrier",
+  bookingFloatConfirm: "En attente de confirmation",
+  patientFloatAppointment: "Visite à venir",
+  patientFloatProgress: "Suivi du soin",
+  patientFloatNotice: "Rappel",
+  patientFloatFile: "Dossier médical",
+  patientSecurityBadge: "Confidentialité renforcée",
   emptySpecialties: "Aucune spécialité publique pour le moment.",
   emptyFaq: "Aucune FAQ disponible pour le moment.",
   retryLabel: "Réessayer",
@@ -1366,6 +1503,13 @@ const fr: PublicCopy = {
   bookTreatmentCta: "Prendre rendez-vous",
   availabilityLabel: "Disponibilité",
   heroVisualCaption: "Des soins bucco-dentaires calmes et précis",
+  heroEyebrow: "Soins dentaires spécialisés à El Oued",
+  heroTrustHome: "Réservation facile depuis chez vous",
+  heroTrustDoctor: "Choisissez le bon médecin",
+  heroTrustFollowUp: "Suivi organisé des rendez-vous",
+  heroOverlayMain: "Des soins précis à chaque étape",
+  heroOverlayAccent: "Un environnement médical organisé",
+  heroOverlayBadge: "Réserver et suivre au même endroit",
   quickBookTitle: "Recherche rapide de rendez-vous",
   quickBookCta: "Continuer la réservation",
   wizardSpecialty: "Spécialité",
@@ -1384,19 +1528,22 @@ const fr: PublicCopy = {
   patientAccountKicker: "Compte patient",
   patientAccountTitle: "Tous les détails de vos soins dans un seul compte",
   patientAccountLead:
-    "Suivez vos rendez-vous, vos visites, vos images et rapports partagés, et les consignes du médecin depuis un tableau de bord privé.",
+    "Créez un compte patient pour suivre vos rendez-vous, vos visites précédentes, vos images et rapports, et les consignes de votre médecin depuis un tableau de bord privé et sécurisé.",
   patientAccountRegister: "Créer un compte",
   patientAccountLogin: "Se connecter",
   patientAccountImageAlt: "Environnement de soins dentaires professionnel",
   patientAccountMockLabel: "Aperçu décoratif du tableau de bord (données fictives)",
-  benefitAppointments: "Vos rendez-vous au même endroit",
-  benefitStatus: "Statut de chaque réservation",
-  benefitHistory: "Historique des visites",
-  benefitFiles: "Images et rapports privés",
-  benefitInstructions: "Consignes du médecin partagées",
-  benefitReminders: "Rappels de suivi",
-  benefitProfile: "Mettre à jour vos informations",
-  benefitMessaging: "Messagerie sécurisée après une visite terminée",
+  locationEmailAction: "Envoyer un e-mail",
+  locationWhatsappAction: "Contacter via WhatsApp",
+  locationContactPage: "Page de contact",
+  benefitAppointments: "Suivre tous les rendez-vous",
+  benefitStatus: "Connaître l’état de chaque réservation",
+  benefitHistory: "Voir les visites précédentes",
+  benefitFiles: "Consulter vos images et rapports privés",
+  benefitInstructions: "Relire les consignes du médecin",
+  benefitReminders: "Recevoir des rappels de suivi",
+  benefitProfile: "Mettre à jour vos informations personnelles",
+  benefitMessaging: "Échanger au sujet des visites terminées",
   reasons: baseReasons("fr"),
 };
 

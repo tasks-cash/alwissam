@@ -13,7 +13,8 @@ import {
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
-import { IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
+import { Type } from "class-transformer";
 import { PatientPortalService } from "./patient-portal.service";
 import { JwtAuthGuard } from "../common/auth/session.guard";
 import type { AuthUser } from "../common/auth/session.guard";
@@ -41,6 +42,41 @@ class NoteBodyDto {
   @IsString()
   @MaxLength(500)
   note?: string;
+}
+
+class ReviewSubmitDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  subject?: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(2000)
+  description!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  displayName?: string;
+
+  @IsBoolean()
+  consentConfirmed!: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarImage?: string;
 }
 
 class ProfileUpdateDto {
@@ -121,6 +157,16 @@ export class PatientPortalController {
     @Body() body: NoteBodyDto,
   ) {
     return this.portal.requestModification(user, reference, body.note);
+  }
+
+  @Post("appointments/:reference/review")
+  @HttpCode(200)
+  submitReview(
+    @CurrentUser() user: AuthUser,
+    @Param("reference") reference: string,
+    @Body() body: ReviewSubmitDto,
+  ) {
+    return this.portal.submitExperienceReview(user, reference, body);
   }
 
   @Get("medical-cases")

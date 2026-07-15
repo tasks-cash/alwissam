@@ -31,6 +31,8 @@ import {
   PatientNotification,
 } from "./schemas/portal.schemas";
 import { assertCompletedVisitMessaging } from "./messaging-eligibility";
+import { ReviewsService } from "../reviews/reviews.service";
+import { PatientExperiencesService } from "../patient-experiences/patient-experiences.service";
 
 const PATIENT_SAFE_APPT_FIELDS = true;
 
@@ -64,6 +66,8 @@ export class PatientPortalService {
     @InjectModel(DataExportRequest.name)
     private readonly exports: Model<DataExportRequest>,
     @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
+    private readonly reviews: ReviewsService,
+    private readonly experiences: PatientExperiencesService,
   ) {}
 
   private async requirePatient(userId: string) {
@@ -535,6 +539,7 @@ export class PatientPortalService {
           appt.startAt,
         ),
         messagingEligible,
+        reviewEligible: appt.status === "COMPLETED",
         files: relatedFiles.map((f) => ({
           id: String(f._id),
           title: f.title,
@@ -552,6 +557,79 @@ export class PatientPortalService {
           followUpDate: i.followUpDate,
         })),
       },
+    };
+  }
+
+  async submitExperienceReview(
+    actor: AuthUser,
+    reference: string,
+    body: {
+      rating: number;
+      subject?: string;
+      description: string;
+      isAnonymous?: boolean;
+      displayName?: string;
+      consentConfirmed: boolean;
+      avatarImage?: string;
+    },
+  ) {
+    const patient = await this.requirePatient(actor.id);
+    const appt = await this.appointments
+      .findOne({
+        appointmentNumber: reference,
+        patientId: patient._id,
+        deletedAt: null,
+      })
+      .lean();
+    if (!appt) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الموعد غير موجود.",
+      });
+    }
+    if (appt.status !== "COMPLETED") {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يمكن مشاركة التجربة بعد إكمال الموعد فقط.",
+      });
+    }
+
+    const displayName =
+      (body.displayName || "").trim() ||
+      patient.fullName ||
+      "مريض من عيادة الوسام";
+
+    const payload = {
+      patientId: String(patient._id),
+      appointmentId: String(appt._id),
+      doctorId: appt.doctorId ? String(appt.doctorId) : undefined,
+      displayName,
+      isAnonymous: body.isAnonymous !== false,
+      subject: body.subject,
+      description: body.description,
+      rating: body.rating,
+      consentConfirmed: body.consentConfirmed === true,
+      avatarImage: body.avatarImage,
+      createdByUserId: actor.id,
+    };
+
+    const [reviewResult, experienceResult] = await Promise.all([
+      this.reviews.submitFromPatient(payload),
+      this.experiences.submitFromPatient(payload),
+    ]);
+
+    await this.audit(
+      actor,
+      "PATIENT_EXPERIENCE_SUBMITTED",
+      "Review",
+      reviewResult.id,
+    );
+
+    return {
+      ok: true,
+      message: reviewResult.message,
+      reviewId: reviewResult.id,
+      experienceId: experienceResult.id,
     };
   }
 

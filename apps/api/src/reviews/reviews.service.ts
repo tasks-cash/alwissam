@@ -30,6 +30,9 @@ type LeanReview = {
   reviewAr?: string;
   reviewEn?: string;
   reviewFr?: string;
+  subjectAr?: string;
+  subjectEn?: string;
+  subjectFr?: string;
   rating: number;
   reviewDate?: Date;
   patientImage?: string;
@@ -89,6 +92,12 @@ export class ReviewsService {
             ? ANON_FR
             : ANON_AR
         : name,
+      subject:
+        locale === "en"
+          ? row.subjectEn || row.subjectAr || row.subjectFr || ""
+          : locale === "fr"
+            ? row.subjectFr || row.subjectAr || row.subjectEn || ""
+            : row.subjectAr || row.subjectEn || row.subjectFr || "",
       quote,
       quoteAr: row.quoteAr || row.reviewAr || "",
       quoteEn: row.quoteEn || row.reviewEn,
@@ -247,6 +256,7 @@ export class ReviewsService {
           ? new Types.ObjectId(dto.doctorId)
           : undefined,
       status: "PENDING",
+      moderationStatus: "pending_review",
       isApproved: false,
       isPublished: false,
       isVerified: false,
@@ -258,6 +268,83 @@ export class ReviewsService {
     return {
       ok: true,
       message: "شكرًا لمشاركتكم. سيتم مراجعة التقييم قبل النشر.",
+      id: String(created._id),
+    };
+  }
+
+  /**
+   * Authenticated patient submission after a completed appointment.
+   * Never publishes immediately — Admin must approve + publish.
+   */
+  async submitFromPatient(input: {
+    patientId: string;
+    appointmentId: string;
+    doctorId?: string;
+    displayName: string;
+    isAnonymous: boolean;
+    subject?: string;
+    description: string;
+    rating: number;
+    consentConfirmed: boolean;
+    avatarImage?: string;
+  }) {
+    if (!input.consentConfirmed) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يجب الموافقة على إمكانية النشر بعد المراجعة.",
+      });
+    }
+    const description = input.description.trim();
+    if (description.length < 10) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "وصف التجربة مطلوب.",
+      });
+    }
+    const existing = await this.reviews
+      .findOne({
+        appointmentId: new Types.ObjectId(input.appointmentId),
+        deletedAt: null,
+        archivedAt: null,
+      })
+      .lean();
+    if (existing) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "تم إرسال تجربة لهذا الموعد مسبقًا.",
+      });
+    }
+    const subject = (input.subject || "").trim();
+    const name = input.displayName.trim() || "مريض من عيادة الوسام";
+    const created = await this.reviews.create({
+      displayName: name,
+      displayNameAr: name,
+      isAnonymous: input.isAnonymous !== false,
+      subjectAr: subject || undefined,
+      quoteAr: description,
+      reviewAr: description,
+      rating: Math.min(5, Math.max(1, Math.round(input.rating || 5))),
+      patientId: new Types.ObjectId(input.patientId),
+      appointmentId: new Types.ObjectId(input.appointmentId),
+      doctorId:
+        input.doctorId && Types.ObjectId.isValid(input.doctorId)
+          ? new Types.ObjectId(input.doctorId)
+          : undefined,
+      patientImage: input.avatarImage || undefined,
+      status: "PENDING",
+      moderationStatus: "pending_review",
+      isApproved: false,
+      isPublished: false,
+      isVerified: false,
+      isFeatured: false,
+      consentConfirmed: true,
+      source: "patient_portal",
+      reviewDate: new Date(),
+    });
+    return {
+      ok: true,
+      message:
+        "تم إرسال تجربتك للمراجعة، وستظهر في الموقع بعد اعتمادها من إدارة العيادة.",
       id: String(created._id),
     };
   }
@@ -391,21 +478,25 @@ export class ReviewsService {
       case "approve":
         patch.status = "APPROVED";
         patch.isApproved = true;
+        patch.moderationStatus = "approved";
         break;
       case "reject":
         patch.status = "REJECTED";
         patch.isApproved = false;
         patch.isPublished = false;
+        patch.moderationStatus = "rejected";
         break;
       case "publish":
         patch.status = "APPROVED";
         patch.isApproved = true;
         patch.isPublished = true;
+        patch.moderationStatus = "published";
         patch.publishedAt = new Date();
         patch.archivedAt = null;
         break;
       case "unpublish":
         patch.isPublished = false;
+        patch.moderationStatus = "approved";
         break;
       case "feature":
         patch.isFeatured = true;
@@ -416,10 +507,12 @@ export class ReviewsService {
       case "archive":
         patch.status = "ARCHIVED";
         patch.isPublished = false;
+        patch.moderationStatus = "archived";
         patch.archivedAt = new Date();
         break;
       case "restore":
         patch.status = "PENDING";
+        patch.moderationStatus = "pending_review";
         patch.archivedAt = null;
         break;
       default:

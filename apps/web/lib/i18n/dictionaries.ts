@@ -269,9 +269,9 @@ const ar: Dictionary = {
 const en: Dictionary = {
   brand: "Al Wissam Dental Clinic",
   brandSubtitle: "Dental clinic management platform",
-  homeTitle: "Professional clinic platform",
+  homeTitle: "Specialized care that starts with your needs",
   homeLead:
-    "Manage appointments, staff, and patients with NestJS, MongoDB, and JWT authentication.",
+    "A multidisciplinary clinical team, organized appointments, and a care experience designed for comfort and trust.",
   staffLogin: "Staff login",
   patientLogin: "Patient login",
   forgotPassword: "Forgot password",
@@ -403,9 +403,9 @@ const en: Dictionary = {
 const fr: Dictionary = {
   brand: "Clinique Dentaire El Wissam",
   brandSubtitle: "Plateforme de gestion dentaire",
-  homeTitle: "Plateforme clinique professionnelle",
+  homeTitle: "Des soins spécialisés qui partent de vos besoins",
   homeLead:
-    "Gérez rendez-vous, personnel et patients avec NestJS, MongoDB et l’authentification JWT.",
+    "Une équipe pluridisciplinaire, des rendez-vous organisés et une expérience de soins pensée pour le confort et la confiance.",
   staffLogin: "Connexion du personnel",
   patientLogin: "Connexion patient",
   forgotPassword: "Mot de passe oublié",

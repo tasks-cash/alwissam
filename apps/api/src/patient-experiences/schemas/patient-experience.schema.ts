@@ -26,6 +26,37 @@ export class PatientExperience {
   @Prop({ default: "Patient de la clinique" })
   anonymousLabelFr!: string;
 
+  @Prop({ trim: true })
+  subjectAr?: string;
+
+  @Prop({ trim: true })
+  subjectEn?: string;
+
+  @Prop({ trim: true })
+  subjectFr?: string;
+
+  @Prop({ type: Types.ObjectId, ref: "Patient", index: true })
+  patientId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  appointmentId?: Types.ObjectId;
+
+  @Prop({
+    enum: [
+      "pending_review",
+      "approved",
+      "rejected",
+      "published",
+      "archived",
+    ],
+    default: "pending_review",
+    index: true,
+  })
+  moderationStatus!: string;
+
+  @Prop({ default: "admin", index: true })
+  source!: string;
+
   @Prop({ required: true, trim: true })
   reviewAr!: string;
 

@@ -143,6 +143,35 @@ export function PublicChrome({
         </nav>
 
         <div className="public-header-actions">
+          <Link
+            className="public-login-link desktop-only"
+            href={`/${locale}/patient/login`}
+          >
+            {copy.navLogin}
+          </Link>
+          <Link
+            className="btn btn-outline public-register-btn desktop-only"
+            href={`/${locale}/patient/register`}
+          >
+            <span className="public-register-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <circle cx="10" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
+                <path
+                  d="M4.5 18.5c1.4-2.8 3.3-4.2 5.5-4.2s4.1 1.4 5.5 4.2"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M18 8v5M15.5 10.5H20.5"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            {copy.navCreateAccount}
+          </Link>
           <Link className="btn btn-primary public-book-btn" href={`/${locale}/book-appointment`}>
             {copy.navBook}
           </Link>
@@ -174,6 +203,18 @@ export function PublicChrome({
             ))}
             <Link className="btn btn-primary" href={`/${locale}/book-appointment`}>
               {copy.navBook}
+            </Link>
+            <Link
+              className="btn btn-outline public-register-btn public-register-btn--drawer"
+              href={`/${locale}/patient/register`}
+            >
+              {copy.navCreateAccount}
+            </Link>
+            <Link
+              className="public-login-link public-login-link--drawer"
+              href={`/${locale}/patient/login`}
+            >
+              {copy.navLogin}
             </Link>
           </nav>
           <button

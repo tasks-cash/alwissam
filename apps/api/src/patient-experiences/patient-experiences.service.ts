@@ -144,10 +144,113 @@ export class PatientExperiencesService {
 
   private publicTreatment(locale: string, r: PatientExperience): string {
     if (locale === "en")
-      return r.treatmentTitleEn || r.treatmentTitleAr || r.treatmentTitleFr || "";
+      return (
+        r.subjectEn ||
+        r.treatmentTitleEn ||
+        r.subjectAr ||
+        r.treatmentTitleAr ||
+        r.subjectFr ||
+        r.treatmentTitleFr ||
+        ""
+      );
     if (locale === "fr")
-      return r.treatmentTitleFr || r.treatmentTitleEn || r.treatmentTitleAr || "";
-    return r.treatmentTitleAr || r.treatmentTitleEn || r.treatmentTitleFr || "";
+      return (
+        r.subjectFr ||
+        r.treatmentTitleFr ||
+        r.subjectEn ||
+        r.treatmentTitleEn ||
+        r.subjectAr ||
+        r.treatmentTitleAr ||
+        ""
+      );
+    return (
+      r.subjectAr ||
+      r.treatmentTitleAr ||
+      r.subjectEn ||
+      r.treatmentTitleEn ||
+      r.subjectFr ||
+      r.treatmentTitleFr ||
+      ""
+    );
+  }
+
+  /**
+   * Authenticated patient submission after a completed appointment.
+   * Saved as pending — never published until Admin approves.
+   */
+  async submitFromPatient(input: {
+    patientId: string;
+    appointmentId: string;
+    doctorId?: string;
+    displayName: string;
+    isAnonymous: boolean;
+    subject?: string;
+    description: string;
+    rating: number;
+    consentConfirmed: boolean;
+    avatarImage?: string;
+    createdByUserId?: string;
+  }) {
+    if (!input.consentConfirmed) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يجب الموافقة على إمكانية النشر بعد المراجعة.",
+      });
+    }
+    const description = input.description.trim();
+    if (description.length < 10) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "وصف التجربة مطلوب.",
+      });
+    }
+    const existing = await this.experiences
+      .findOne({
+        appointmentId: new Types.ObjectId(input.appointmentId),
+        archivedAt: null,
+      })
+      .lean();
+    if (existing) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "تم إرسال تجربة لهذا الموعد مسبقًا.",
+      });
+    }
+    const subject = (input.subject || "").trim();
+    const name = input.displayName.trim() || "مريض من العيادة";
+    const created = await this.experiences.create({
+      displayNameAr: name,
+      isAnonymous: input.isAnonymous !== false,
+      subjectAr: subject || undefined,
+      treatmentTitleAr: subject || undefined,
+      reviewAr: description,
+      rating: Math.min(5, Math.max(1, Math.round(input.rating || 5))),
+      patientId: new Types.ObjectId(input.patientId),
+      appointmentId: new Types.ObjectId(input.appointmentId),
+      doctorId:
+        input.doctorId && Types.ObjectId.isValid(input.doctorId)
+          ? new Types.ObjectId(input.doctorId)
+          : undefined,
+      patientImageUrl: input.avatarImage || undefined,
+      moderationStatus: "pending_review",
+      isApproved: false,
+      isPublished: false,
+      isVerifiedPatient: false,
+      isFeatured: false,
+      consentConfirmed: true,
+      source: "patient_portal",
+      reviewDate: new Date(),
+      createdById:
+        input.createdByUserId && Types.ObjectId.isValid(input.createdByUserId)
+          ? new Types.ObjectId(input.createdByUserId)
+          : undefined,
+    });
+    return {
+      ok: true,
+      message:
+        "تم إرسال تجربتك للمراجعة، وستظهر في الموقع بعد اعتمادها من إدارة العيادة.",
+      id: String(created._id),
+    };
   }
 
   async listAdmin(query: ListExperiencesQueryDto) {

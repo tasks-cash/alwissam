@@ -42,7 +42,7 @@ export function DoctorCard({ locale, copy, doctor, large = true }: Props) {
 
   return (
     <article
-      className={`pub-doctor pub-doctor-portrait${large ? " pub-doctor-large" : ""}`}
+      className={`pub-doctor pub-doctor-portrait pub-doctor-premium${large ? " pub-doctor-large" : ""}`}
     >
       <div className="doctor-portrait-media">
         <div
@@ -52,7 +52,7 @@ export function DoctorCard({ locale, copy, doctor, large = true }: Props) {
           {doctor.profileImage ? (
             <Image
               src={doctor.profileImage}
-              alt=""
+              alt={doctor.fullName}
               width={480}
               height={560}
               className="doctor-photo"
@@ -62,15 +62,14 @@ export function DoctorCard({ locale, copy, doctor, large = true }: Props) {
           ) : (
             <span className="doctor-initial">{doctor.fullName.slice(0, 1)}</span>
           )}
+          <span className="doctor-portrait-gradient" aria-hidden />
         </div>
-        {specialty ? (
-          <span className="pub-specialty-badge doctor-specialty-overlap">
-            {specialty}
-          </span>
-        ) : null}
       </div>
 
       <div className="pub-doctor-body">
+        {specialty ? (
+          <p className="pub-specialty-chip">{specialty}</p>
+        ) : null}
         <h3>{doctor.fullName}</h3>
         {title ? <p className="pub-doctor-title">{title}</p> : null}
         {bio ? <p className="pub-doctor-bio">{bio}</p> : null}
@@ -80,7 +79,7 @@ export function DoctorCard({ locale, copy, doctor, large = true }: Props) {
           </p>
         ) : null}
 
-        {(availability || daysSummary) ? (
+        {availability || daysSummary ? (
           <div className="doctor-schedule-block">
             {daysSummary ? (
               <p className="pub-availability">
@@ -118,3 +117,4 @@ export function DoctorCard({ locale, copy, doctor, large = true }: Props) {
     </article>
   );
 }
+

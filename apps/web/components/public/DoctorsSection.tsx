@@ -9,10 +9,19 @@ type Props = {
   copy: PublicCopy;
   doctors: PublicDoctor[];
   limit?: number;
+  /** When true, use homepage-specific lead copy. */
+  homeVariant?: boolean;
 };
 
-export function DoctorsSection({ locale, copy, doctors, limit = 3 }: Props) {
+export function DoctorsSection({
+  locale,
+  copy,
+  doctors,
+  limit = 3,
+  homeVariant = false,
+}: Props) {
   const shown = doctors.slice(0, limit);
+  const lead = homeVariant ? copy.homeDoctorsLead : copy.sectionDoctorsLead;
 
   return (
     <>
@@ -20,13 +29,15 @@ export function DoctorsSection({ locale, copy, doctors, limit = 3 }: Props) {
         <div>
           <p className="section-kicker">{copy.sectionDoctors}</p>
           <h2>{copy.sectionDoctors}</h2>
-          <p className="pub-lead pe-lead">{copy.sectionDoctorsLead}</p>
+          <p className="pub-lead pe-lead">{lead}</p>
         </div>
       </div>
       {shown.length === 0 ? (
         <p className="muted empty-state">{copy.emptyDoctors}</p>
       ) : (
-        <div className="pub-doctor-grid pub-doctor-grid--home">
+        <div
+          className={`pub-doctor-grid${homeVariant ? " pub-doctor-grid--home" : ""}`}
+        >
           {shown.map((d) => (
             <DoctorCard key={d.id} locale={locale} copy={copy} doctor={d} />
           ))}
@@ -40,3 +51,4 @@ export function DoctorsSection({ locale, copy, doctors, limit = 3 }: Props) {
     </>
   );
 }
+

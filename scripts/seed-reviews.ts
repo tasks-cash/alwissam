@@ -114,6 +114,7 @@ async function main() {
       isFeatured: approved && i < 3,
       displayOrder: i + 1,
       status: approved ? "APPROVED" : "PENDING",
+      moderationStatus: approved ? "published" : "pending_review",
       source: publishFixtures ? "dev_fixture" : "admin_draft",
       sourceKey: t.key,
       publishedAt: approved ? new Date() : null,

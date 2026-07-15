@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "../../lib/i18n/config";
 import type { PublicCopy } from "../../lib/i18n/public-copy";
+import { PatientDashboardVisual } from "./PatientDashboardVisual";
 import { PublicSection } from "./PublicSection";
 
 const BENEFITS = [
@@ -22,7 +22,7 @@ type Props = {
 
 export function PatientAccountMotivation({ locale, copy }: Props) {
   return (
-    <PublicSection tone="soft" className="patient-account-section reveal-section">
+    <PublicSection tone="soft" className="patient-account-section">
       <div className="patient-account-grid">
         <div className="patient-account-copy">
           <p className="section-kicker">{copy.patientAccountKicker}</p>
@@ -34,7 +34,10 @@ export function PatientAccountMotivation({ locale, copy }: Props) {
             ))}
           </ul>
           <div className="cta-row">
-            <Link className="btn btn-primary" href={`/${locale}/patient/register`}>
+            <Link
+              className="btn btn-primary"
+              href={`/${locale}/patient/register`}
+            >
               {copy.patientAccountRegister}
             </Link>
             <Link className="btn btn-outline" href={`/${locale}/patient/login`}>
@@ -42,24 +45,16 @@ export function PatientAccountMotivation({ locale, copy }: Props) {
             </Link>
           </div>
         </div>
-        <div className="patient-account-visual" aria-hidden={false}>
-          <Image
-            src="/images/stock/dental-team-care.jpg"
-            alt={copy.patientAccountImageAlt}
-            width={960}
-            height={720}
-            sizes="(max-width: 768px) 100vw, 42vw"
-            className="patient-account-image"
-          />
-          <div className="patient-dashboard-mock" aria-hidden>
-            <span className="mock-label">{copy.patientAccountMockLabel}</span>
-            <div className="mock-row" />
-            <div className="mock-row short" />
-            <div className="mock-chips">
-              <span /><span /><span />
-            </div>
-          </div>
-        </div>
+        <PatientDashboardVisual
+          locale={locale}
+          imageAlt={copy.patientAccountImageAlt}
+          mockLabel={copy.patientAccountMockLabel}
+          cardAppointment={copy.patientFloatAppointment}
+          cardProgress={copy.patientFloatProgress}
+          cardNotice={copy.patientFloatNotice}
+          cardFile={copy.patientFloatFile}
+          securityBadge={copy.patientSecurityBadge}
+        />
       </div>
     </PublicSection>
   );
