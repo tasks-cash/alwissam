@@ -33,10 +33,11 @@ const CONTACT = {
   facebookUrl: "https://web.facebook.com/Clinic.ElWissam",
   timezone: "Africa/Algiers",
   fridayClosed: true,
-  workingHoursAr:
-    "من السبت إلى الخميس\nمن الساعة 08:00 إلى الساعة 17:00\nالجمعة: مغلق",
+  workingHoursAr: "من السبت إلى الخميس\n08:00–17:00\nالجمعة: مغلق",
   workingHoursEn: "Saturday to Thursday\n08:00–17:00\nFriday: Closed",
   workingHoursFr: "Du samedi au jeudi\n08:00–17:00\nVendredi : fermé",
+  mapsLink: "https://maps.app.goo.gl/1KtpHq8VWw98enw8A",
+  directionsUrl: "https://maps.app.goo.gl/1KtpHq8VWw98enw8A",
 } as const;
 
 async function main() {
@@ -53,14 +54,14 @@ async function main() {
       ? (existing.value as Record<string, unknown>)
       : {};
 
-  // Preserve map/directions/branding extras when already configured.
+  // Canonical directions always applied; preserve optional embed/geo extras.
   const next = {
     ...prev,
     ...CONTACT,
     mapsEmbedUrl: prev.mapsEmbedUrl || prev.mapUrl || "",
-    mapsLink: prev.mapsLink || prev.directionsUrl || "",
+    mapsLink: CONTACT.mapsLink,
     mapUrl: prev.mapUrl || prev.mapsEmbedUrl || "",
-    directionsUrl: prev.directionsUrl || prev.mapsLink || "",
+    directionsUrl: CONTACT.directionsUrl,
     latitude: prev.latitude || "",
     longitude: prev.longitude || "",
     descriptionAr: prev.descriptionAr || "",

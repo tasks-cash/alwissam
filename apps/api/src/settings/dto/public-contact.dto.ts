@@ -62,4 +62,13 @@ export class PublicContactDto {
     typeof value === "string" ? value.trim().toLowerCase() : value,
   )
   locale?: string;
+
+  @ApiPropertyOptional({ description: "Source page slug, e.g. contact" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim().slice(0, 80) : value,
+  )
+  sourcePage?: string;
 }

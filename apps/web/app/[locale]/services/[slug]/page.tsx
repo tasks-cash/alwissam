@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { PageHero } from "../../../../components/public/PageHero";
 import { PublicChrome } from "../../../../components/public/PublicChrome";
 import { PublicSection } from "../../../../components/public/PublicSection";
-import { isLocale, locales, type Locale } from "../../../../lib/i18n/config";
+import { isLocale, type Locale } from "../../../../lib/i18n/config";
 import { getDictionary } from "../../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../../lib/i18n/public-copy";
 import { contextualWhatsAppMessage } from "../../../../lib/clinic-contact";
@@ -16,6 +16,10 @@ import {
   localizedServiceName,
   localizedWorkingHours,
 } from "../../../../lib/public-site";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../../lib/seo/page-metadata";
 
 export async function generateMetadata({
   params,
@@ -26,21 +30,30 @@ export async function generateMetadata({
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
   const detail = await fetchPublicServiceDetail(slug, locale);
-  if (!detail) return {};
+  if (!detail) {
+    return buildPublicMetadata({
+      locale,
+      path: `/services/${slug}`,
+      title: titleSegment(locale, "notFound"),
+      description:
+        locale === "en"
+          ? "Service not found."
+          : locale === "fr"
+            ? "Service introuvable."
+            : "الخدمة غير موجودة.",
+    });
+  }
   const title = localizedServiceName(locale, detail.service);
   const description = (
     detail.service.description ||
     localizedServiceDesc(locale, detail.service)
   ).slice(0, 160);
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}/services/${slug}`]),
-  ) as Record<string, string>;
-  return {
+  return buildPublicMetadata({
+    locale,
+    path: `/services/${slug}`,
     title,
     description,
-    alternates: { canonical: `/${locale}/services/${slug}`, languages },
-    openGraph: { title, description, locale },
-  };
+  });
 }
 
 export default async function ServiceDetailPage({

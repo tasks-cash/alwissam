@@ -45,16 +45,40 @@ export class User {
     specialtyAr?: string;
     specialtyEn?: string;
     specialtyFr?: string;
+    professionalTitleAr?: string;
+    professionalTitleEn?: string;
+    professionalTitleFr?: string;
     bioAr?: string;
     bioEn?: string;
     bioFr?: string;
     colorCode?: string;
     isActive?: boolean;
+    /** When false, excluded from public directory. Missing means public for DOCTOR roles. */
+    isPublic?: boolean;
+    /** When false, excluded from public booking. Missing means bookable when public+active. */
+    isBookable?: boolean;
+    isFeatured?: boolean;
+    displayOrder?: number;
+    slug?: string;
+    profileImage?: string;
+    languages?: string[];
+    specialtyIds?: string[];
+    serviceIds?: string[];
+    appointmentDurationMinutes?: number;
+    leaveDates?: string[];
+    unavailableDates?: string[];
+    archivedAt?: Date | string | null;
     /** Public-facing availability summary lines, e.g. "Sun–Thu 09:00–14:00" */
     availabilityNoteAr?: string;
     availabilityNoteEn?: string;
     availabilityNoteFr?: string;
     workingHours?: Array<{
+      dayOfWeek: string;
+      startTime: string;
+      endTime: string;
+      isActive?: boolean;
+    }>;
+    weeklySchedule?: Array<{
       dayOfWeek: string;
       startTime: string;
       endTime: string;
@@ -85,6 +109,13 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+UserSchema.index({ "doctor.slug": 1 }, { sparse: true });
+UserSchema.index({ "doctor.isActive": 1 });
+UserSchema.index({ "doctor.isPublic": 1 });
+UserSchema.index({ "doctor.isBookable": 1 });
+UserSchema.index({ "doctor.displayOrder": 1 });
+UserSchema.index({ "doctor.specialtyIds": 1 });
+UserSchema.index({ "doctor.serviceIds": 1 });
 
 export type SessionDocument = HydratedDocument<Session>;
 

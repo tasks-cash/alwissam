@@ -351,14 +351,13 @@ const DEFAULT_CLINIC_INFO = {
   descriptionEn: "",
   descriptionFr: "",
   mapsEmbedUrl: "",
-  mapsLink: "",
+  mapsLink: "https://maps.app.goo.gl/1KtpHq8VWw98enw8A",
   mapUrl: "",
-  directionsUrl: "",
+  directionsUrl: "https://maps.app.goo.gl/1KtpHq8VWw98enw8A",
   latitude: "",
   longitude: "",
   timezone: "Africa/Algiers",
-  workingHoursAr:
-    "من السبت إلى الخميس\nمن الساعة 08:00 إلى الساعة 17:00\nالجمعة: مغلق",
+  workingHoursAr: "من السبت إلى الخميس\n08:00–17:00\nالجمعة: مغلق",
   workingHoursEn: "Saturday to Thursday\n08:00–17:00\nFriday: Closed",
   workingHoursFr: "Du samedi au jeudi\n08:00–17:00\nVendredi : fermé",
   fridayClosed: true,
@@ -498,9 +497,15 @@ export class SettingsService {
       merged.whatsappEnabled = true;
     }
 
-    // Preserve map/directions when present; never invent.
-    if (!String(merged.directionsUrl || "").trim() && String(merged.mapsLink || "").trim()) {
-      merged.directionsUrl = merged.mapsLink;
+    // Canonical Google Maps directions — backfill when empty; never invent coordinates.
+    const canonicalDirections = DEFAULT_CLINIC_INFO.directionsUrl;
+    if (!String(merged.directionsUrl || "").trim()) {
+      merged.directionsUrl =
+        String(merged.mapsLink || "").trim() || canonicalDirections;
+    }
+    if (!String(merged.mapsLink || "").trim()) {
+      merged.mapsLink =
+        String(merged.directionsUrl || "").trim() || canonicalDirections;
     }
     if (!String(merged.mapUrl || "").trim() && String(merged.mapsEmbedUrl || "").trim()) {
       merged.mapUrl = merged.mapsEmbedUrl;
@@ -808,18 +813,40 @@ export class SettingsService {
     message: string;
     locale?: string;
     ipAddress?: string;
+    sourcePage?: string;
   }) {
-    const recent = await this.contactMessages.findOne({
+    const windowStart = new Date(Date.now() - 60_000);
+
+    // Phone dedupe within 60s (duplicate-submit protection).
+    const recentPhone = await this.contactMessages.findOne({
       phone: input.phone,
-      createdAt: { $gte: new Date(Date.now() - 60_000) },
+      createdAt: { $gte: windowStart },
     });
-    if (recent) {
+    if (recentPhone) {
       return {
         ok: true,
-        message: "تم استلام رسالتكم. شكرًا لتواصلكم.",
+        message:
+          "تم إرسال استفسارك بنجاح. سيتواصل معك فريق عيادة الوسام عبر رقم الهاتف الذي أدخلته.",
         deduped: true,
       };
     }
+
+    // IP rate limit: max 5 submissions / minute.
+    if (input.ipAddress) {
+      const recentIpCount = await this.contactMessages.countDocuments({
+        ipAddress: input.ipAddress,
+        createdAt: { $gte: windowStart },
+      });
+      if (recentIpCount >= 5) {
+        return {
+          ok: false,
+          message:
+            "تعذر إرسال الاستفسار حاليًا. يرجى المحاولة مرة أخرى بعد قليل.",
+          rateLimited: true,
+        };
+      }
+    }
+
     await this.contactMessages.create({
       fullName: input.fullName,
       phone: input.phone,
@@ -827,11 +854,13 @@ export class SettingsService {
       message: input.message,
       locale: input.locale,
       ipAddress: input.ipAddress,
-      status: "NEW",
+      sourcePage: input.sourcePage || "contact",
+      status: "new",
     });
     return {
       ok: true,
-      message: "تم إرسال رسالتك بنجاح، وسيتواصل معك فريق العيادة في أقرب وقت.",
+      message:
+        "تم إرسال استفسارك بنجاح. سيتواصل معك فريق عيادة الوسام عبر رقم الهاتف الذي أدخلته.",
     };
   }
 }

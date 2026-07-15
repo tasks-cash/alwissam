@@ -24,8 +24,16 @@ export class ContactMessage {
   @Prop({ enum: ["ar", "en", "fr"] })
   locale?: string;
 
-  @Prop({ default: "NEW", enum: ["NEW", "READ", "ARCHIVED"], index: true })
+  /** Public default status is `new` (legacy rows may use NEW/READ/ARCHIVED). */
+  @Prop({
+    default: "new",
+    enum: ["new", "NEW", "READ", "read", "ARCHIVED", "archived"],
+    index: true,
+  })
   status!: string;
+
+  @Prop({ default: "contact", trim: true, index: true })
+  sourcePage?: string;
 
   @Prop()
   ipAddress?: string;

@@ -9,8 +9,22 @@ export class PublicDoctorsController {
   constructor(private readonly doctorsService: DoctorsService) {}
 
   @Get()
-  list(@Query("q") q?: string, @Query("specialty") specialty?: string) {
-    return this.doctorsService.listPublic({ q, specialty });
+  list(
+    @Query("q") q?: string,
+    @Query("specialty") specialty?: string,
+    @Query("active") active?: string,
+    @Query("public") isPublic?: string,
+    @Query("bookable") bookable?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.doctorsService.listPublic({
+      q,
+      specialty,
+      active,
+      public: isPublic,
+      bookable,
+      limit,
+    });
   }
 
   @Get(":id")

@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Post,
   Put,
   Req,
@@ -45,7 +47,7 @@ export class SettingsController {
 
   @Post("public/contact")
   @HttpCode(200)
-  contact(
+  async contact(
     @Body() dto: PublicContactDto,
     @Req() req: { ip?: string; headers?: Record<string, string | undefined> },
   ) {
@@ -53,14 +55,30 @@ export class SettingsController {
       req.ip ||
       req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ||
       undefined;
-    return this.settingsService.createContactMessage({
+    const result = await this.settingsService.createContactMessage({
       fullName: dto.fullName,
       phone: dto.phone,
       subject: dto.subject,
       message: dto.message,
       locale: dto.locale,
+      sourcePage: dto.sourcePage || "contact",
       ipAddress: ip,
     });
+    if (!result.ok) {
+      throw new HttpException(
+        {
+          ok: false,
+          message:
+            result.message ||
+            "تعذر إرسال الاستفسار حاليًا. يرجى المحاولة مرة أخرى.",
+          rateLimited: Boolean(result.rateLimited),
+        },
+        result.rateLimited
+          ? HttpStatus.TOO_MANY_REQUESTS
+          : HttpStatus.BAD_REQUEST,
+      );
+    }
+    return result;
   }
 
   /** Alias used by some clients / specs */

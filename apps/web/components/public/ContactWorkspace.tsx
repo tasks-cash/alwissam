@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { AppointmentWizard } from "./AppointmentWizard";
-import { ContactForm } from "./ContactForm";
+import { ProfessionalInquiryForm } from "./ContactForm";
+import { ClinicAddressCard } from "./ClinicAddressCard";
+import { ContactInformationCards } from "./ContactInformationCards";
 import type { Locale } from "../../lib/i18n/config";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
 import type {
@@ -10,12 +11,15 @@ import type {
   PublicService,
   PublicSpecialty,
 } from "../../lib/public-site";
+import type { ClinicContact } from "../../lib/clinic-contact";
 
 type Props = {
   locale: Locale;
   doctors: PublicDoctor[];
   specialties: PublicSpecialty[];
   services: PublicService[];
+  clinic?: ClinicContact | null;
+  hours?: string;
 };
 
 export function ContactWorkspace({
@@ -23,65 +27,73 @@ export function ContactWorkspace({
   doctors,
   specialties,
   services,
+  clinic,
+  hours,
 }: Props) {
   const copy = getPublicCopy(locale);
-  const [tab, setTab] = useState<"inquiry" | "book">("inquiry");
 
   return (
-    <div className="contact-workspace">
-      <div
-        className="contact-tabs"
-        role="tablist"
-        aria-label={copy.navContact}
-      >
-        <button
-          type="button"
-          role="tab"
-          id="tab-inquiry"
-          aria-selected={tab === "inquiry"}
-          aria-controls="panel-inquiry"
-          className={tab === "inquiry" ? "contact-tab active" : "contact-tab"}
-          onClick={() => setTab("inquiry")}
+    <div className="contact-workspace contact-workspace-premium">
+      <div className="contact-main-columns">
+        <section
+          className="contact-inquiry-block"
+          aria-labelledby="contact-inquiry-form-heading"
         >
-          {copy.tabInquiry}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="tab-book"
-          aria-selected={tab === "book"}
-          aria-controls="panel-book"
-          className={tab === "book" ? "contact-tab active" : "contact-tab"}
-          onClick={() => setTab("book")}
+          <ProfessionalInquiryForm locale={locale} />
+          <ClinicAddressCard
+            locale={locale}
+            copy={copy}
+            clinic={clinic}
+            hours={hours}
+          />
+        </section>
+
+        <section
+          className="contact-side-panel"
+          aria-labelledby="contact-info-panel-title"
         >
-          {copy.tabBookDoctor}
-        </button>
+          <ContactInformationCards
+            locale={locale}
+            copy={copy}
+            clinic={clinic}
+            hours={hours}
+          />
+        </section>
       </div>
 
-      {tab === "inquiry" ? (
-        <div
-          role="tabpanel"
-          id="panel-inquiry"
-          aria-labelledby="tab-inquiry"
-          className="contact-panel"
-        >
-          <ContactForm locale={locale} />
-        </div>
-      ) : (
-        <div
-          role="tabpanel"
-          id="panel-book"
-          aria-labelledby="tab-book"
-          className="contact-panel card-surface"
-        >
+      <section
+        className="contact-booking-block card-surface"
+        aria-labelledby="contact-booking-heading"
+      >
+        <p className="section-kicker">{copy.tabBookDoctor}</p>
+        <h2 id="contact-booking-heading">{copy.tabBookDoctor}</h2>
+        <p className="pub-lead">{copy.contactBookingLead}</p>
+        {doctors.length === 0 ? (
+          <div className="empty-state" role="status">
+            <p>{copy.noBookableDoctors}</p>
+            <div className="cta-row">
+              {clinic?.phone || clinic?.phoneInternational ? (
+                <a
+                  className="btn btn-outline"
+                  href={
+                    clinic.telephoneUrl ||
+                    `tel:${String(clinic.phoneInternational || clinic.phone || "").replace(/\s/g, "")}`
+                  }
+                >
+                  {copy.callClinic}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : (
           <AppointmentWizard
             locale={locale}
             doctors={doctors}
             specialties={specialties}
             services={services}
           />
-        </div>
-      )}
+        )}
+      </section>
     </div>
   );
 }

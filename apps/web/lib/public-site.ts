@@ -149,13 +149,21 @@ export type PublicReview = {
 export type PublicDoctor = {
   id: string;
   fullName: string;
+  slug?: string;
   type?: string;
   specialtyAr?: string;
   specialtyEn?: string;
   specialtyFr?: string;
+  professionalTitleAr?: string;
+  professionalTitleEn?: string;
+  professionalTitleFr?: string;
   bioAr?: string;
   bioEn?: string;
   bioFr?: string;
+  profileImage?: string;
+  languages?: string[];
+  isBookable?: boolean;
+  isPublic?: boolean;
   availabilityNoteAr?: string;
   availabilityNoteEn?: string;
   availabilityNoteFr?: string;
@@ -300,11 +308,20 @@ export async function fetchPublicServiceDetail(
 export async function fetchPublicDoctors(opts?: {
   q?: string;
   specialty?: string;
+  bookable?: boolean;
+  publicOnly?: boolean;
+  limit?: number;
 }): Promise<PublicDoctor[]> {
   try {
     const params = new URLSearchParams();
     if (opts?.q) params.set("q", opts.q);
     if (opts?.specialty) params.set("specialty", opts.specialty);
+    if (opts?.bookable) params.set("bookable", "true");
+    if (opts?.publicOnly !== false) params.set("public", "true");
+    if (opts?.bookable || opts?.limit) {
+      params.set("limit", String(opts?.limit ?? (opts?.bookable ? 5 : 48)));
+    }
+    if (opts?.bookable) params.set("active", "true");
     const qs = params.toString();
     const res = await fetch(
       `${apiBase()}/api/public/doctors${qs ? `?${qs}` : ""}`,
@@ -312,7 +329,8 @@ export async function fetchPublicDoctors(opts?: {
     );
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data.doctors) ? data.doctors : [];
+    const list = Array.isArray(data.doctors) ? data.doctors : [];
+    return opts?.limit ? list.slice(0, opts.limit) : list;
   } catch {
     return [];
   }

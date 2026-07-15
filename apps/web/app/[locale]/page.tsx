@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HomePageContent } from "../../components/public/pages/HomePageContent";
 import { PublicChrome } from "../../components/public/PublicChrome";
-import { isLocale, locales, type Locale } from "../../lib/i18n/config";
+import { isLocale, type Locale } from "../../lib/i18n/config";
 import { getDictionary } from "../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
 import {
@@ -25,26 +25,29 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
-  const dict = getDictionary(locale);
-  const site = await fetchPublicSite();
-  const name = localizedClinicName(locale, site.clinic) || dict.brand;
-  const about = localizedAbout(locale, site.content) || dict.homeLead;
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}`]),
-  ) as Record<string, string>;
-
+  const {
+    buildPublicMetadata,
+    CLINIC_TITLE_BRAND,
+    titleSegment,
+  } = await import("../../lib/seo/page-metadata");
+  const segment = titleSegment(locale, "home");
+  const meta = buildPublicMetadata({
+    locale,
+    path: "/",
+    title: segment,
+    description:
+      locale === "en"
+        ? "Al Wissam Dental Clinic in El Oued — book appointments and explore services and specialties."
+        : locale === "fr"
+          ? "Clinique Dentaire El Wissam à El Oued — prenez rendez-vous et explorez services et spécialités."
+          : "عيادة الوسام لطب الأسنان في الوادي — احجز موعدًا واستكشف الخدمات والتخصصات.",
+  });
+  // Home is the layout default segment; force absolute brand|segment so the
+  // document title never collapses to the bare segment alone.
   return {
-    title: name,
-    description: about.slice(0, 160),
-    alternates: {
-      canonical: `/${locale}`,
-      languages,
-    },
-    openGraph: {
-      title: name,
-      description: about.slice(0, 160),
-      locale,
-      type: "website",
+    ...meta,
+    title: {
+      absolute: `${CLINIC_TITLE_BRAND[locale]} | ${segment}`,
     },
   };
 }

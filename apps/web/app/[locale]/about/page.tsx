@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import { AboutPageContent } from "../../../components/public/pages/AboutPageContent";
 import { PublicChrome } from "../../../components/public/PublicChrome";
 import { isLocale, locales, type Locale } from "../../../lib/i18n/config";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
@@ -22,24 +26,19 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
-  const copy = getPublicCopy(locale);
-  const site = await fetchPublicSite();
-  const about = localizedAbout(locale, site.content) || copy.aboutHeroTitle;
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}/about`]),
-  ) as Record<string, string>;
-  return {
-    title: copy.navAbout,
-    description: about.slice(0, 160),
-    alternates: { canonical: `/${locale}/about`, languages },
-    openGraph: {
-      title: copy.aboutHeroTitle,
-      description: about.slice(0, 160),
-      locale,
-      type: "website",
-    },
-  };
+  return buildPublicMetadata({
+    locale,
+    path: "/about",
+    title: titleSegment(locale, "about"),
+    description:
+      locale === "en"
+        ? "Learn about Al Wissam Dental Clinic, its medical team, services, and approach to oral care."
+        : locale === "fr"
+          ? "Découvrez la Clinique Dentaire El Wissam, son équipe médicale, ses services et son approche des soins bucco-dentaires."
+          : "تعرّف على عيادة الوسام لطب الأسنان وفريقها الطبي وخدماتها ونهجها في رعاية صحة الفم والأسنان.",
+  });
 }
+
 
 export default async function AboutPage({
   params,

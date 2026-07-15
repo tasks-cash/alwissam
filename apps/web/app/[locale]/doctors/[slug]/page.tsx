@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicChrome } from "../../../../components/public/PublicChrome";
@@ -15,6 +16,59 @@ import {
   localizedDoctorSpecialty,
   localizedWorkingHours,
 } from "../../../../lib/public-site";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../../lib/seo/page-metadata";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale: raw, slug } = await params;
+  if (!isLocale(raw)) return {};
+  const locale = raw as Locale;
+  const doctor = await fetchPublicDoctor(slug);
+  if (!doctor) {
+    return buildPublicMetadata({
+      locale,
+      path: `/doctors/${slug}`,
+      title: titleSegment(locale, "notFound"),
+      description:
+        locale === "en"
+          ? "Doctor profile not found."
+          : locale === "fr"
+            ? "Profil médecin introuvable."
+            : "ملف الطبيب غير موجود.",
+    });
+  }
+  const doctorTitle =
+    locale === "en"
+      ? doctor.fullName
+      : locale === "fr"
+        ? doctor.fullName
+        : doctor.fullName.startsWith("الدكتور")
+          ? doctor.fullName
+          : `الدكتور ${doctor.fullName}`;
+  return buildPublicMetadata({
+    locale,
+    path: `/doctors/${slug}`,
+    title: doctorTitle,
+    description:
+      (locale === "en"
+        ? doctor.bioEn || doctor.bioAr
+        : locale === "fr"
+          ? doctor.bioFr || doctor.bioEn || doctor.bioAr
+          : doctor.bioAr || doctor.bioEn) ||
+      (locale === "en"
+        ? "Public doctor profile at Al Wissam Dental Clinic."
+        : locale === "fr"
+          ? "Profil public d’un médecin de la Clinique Dentaire El Wissam."
+          : "الملف العام لطبيب في عيادة الوسام لطب الأسنان."),
+  });
+}
 
 export default async function DoctorProfilePage({
   params,

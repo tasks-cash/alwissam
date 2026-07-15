@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppointmentWizard } from "../../../components/public/AppointmentWizard";
 import { PageHero } from "../../../components/public/PageHero";
 import { PublicChrome } from "../../../components/public/PublicChrome";
 import { PublicSection } from "../../../components/public/PublicSection";
 import { isLocale, type Locale } from "../../../lib/i18n/config";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import { contextualWhatsAppMessage } from "../../../lib/clinic-contact";
@@ -15,6 +20,28 @@ import {
   localizedClinicName,
   localizedWorkingHours,
 } from "../../../lib/public-site";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  if (!isLocale(raw)) return {};
+  const locale = raw as Locale;
+  return buildPublicMetadata({
+    locale,
+    path: "/book-appointment",
+    title: titleSegment(locale, "book"),
+    description:
+      locale === "en"
+        ? "Choose the doctor, date, and time, then submit your appointment request at Al Wissam Dental Clinic."
+        : locale === "fr"
+          ? "Choisissez le médecin, la date et l’heure, puis envoyez votre demande de rendez-vous à la Clinique Dentaire El Wissam."
+          : "اختر الطبيب والتاريخ والوقت المناسب، وأرسل طلب حجز موعدك في عيادة الوسام لطب الأسنان.",
+  });
+}
 
 export default async function BookAppointmentPage({
   params,

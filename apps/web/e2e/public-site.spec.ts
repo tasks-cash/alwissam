@@ -75,8 +75,8 @@ test.describe("Homepage premium sections", () => {
     await expect(
       page.getByRole("heading", { name: "الموقع والتواصل" }),
     ).toBeVisible();
-    await expect(page.getByText(/حي الأمير عبد القادر/)).toBeVisible();
-    await expect(page.locator('a[href="tel:+213663098208"]')).toBeVisible();
+    await expect(page.getByText(/حي الأمير عبد القادر/).first()).toBeVisible();
+    await expect(page.locator('a[href="tel:+213663098208"]').first()).toBeVisible();
     await expect(page.locator(".wa-float")).toBeVisible();
     await expect(page.locator(".wa-float")).toHaveAttribute(
       "href",
@@ -166,8 +166,8 @@ test.describe("Contact page", () => {
   test("Arabic contact page structure", async ({ page }) => {
     await page.goto("/ar/contact");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /إرسال استفسار/ })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /حجز موعد/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /إرسال استفسار/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /حجز موعد مع طبيب/ })).toBeVisible();
     await expect(page.locator("#email")).toHaveCount(0);
   });
 
@@ -176,7 +176,7 @@ test.describe("Contact page", () => {
     await page.getByLabel(/رقم الهاتف/).fill("0123456789");
     await page.getByLabel(/موضوع/).fill("استفسار تجربة");
     await page.getByLabel(/تفاصيل/).fill("تفاصيل كافية للاختبار هنا");
-    await page.getByRole("button", { name: /إرسال استفسار/ }).click();
+    await page.getByRole("button", { name: /إرسال الاستفسار/ }).click();
     await expect(page.locator(".field-error, .alert-error").first()).toBeVisible();
   });
 
@@ -187,9 +187,8 @@ test.describe("Contact page", () => {
     await expect(phone).toHaveValue("0123456");
   });
 
-  test("booking tab shows wizard", async ({ page }) => {
+  test("booking section shows wizard", async ({ page }) => {
     await page.goto("/ar/contact");
-    await page.getByRole("tab", { name: /حجز موعد/ }).click();
     await expect(page.locator(".appointment-wizard")).toBeVisible();
   });
 

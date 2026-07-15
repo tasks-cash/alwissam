@@ -88,9 +88,20 @@ export class DoctorsService {
       specialtyAr?: string;
       specialtyEn?: string;
       specialtyFr?: string;
+      professionalTitleAr?: string;
+      professionalTitleEn?: string;
+      professionalTitleFr?: string;
       bioAr?: string;
       bioEn?: string;
       bioFr?: string;
+      profileImage?: string;
+      languages?: string[];
+      isBookable?: boolean;
+      isPublic?: boolean;
+      isFeatured?: boolean;
+      displayOrder?: number;
+      slug?: string;
+      appointmentDurationMinutes?: number;
       availabilityNoteAr?: string;
       availabilityNoteEn?: string;
       availabilityNoteFr?: string;
@@ -100,18 +111,54 @@ export class DoctorsService {
         endTime: string;
         isActive?: boolean;
       }>;
+      weeklySchedule?: Array<{
+        dayOfWeek: string;
+        startTime: string;
+        endTime: string;
+        isActive?: boolean;
+      }>;
     };
   }) {
+    const schedule =
+      (Array.isArray(d.doctor?.workingHours) && d.doctor.workingHours.length
+        ? d.doctor.workingHours
+        : Array.isArray(d.doctor?.weeklySchedule)
+          ? d.doctor.weeklySchedule
+          : []) || [];
     return {
       id: String(d._id),
       fullName: d.fullName,
+      slug: d.doctor?.slug || "",
       type: d.doctor?.type,
       specialtyAr: d.doctor?.specialtyAr || "",
       specialtyEn: d.doctor?.specialtyEn || d.doctor?.specialtyAr || "",
-      specialtyFr: d.doctor?.specialtyFr || d.doctor?.specialtyEn || d.doctor?.specialtyAr || "",
+      specialtyFr:
+        d.doctor?.specialtyFr ||
+        d.doctor?.specialtyEn ||
+        d.doctor?.specialtyAr ||
+        "",
+      professionalTitleAr: d.doctor?.professionalTitleAr || "",
+      professionalTitleEn:
+        d.doctor?.professionalTitleEn || d.doctor?.professionalTitleAr || "",
+      professionalTitleFr:
+        d.doctor?.professionalTitleFr ||
+        d.doctor?.professionalTitleEn ||
+        d.doctor?.professionalTitleAr ||
+        "",
       bioAr: d.doctor?.bioAr || "",
       bioEn: d.doctor?.bioEn || d.doctor?.bioAr || "",
       bioFr: d.doctor?.bioFr || d.doctor?.bioEn || d.doctor?.bioAr || "",
+      profileImage: d.doctor?.profileImage || "",
+      languages: Array.isArray(d.doctor?.languages) ? d.doctor.languages : [],
+      isBookable: d.doctor?.isBookable !== false,
+      isPublic: d.doctor?.isPublic !== false,
+      isFeatured: Boolean(d.doctor?.isFeatured),
+      displayOrder:
+        typeof d.doctor?.displayOrder === "number" ? d.doctor.displayOrder : 100,
+      appointmentDurationMinutes:
+        typeof d.doctor?.appointmentDurationMinutes === "number"
+          ? d.doctor.appointmentDurationMinutes
+          : 30,
       availabilityNoteAr: d.doctor?.availabilityNoteAr || "",
       availabilityNoteEn:
         d.doctor?.availabilityNoteEn || d.doctor?.availabilityNoteAr || "",
@@ -120,37 +167,89 @@ export class DoctorsService {
         d.doctor?.availabilityNoteEn ||
         d.doctor?.availabilityNoteAr ||
         "",
-      workingHours: Array.isArray(d.doctor?.workingHours)
-        ? d.doctor.workingHours.filter((h) => h && h.isActive !== false)
-        : [],
+      workingHours: schedule.filter((h) => h && h.isActive !== false),
     };
   }
 
-  async listPublic(opts?: { q?: string; specialty?: string }) {
+  async listPublic(opts?: {
+    q?: string;
+    specialty?: string;
+    active?: string | boolean;
+    public?: string | boolean;
+    bookable?: string | boolean;
+    limit?: string | number;
+  }) {
+    const wantPublic =
+      opts?.public === true ||
+      opts?.public === "true" ||
+      opts?.public === undefined;
+    const wantBookable =
+      opts?.bookable === true || opts?.bookable === "true";
+    const limitRaw = Number(opts?.limit);
+    const limit = Number.isFinite(limitRaw)
+      ? Math.min(100, Math.max(1, limitRaw))
+      : wantBookable
+        ? 5
+        : 48;
+
     const filter: Record<string, unknown> = {
       deletedAt: null,
       status: "ACTIVE",
       doctor: { $exists: true },
       "doctor.isActive": { $ne: false },
+      "doctor.archivedAt": null,
       roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST", "ADMIN"] },
     };
+
+    const andClauses: Record<string, unknown>[] = [];
+
+    // Public directory: require isPublic !== false. ADMIN only when explicitly public.
+    if (wantPublic) {
+      filter["doctor.isPublic"] = { $ne: false };
+      andClauses.push({
+        $or: [
+          { roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] } },
+          { roleCode: "ADMIN", "doctor.isPublic": true },
+        ],
+      });
+      andClauses.push({
+        "doctor.specialtyAr": {
+          $not: /إدارة العيادة|Clinic administration|Administration de la clinique/i,
+        },
+      });
+      andClauses.push({
+        fullName: {
+          $not: /مالك النظام|System Owner|طبيب اختبار|Test Doctor/i,
+        },
+      });
+    }
+
+    if (wantBookable) {
+      filter["doctor.isBookable"] = { $ne: false };
+    }
+
     if (opts?.specialty?.trim()) {
       const s = opts.specialty.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.$or = [
-        { "doctor.specialtyAr": { $regex: s, $options: "i" } },
-        { "doctor.specialtyEn": { $regex: s, $options: "i" } },
-        { "doctor.specialtyFr": { $regex: s, $options: "i" } },
-      ];
+      andClauses.push({
+        $or: [
+          { "doctor.specialtyAr": { $regex: s, $options: "i" } },
+          { "doctor.specialtyEn": { $regex: s, $options: "i" } },
+          { "doctor.specialtyFr": { $regex: s, $options: "i" } },
+        ],
+      });
     }
     if (opts?.q?.trim()) {
       const q = opts.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.fullName = { $regex: q, $options: "i" };
     }
+    if (andClauses.length) {
+      filter.$and = andClauses;
+    }
     const doctors = await this.users
       .find(filter)
       .select("fullName doctor")
-      .sort({ fullName: 1 })
-      .limit(100)
+      .sort({ "doctor.displayOrder": 1, fullName: 1 })
+      .limit(limit)
       .lean();
     return {
       ok: true,
@@ -159,20 +258,21 @@ export class DoctorsService {
   }
 
   async getPublicById(id: string) {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new NotFoundException({
-        code: ErrorCodes.NOT_FOUND,
-        message: "الطبيب غير موجود",
-      });
+    const filter: Record<string, unknown> = {
+      deletedAt: null,
+      status: "ACTIVE",
+      doctor: { $exists: true },
+      "doctor.isActive": { $ne: false },
+      "doctor.isPublic": { $ne: false },
+      "doctor.archivedAt": null,
+    };
+    if (Types.ObjectId.isValid(id)) {
+      filter._id = id;
+    } else {
+      filter["doctor.slug"] = id;
     }
     const doctor = await this.users
-      .findOne({
-        _id: id,
-        deletedAt: null,
-        status: "ACTIVE",
-        doctor: { $exists: true },
-        "doctor.isActive": { $ne: false },
-      })
+      .findOne(filter)
       .select("fullName doctor")
       .lean();
     if (!doctor) {

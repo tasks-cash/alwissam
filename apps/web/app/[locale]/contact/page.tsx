@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ContactPageContent } from "../../../components/public/pages/ContactPageContent";
 import { PublicChrome } from "../../../components/public/PublicChrome";
-import { isLocale, locales, type Locale } from "../../../lib/i18n/config";
+import { isLocale, type Locale } from "../../../lib/i18n/config";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
@@ -13,6 +13,10 @@ import {
   localizedClinicName,
   localizedWorkingHours,
 } from "../../../lib/public-site";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 
 export async function generateMetadata({
   params,
@@ -22,21 +26,17 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
-  const copy = getPublicCopy(locale);
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}/contact`]),
-  ) as Record<string, string>;
-  return {
-    title: copy.navContact,
-    description: copy.contactHeroLead,
-    alternates: { canonical: `/${locale}/contact`, languages },
-    openGraph: {
-      title: copy.contactHeroTitle,
-      description: copy.contactHeroLead,
-      locale,
-      type: "website",
-    },
-  };
+  return buildPublicMetadata({
+    locale,
+    path: "/contact",
+    title: titleSegment(locale, "contact"),
+    description:
+      locale === "en"
+        ? "Contact Al Wissam Dental Clinic in Emir Abdelkader District, El Oued — send an inquiry or book an appointment with a clinic doctor."
+        : locale === "fr"
+          ? "Contactez la Clinique Dentaire El Wissam à la cité Emir Abdelkader, El Oued — envoyez une demande ou prenez rendez-vous avec un médecin."
+          : "تواصل مع عيادة الوسام لطب الأسنان في حي الأمير عبد القادر بالوادي، وأرسل استفسارك أو احجز موعدًا مع أحد أطباء العيادة.",
+  });
 }
 
 export default async function ContactPage({
@@ -51,7 +51,7 @@ export default async function ContactPage({
   const copy = getPublicCopy(locale);
   const [site, doctors, specialtyRes, serviceRes] = await Promise.all([
     fetchPublicSite(),
-    fetchPublicDoctors(),
+    fetchPublicDoctors({ bookable: true, publicOnly: true, limit: 5 }),
     fetchPublicSpecialties({ locale, limit: 48 }),
     fetchPublicServicesCatalog({ locale, limit: 48 }),
   ]);

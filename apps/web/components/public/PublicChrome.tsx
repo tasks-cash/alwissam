@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Dictionary } from "../../lib/i18n/dictionaries";
 import type { Locale } from "../../lib/i18n/config";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
@@ -144,9 +143,6 @@ export function PublicChrome({
         </nav>
 
         <div className="public-header-actions">
-          <Suspense fallback={<div className="lang-switcher" aria-hidden />}>
-            <LanguageSwitcher locale={locale} label={dict.language} />
-          </Suspense>
           <Link className="btn btn-primary public-book-btn" href={`/${locale}/book-appointment`}>
             {copy.navBook}
           </Link>
@@ -308,9 +304,6 @@ export function PublicChrome({
           <div className="public-footer-bottom-links">
             <Link href={`/${locale}/privacy`}>{copy.privacy}</Link>
             <Link href={`/${locale}/terms`}>{copy.terms}</Link>
-            <Suspense fallback={null}>
-              <LanguageSwitcher locale={locale} label={dict.language} />
-            </Suspense>
           </div>
         </div>
       </footer>

@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHero } from "../../../components/public/PageHero";
 import { PublicChrome } from "../../../components/public/PublicChrome";
 import { PublicSection } from "../../../components/public/PublicSection";
 import { isLocale, type Locale } from "../../../lib/i18n/config";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
@@ -15,6 +20,28 @@ import {
   localizedWorkingHours,
   verifiedReviews,
 } from "../../../lib/public-site";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  if (!isLocale(raw)) return {};
+  const locale = raw as Locale;
+  return buildPublicMetadata({
+    locale,
+    path: "/reviews",
+    title: titleSegment(locale, "reviews"),
+    description:
+      locale === "en"
+        ? "Approved patient experiences from Al Wissam Dental Clinic."
+        : locale === "fr"
+          ? "Expériences patients approuvées de la Clinique Dentaire El Wissam."
+          : "تجارب مرضى معتمدة من عيادة الوسام لطب الأسنان.",
+  });
+}
 
 export default async function ReviewsPage({
   params,

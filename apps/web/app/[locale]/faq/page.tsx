@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FaqAccordion } from "../../../components/public/FaqAccordion";
 import { PageHero } from "../../../components/public/PageHero";
 import { PublicChrome } from "../../../components/public/PublicChrome";
 import { PublicSection } from "../../../components/public/PublicSection";
 import { isLocale, type Locale } from "../../../lib/i18n/config";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
@@ -11,6 +16,28 @@ import {
   localizedClinicName,
   localizedWorkingHours,
 } from "../../../lib/public-site";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  if (!isLocale(raw)) return {};
+  const locale = raw as Locale;
+  return buildPublicMetadata({
+    locale,
+    path: "/faq",
+    title: titleSegment(locale, "faq"),
+    description:
+      locale === "en"
+        ? "Answers to common questions about booking, appointments, and Al Wissam Dental Clinic services."
+        : locale === "fr"
+          ? "Réponses aux questions fréquentes sur la réservation, les rendez-vous et les services de la Clinique Dentaire El Wissam."
+          : "إجابات عن أهم الأسئلة المتعلقة بالحجز والمواعيد وخدمات عيادة الوسام لطب الأسنان.",
+  });
+}
 
 export default async function FaqPage({
   params,

@@ -12,9 +12,11 @@ import type {
   PublicSpecialty,
 } from "../../lib/public-site";
 import {
+  localizedDoctorAvailability,
   localizedDoctorSpecialty,
   localizedServiceName,
   localizedSpecialtyName,
+  pickLocalized,
 } from "../../lib/public-site";
 import { getDictionary } from "../../lib/i18n/dictionaries";
 
@@ -399,11 +401,11 @@ export function AppointmentWizard({
       ) : null}
 
       {step === 2 ? (
-        <div className="field">
+        <div className="wizard-doctor-step">
           <label htmlFor="doctorId">{copy.wizardDoctor}</label>
           <select
             id="doctorId"
-            className="input"
+            className="input wizard-doctor-select"
             value={form.preferredDoctorId}
             onChange={(e) =>
               setForm((f) => ({
@@ -423,6 +425,102 @@ export function AppointmentWizard({
               </option>
             ))}
           </select>
+
+          <div className="wizard-doctor-grid" role="list">
+            <button
+              type="button"
+              className={`wizard-doctor-card${
+                !form.preferredDoctorId ? " is-selected" : ""
+              }`}
+              onClick={() =>
+                setForm((f) => ({
+                  ...f,
+                  preferredDoctorId: "",
+                  preferredTime: "",
+                }))
+              }
+            >
+              <div className="wizard-doctor-avatar" aria-hidden>
+                ?
+              </div>
+              <div className="wizard-doctor-card-body">
+                <h3>{copy.anyDoctor}</h3>
+                <p className="muted">
+                  {locale === "en"
+                    ? "Clinic reception can assign a suitable doctor."
+                    : locale === "fr"
+                      ? "L’accueil peut attribuer un médecin adapté."
+                      : "يمكن لفريق الاستقبال توجيهك إلى الطبيب المناسب."}
+                </p>
+                <span className="wizard-doctor-select-label">
+                  {!form.preferredDoctorId
+                    ? copy.doctorSelectedAction
+                    : copy.selectDoctorAction}
+                </span>
+              </div>
+            </button>
+            {filteredDoctors.map((d) => {
+              const specialty = localizedDoctorSpecialty(locale, d);
+              const availability = localizedDoctorAvailability(locale, d);
+              const title = pickLocalized(
+                locale,
+                d.professionalTitleAr,
+                d.professionalTitleEn,
+                d.professionalTitleFr,
+              );
+              const bio = pickLocalized(
+                locale,
+                d.bioAr,
+                d.bioEn,
+                d.bioFr,
+              );
+              const selected = form.preferredDoctorId === d.id;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  className={`wizard-doctor-card${selected ? " is-selected" : ""}`}
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      preferredDoctorId: d.id,
+                      preferredTime: "",
+                    }))
+                  }
+                  aria-pressed={selected}
+                >
+                  <div className="wizard-doctor-avatar" aria-hidden>
+                    {d.profileImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={d.profileImage} alt="" />
+                    ) : (
+                      d.fullName.slice(0, 1)
+                    )}
+                  </div>
+                  <div className="wizard-doctor-card-body">
+                    <h3>{d.fullName}</h3>
+                    {title ? <p className="wizard-doctor-title">{title}</p> : null}
+                    {specialty ? (
+                      <p className="pub-specialty-badge">{specialty}</p>
+                    ) : null}
+                    {bio ? (
+                      <p className="wizard-doctor-bio">{bio}</p>
+                    ) : null}
+                    {availability ? (
+                      <p className="pub-availability">
+                        {copy.availabilityLabel}: {availability}
+                      </p>
+                    ) : null}
+                    <span className="wizard-doctor-select-label">
+                      {selected
+                        ? copy.doctorSelectedAction
+                        : copy.selectDoctorAction}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       ) : null}
 

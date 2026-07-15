@@ -1668,13 +1668,6 @@ body.font-latin {
   align-items: start;
 }
 
-.contact-info-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
 .contact-info-card h2 {
   margin-top: 0;
   color: var(--pub-ink);
@@ -1691,6 +1684,672 @@ body.font-latin {
   display: grid;
   gap: 1.25rem;
   max-width: 52rem;
+}
+
+.contact-workspace-split {
+  max-width: 72rem;
+  gap: 2rem;
+}
+
+.contact-workspace-premium {
+  max-width: none;
+  gap: 2.5rem;
+}
+
+.contact-main-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.contact-inquiry-block,
+.contact-booking-block,
+.contact-side-panel {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.contact-booking-block {
+  padding: 1.75rem 1.65rem;
+}
+
+.clinic-address-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.65rem 1.6rem;
+  border: 1px solid color-mix(in srgb, var(--pub-green) 28%, var(--pub-line));
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--pub-green) 12%, transparent), transparent 42%),
+    linear-gradient(180deg, #fff 0%, var(--pub-green-mist) 140%);
+  box-shadow: var(--pub-shadow);
+}
+
+.clinic-address-card-deco {
+  position: absolute;
+  inset-inline-end: 1.2rem;
+  top: 1.1rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  pointer-events: none;
+}
+
+.clinic-address-pin-pulse {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pub-green) 18%, transparent);
+  animation: clinic-pin-soft 2.8s ease-in-out infinite;
+}
+
+.clinic-address-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1.25rem;
+  align-items: start;
+  position: relative;
+  z-index: 1;
+}
+
+.clinic-address-text {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  line-height: 1.65;
+  font-size: 1.05rem;
+  color: var(--pub-ink);
+  font-weight: 600;
+}
+
+.clinic-address-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.clinic-pin-icon {
+  color: var(--pub-green);
+  margin-top: 0.1rem;
+  animation: clinic-pin-bob 2.8s ease-in-out infinite;
+}
+
+.clinic-maps-url-block {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--pub-green) 35%, var(--pub-line));
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.clinic-maps-url-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+  color: var(--pub-muted);
+  font-weight: 600;
+}
+
+.clinic-maps-url-link {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  max-width: 100%;
+  color: var(--pub-green-deep);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.clinic-maps-url-text {
+  min-width: 0;
+}
+
+.clinic-directions-icon {
+  display: inline-flex;
+  color: var(--pub-green, #0b7a68);
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+}
+
+.clinic-directions-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.85rem;
+}
+
+.clinic-directions-label-short {
+  display: none;
+}
+
+.clinic-address-actions {
+  margin-top: 1.15rem;
+}
+
+.clinic-location-visual-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--pub-line);
+  background:
+    linear-gradient(135deg, var(--pub-green-soft), #fff 55%),
+    repeating-linear-gradient(
+      -18deg,
+      transparent,
+      transparent 10px,
+      color-mix(in srgb, var(--pub-green) 6%, transparent) 10px,
+      color-mix(in srgb, var(--pub-green) 6%, transparent) 11px
+    );
+  min-height: 220px;
+}
+
+.clinic-location-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.contact-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.contact-info-panel {
+  padding: 1.55rem 1.45rem;
+  border-radius: 16px;
+  border: 1px solid var(--pub-line);
+  background: var(--pub-white);
+  box-shadow: var(--pub-shadow);
+}
+
+.contact-info-panel h2 {
+  margin: 0.2rem 0 1rem;
+  color: var(--pub-ink);
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+}
+
+.contact-info-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.contact-info-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--pub-line);
+  background: var(--pub-green-mist);
+}
+
+.contact-info-row h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+  color: var(--pub-muted);
+  font-weight: 650;
+}
+
+.contact-info-row p,
+.contact-info-row a {
+  margin: 0;
+  color: var(--pub-ink);
+  word-break: break-word;
+}
+
+.contact-info-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  color: var(--pub-green-deep);
+  background: color-mix(in srgb, var(--pub-green) 12%, #fff);
+  flex: 0 0 auto;
+}
+
+.contact-quick-actions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.contact-quick-action {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  min-height: 5.25rem;
+  padding: 1rem 1.05rem;
+  border-radius: 14px;
+  border: 1px solid var(--pub-line);
+  background: var(--pub-white);
+  box-shadow: 0 8px 22px rgba(11, 122, 104, 0.06);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contact-quick-action:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--pub-green) 45%, var(--pub-line));
+  box-shadow: var(--pub-shadow);
+}
+
+.contact-quick-action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--pub-green) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.contact-quick-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 12px;
+  color: var(--pub-green-deep);
+  background: var(--pub-green-soft);
+}
+
+.contact-quick-action-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.contact-quick-action-copy strong {
+  color: var(--pub-ink);
+  font-size: 1rem;
+}
+
+.contact-quick-action-copy span {
+  color: var(--pub-muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.contact-premium-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-hero-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.contact-hero-deco-ring {
+  position: absolute;
+  inset-inline-end: -4rem;
+  top: -3rem;
+  width: min(42vw, 340px);
+  height: min(42vw, 340px);
+  border: 1px solid color-mix(in srgb, var(--pub-green) 30%, transparent);
+  border-radius: 999px;
+}
+
+.contact-hero-deco-cross {
+  position: absolute;
+  inset-inline-start: 8%;
+  bottom: 12%;
+  width: 1.6rem;
+  height: 1.6rem;
+  background:
+    linear-gradient(var(--pub-green), var(--pub-green)) center/0.22rem 100% no-repeat,
+    linear-gradient(var(--pub-green), var(--pub-green)) center/100% 0.22rem no-repeat;
+  opacity: 0.35;
+}
+
+.contact-hero-deco-dot {
+  position: absolute;
+  inset-inline-end: 18%;
+  bottom: 18%;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: var(--pub-green);
+  opacity: 0.28;
+}
+
+.contact-hero-clinic {
+  margin: 0.65rem 0 0;
+  color: var(--pub-green-deep);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.contact-hero-trust {
+  list-style: none;
+  margin: 1.35rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.contact-hero-trust li {
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--pub-line);
+  background: rgba(255, 255, 255, 0.78);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.contact-hero-trust-label {
+  font-size: 0.78rem;
+  color: var(--pub-muted);
+}
+
+.contact-hero-trust strong {
+  font-size: 0.95rem;
+  color: var(--pub-ink);
+  word-break: break-word;
+}
+
+.contact-hero-image,
+.page-hero-image {
+  transform: none !important;
+}
+
+.contact-inquiry-form {
+  padding: 1.65rem 1.55rem;
+  border: 1px solid var(--pub-line);
+  box-shadow: var(--pub-shadow);
+}
+
+.contact-inquiry-form-header h2 {
+  margin: 0.2rem 0 0.55rem;
+  font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+}
+
+.input-icon-wrap {
+  position: relative;
+}
+
+.input-icon-wrap .input {
+  padding-inline-start: 2.7rem;
+}
+
+.input-field-icon {
+  position: absolute;
+  inset-inline-start: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pub-green);
+  pointer-events: none;
+  display: inline-flex;
+}
+
+.contact-inquiry-textarea {
+  min-height: 10rem;
+  resize: vertical;
+}
+
+.contact-inquiry-submit {
+  min-height: 3rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.contact-hours-panel {
+  padding: 1.6rem 1.5rem;
+}
+
+.contact-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+  margin-top: 1rem;
+}
+
+.contact-hours-grid h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: var(--pub-muted);
+}
+
+.contact-final-cta {
+  text-align: center;
+  max-width: 46rem;
+  margin-inline: auto;
+  padding: 1.25rem 0.5rem 0.5rem;
+}
+
+.contact-final-cta h2 {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+}
+
+.contact-final-cta .cta-row {
+  justify-content: center;
+  margin-top: 1.15rem;
+}
+
+.wizard-doctor-step {
+  display: grid;
+  gap: 1rem;
+}
+
+.wizard-doctor-select {
+  max-width: 28rem;
+}
+
+.wizard-doctor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr));
+  gap: 0.95rem;
+}
+
+.wizard-doctor-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  text-align: start;
+  min-height: 11.5rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--pub-line);
+  background: var(--pub-white);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.wizard-doctor-card:hover {
+  border-color: color-mix(in srgb, var(--pub-green) 40%, var(--pub-line));
+  box-shadow: var(--pub-shadow);
+}
+
+.wizard-doctor-card.is-selected {
+  border-color: var(--pub-green);
+  background: color-mix(in srgb, var(--pub-green) 8%, #fff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pub-green) 35%, transparent);
+}
+
+.wizard-doctor-avatar {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--pub-green-soft);
+  color: var(--pub-green-deep);
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.wizard-doctor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wizard-doctor-card-body {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.wizard-doctor-card-body h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.wizard-doctor-title {
+  margin: 0;
+  color: var(--pub-muted);
+  font-size: 0.9rem;
+}
+
+.wizard-doctor-bio {
+  margin: 0;
+  color: var(--pub-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wizard-doctor-select-label {
+  margin-top: 0.35rem;
+  color: var(--pub-green-deep);
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+.professional-inquiry-form .btn-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-inline-end: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: contact-spin 0.7s linear infinite;
+  vertical-align: -0.15rem;
+}
+
+@keyframes contact-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes clinic-pin-soft {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.9;
+  }
+}
+
+@keyframes clinic-pin-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.contact-premium-hero .page-hero-copy {
+  animation: contact-hero-enter 0.55s ease both;
+}
+
+.contact-premium-hero .page-hero-media {
+  animation: contact-hero-enter 0.7s ease 0.08s both;
+}
+
+@keyframes contact-hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .professional-inquiry-form .btn-spinner,
+  .clinic-address-pin-pulse,
+  .clinic-pin-icon,
+  .contact-premium-hero .page-hero-copy,
+  .contact-premium-hero .page-hero-media,
+  .contact-quick-action {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .contact-main-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-side-panel {
+    order: 2;
+  }
+
+  .contact-inquiry-block {
+    order: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .clinic-address-card-grid,
+  .contact-hero-trust,
+  .contact-hours-grid,
+  .contact-quick-actions-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clinic-directions-label-full {
+    display: none;
+  }
+
+  .clinic-directions-label-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 640px) {
+  .contact-quick-actions-list,
+  .contact-hero-trust,
+  .contact-hours-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .contact-tabs {
@@ -1874,7 +2533,7 @@ body.font-latin {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.5rem;
 }
 

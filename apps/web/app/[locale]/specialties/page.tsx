@@ -6,6 +6,10 @@ import { PublicSection } from "../../../components/public/PublicSection";
 import { SpecialtyCard } from "../../../components/public/SpecialtyCard";
 import { CatalogSearch } from "../../../components/public/CatalogSearch";
 import { isLocale, locales, type Locale } from "../../../lib/i18n/config";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
@@ -23,21 +27,19 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
-  const copy = getPublicCopy(locale);
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}/specialties`]),
-  ) as Record<string, string>;
-  return {
-    title: copy.sectionSpecialties,
-    description: copy.sectionSpecialtiesLead.slice(0, 160),
-    alternates: { canonical: `/${locale}/specialties`, languages },
-    openGraph: {
-      title: copy.sectionSpecialties,
-      description: copy.sectionSpecialtiesLead.slice(0, 160),
-      locale,
-    },
-  };
+  return buildPublicMetadata({
+    locale,
+    path: "/specialties",
+    title: titleSegment(locale, "specialties"),
+    description:
+      locale === "en"
+        ? "Explore dental specialties at Al Wissam Dental Clinic and choose the right path for your appointment."
+        : locale === "fr"
+          ? "Explorez les spécialités de la Clinique Dentaire El Wissam et choisissez le parcours adapté."
+          : "استكشف تخصصات عيادة الوسام لطب الأسنان واختر المسار المناسب لحجز موعدك.",
+  });
 }
+
 
 export default async function SpecialtiesPage({
   params,

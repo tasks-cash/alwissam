@@ -5,7 +5,7 @@ import { PageHero } from "../../../../components/public/PageHero";
 import { PublicChrome } from "../../../../components/public/PublicChrome";
 import { PublicSection } from "../../../../components/public/PublicSection";
 import { ServiceCard } from "../../../../components/public/ServiceCard";
-import { isLocale, locales, type Locale } from "../../../../lib/i18n/config";
+import { isLocale, type Locale } from "../../../../lib/i18n/config";
 import { getDictionary } from "../../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../../lib/i18n/public-copy";
 import { contextualWhatsAppMessage } from "../../../../lib/clinic-contact";
@@ -17,6 +17,10 @@ import {
   localizedSpecialtyName,
   localizedWorkingHours,
 } from "../../../../lib/public-site";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../../lib/seo/page-metadata";
 
 export async function generateMetadata({
   params,
@@ -27,21 +31,30 @@ export async function generateMetadata({
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
   const detail = await fetchPublicSpecialty(slug, locale);
-  if (!detail) return {};
+  if (!detail) {
+    return buildPublicMetadata({
+      locale,
+      path: `/specialties/${slug}`,
+      title: titleSegment(locale, "notFound"),
+      description:
+        locale === "en"
+          ? "Specialty not found."
+          : locale === "fr"
+            ? "Spécialité introuvable."
+            : "التخصص غير موجود.",
+    });
+  }
   const title = localizedSpecialtyName(locale, detail.specialty);
   const description = localizedSpecialtyDesc(locale, detail.specialty).slice(
     0,
     160,
   );
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}/specialties/${slug}`]),
-  ) as Record<string, string>;
-  return {
+  return buildPublicMetadata({
+    locale,
+    path: `/specialties/${slug}`,
     title,
     description,
-    alternates: { canonical: `/${locale}/specialties/${slug}`, languages },
-    openGraph: { title, description, locale },
-  };
+  });
 }
 
 export default async function SpecialtyDetailPage({

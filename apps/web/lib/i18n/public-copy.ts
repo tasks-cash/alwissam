@@ -65,6 +65,20 @@ export type PublicCopy = {
   facebookLabel: string;
   callClinic: string;
   directionsLabel: string;
+  openDirectionsMaps: string;
+  openDirectionsMapsShort: string;
+  mapsUrlLabel: string;
+  heroBookDoctor: string;
+  heroDirections: string;
+  sendEmailAction: string;
+  quickCallSupport: string;
+  quickWaSupport: string;
+  quickEmailSupport: string;
+  quickMapsSupport: string;
+  selectDoctorAction: string;
+  doctorSelectedAction: string;
+  contactFinalCtaTitle: string;
+  contactFinalCtaLead: string;
   contactClinic: string;
   bookingConvenienceKicker: string;
   bookingConvenienceTitle: string;
@@ -104,7 +118,9 @@ export type PublicCopy = {
   contactFormTitle: string;
   sendMessage: string;
   sendInquiry: string;
+  sendInquiryButton: string;
   sending: string;
+  sendingInquiry: string;
   subject: string;
   message: string;
   fullNameLabel: string;
@@ -115,6 +131,15 @@ export type PublicCopy = {
   messagePlaceholder: string;
   contactHeroTitle: string;
   contactHeroLead: string;
+  inquiryFormLead: string;
+  inquirySuccessTitle: string;
+  inquirySuccessMessage: string;
+  contactInfoSummaryTitle: string;
+  addressCardTitle: string;
+  addressCardKicker: string;
+  whatsappCta: string;
+  contactBookingLead: string;
+  noBookableDoctors: string;
   tabInquiry: string;
   tabBookDoctor: string;
   noSlots: string;
@@ -324,18 +349,33 @@ const ar: PublicCopy = {
   contactFormTitle: "إرسال استفسار",
   sendMessage: "إرسال الرسالة",
   sendInquiry: "إرسال استفسار",
+  sendInquiryButton: "إرسال الاستفسار",
   sending: "جارٍ الإرسال...",
-  subject: "موضوع الرسالة",
-  message: "تفاصيل الرسالة",
+  sendingInquiry: "جارٍ إرسال الاستفسار...",
+  subject: "موضوع الاستفسار",
+  message: "تفاصيل الاستفسار",
   fullNameLabel: "الاسم الكامل",
   phoneLabel: "رقم الهاتف",
   fullNamePlaceholder: "أدخل اسمك الكامل",
   phonePlaceholder: "أدخل رقم هاتفك",
   subjectPlaceholder: "اكتب موضوع استفسارك",
-  messagePlaceholder: "اكتب تفاصيل رسالتك هنا",
-  contactHeroTitle: "تواصل معنا أو احجز موعدك",
+  messagePlaceholder: "اكتب تفاصيل استفسارك هنا",
+  contactHeroTitle: "تواصل معنا واحجز موعدك بكل سهولة",
   contactHeroLead:
-    "يمكنك إرسال استفسارك إلى فريق العيادة أو اختيار التخصص والطبيب والموعد المناسب لك.",
+    "فريق عيادة الوسام جاهز للإجابة عن استفساراتك ومساعدتك في اختيار الطبيب والموعد المناسب قبل زيارتك للعيادة.",
+  inquiryFormLead:
+    "اكتب استفسارك وسيقوم فريق العيادة بالتواصل معك عبر رقم الهاتف الذي أدخلته.",
+  inquirySuccessTitle: "تم إرسال استفسارك بنجاح",
+  inquirySuccessMessage:
+    "سيتواصل معك فريق عيادة الوسام في أقرب وقت ممكن.",
+  contactInfoSummaryTitle: "معلومات التواصل",
+  addressCardTitle: "موقع عيادة الوسام",
+  addressCardKicker: "العنوان",
+  whatsappCta: "تواصل عبر واتساب",
+  contactBookingLead:
+    "اختر التخصص والطبيب والموعد المناسب، ثم أرسل طلب الحجز وانتظر تأكيد فريق العيادة.",
+  noBookableDoctors:
+    "لا يوجد أطباء متاحون للحجز حاليًا. يرجى التواصل مع العيادة للمساعدة.",
   tabInquiry: "إرسال استفسار",
   tabBookDoctor: "حجز موعد مع طبيب",
   noSlots: "لا تتوفر أوقات في هذا اليوم. جرّب تاريخًا آخر.",
@@ -348,8 +388,9 @@ const ar: PublicCopy = {
   preferredDate: "التاريخ المفضّل",
   preferredTime: "الوقت المفضّل",
   visitReason: "سبب الزيارة",
-  confirmationTitle: "تم استلام الطلب",
-  confirmationLead: "احتفظوا برقم المرجع وانتظروا توجيه الاستقبال.",
+  confirmationTitle: "تم إرسال طلب الحجز بنجاح",
+  confirmationLead:
+    "تم تسجيل طلبك، وسيتواصل معك فريق عيادة الوسام لتأكيد الموعد.",
   queueLabel: "رقم المرجع",
   backHome: "العودة للرئيسية",
   effective: "تاريخ السريان / آخر تحديث",
@@ -382,6 +423,21 @@ const ar: PublicCopy = {
   facebookLabel: "صفحتنا على فيسبوك",
   callClinic: "اتصل بالعيادة",
   directionsLabel: "عرض الاتجاهات",
+  openDirectionsMaps: "فتح الاتجاهات في خرائط Google",
+  openDirectionsMapsShort: "الوصول إلى العيادة",
+  mapsUrlLabel: "رابط الموقع على خرائط Google",
+  heroBookDoctor: "احجز موعدًا مع طبيب",
+  heroDirections: "الوصول إلى العيادة",
+  sendEmailAction: "أرسل بريدًا إلكترونيًا",
+  quickCallSupport: "تواصل هاتفيًا مع فريق الاستقبال",
+  quickWaSupport: "راسل العيادة عبر واتساب مباشرة",
+  quickEmailSupport: "أرسل رسالة إلى بريد العيادة",
+  quickMapsSupport: "افتح موقع العيادة على الخريطة",
+  selectDoctorAction: "اختيار الطبيب",
+  doctorSelectedAction: "تم اختيار الطبيب",
+  contactFinalCtaTitle: "جاهزون لاستقبال استفسارك أو حجز موعدك",
+  contactFinalCtaLead:
+    "تواصل معنا هاتفيًا أو عبر واتساب، أو أرسل استفسارك، أو احجز موعدًا مع أحد أطباء العيادة.",
   contactClinic: "تواصل مع العيادة",
   bookingConvenienceKicker: "حجز من المنزل",
   bookingConvenienceTitle: "لماذا تتعب من أجل حجز موعد؟",
@@ -541,20 +597,35 @@ const en: PublicCopy = {
   contactFormTitle: "Send an inquiry",
   sendMessage: "Send message",
   sendInquiry: "Send an Inquiry",
+  sendInquiryButton: "Send Inquiry",
   sending: "Sending...",
-  subject: "Subject",
-  message: "Message details",
+  sendingInquiry: "Sending your inquiry...",
+  subject: "Inquiry subject",
+  message: "Inquiry details",
   fullNameLabel: "Full name",
   phoneLabel: "Phone number",
   fullNamePlaceholder: "Enter your full name",
   phonePlaceholder: "Enter your phone number",
-  subjectPlaceholder: "What is your inquiry about?",
-  messagePlaceholder: "Write the details of your message here",
-  contactHeroTitle: "Contact us or book your visit",
+  subjectPlaceholder: "Write the subject of your inquiry",
+  messagePlaceholder: "Write the details of your inquiry here",
+  contactHeroTitle: "Contact Us and Book Your Appointment with Ease",
   contactHeroLead:
-    "Send an inquiry to the clinic team, or choose a specialty, doctor, and available time.",
+    "The Al Wissam clinic team is ready to answer your questions and help you choose the right doctor and appointment before your visit.",
+  inquiryFormLead:
+    "Write your inquiry and the clinic team will contact you on the phone number you enter.",
+  inquirySuccessTitle: "Your inquiry was sent successfully",
+  inquirySuccessMessage:
+    "The Al Wissam clinic team will get back to you as soon as possible.",
+  contactInfoSummaryTitle: "Contact information",
+  addressCardTitle: "Al Wissam Clinic Location",
+  addressCardKicker: "Address",
+  whatsappCta: "Contact via WhatsApp",
+  contactBookingLead:
+    "Choose the specialty, doctor, and suitable appointment, then submit your booking request and wait for the clinic team to confirm.",
+  noBookableDoctors:
+    "No doctors are available for booking right now. Please contact the clinic for help.",
   tabInquiry: "Send an inquiry",
-  tabBookDoctor: "Book with a doctor",
+  tabBookDoctor: "Book an Appointment with a Doctor",
   noSlots: "No times are available on this day. Try another date.",
   loadingSlots: "Loading available times...",
   bookTitle: "Request an appointment",
@@ -565,8 +636,9 @@ const en: PublicCopy = {
   preferredDate: "Preferred date",
   preferredTime: "Preferred time",
   visitReason: "Visit reason",
-  confirmationTitle: "Request received",
-  confirmationLead: "Keep your reference number and wait for reception guidance.",
+  confirmationTitle: "Booking request sent successfully",
+  confirmationLead:
+    "Your request has been recorded. The Al Wissam clinic team will contact you to confirm the appointment.",
   queueLabel: "Reference",
   backHome: "Back to home",
   effective: "Effective / last updated",
@@ -599,6 +671,21 @@ const en: PublicCopy = {
   facebookLabel: "Facebook Page",
   callClinic: "Call the Clinic",
   directionsLabel: "Get Directions",
+  openDirectionsMaps: "Open directions in Google Maps",
+  openDirectionsMapsShort: "Get to the clinic",
+  mapsUrlLabel: "Google Maps location link",
+  heroBookDoctor: "Book an appointment with a doctor",
+  heroDirections: "Get to the clinic",
+  sendEmailAction: "Send an email",
+  quickCallSupport: "Call reception directly",
+  quickWaSupport: "Message the clinic on WhatsApp",
+  quickEmailSupport: "Email the clinic address",
+  quickMapsSupport: "Open the clinic location on the map",
+  selectDoctorAction: "Select doctor",
+  doctorSelectedAction: "Doctor selected",
+  contactFinalCtaTitle: "Ready for your inquiry or appointment request",
+  contactFinalCtaLead:
+    "Call or WhatsApp us, send an inquiry, or book an appointment with a clinic doctor.",
   contactClinic: "Contact the clinic",
   bookingConvenienceKicker: "Book from home",
   bookingConvenienceTitle: "Why travel just to book an appointment?",
@@ -758,20 +845,35 @@ const fr: PublicCopy = {
   contactFormTitle: "Envoyer une demande",
   sendMessage: "Envoyer le message",
   sendInquiry: "Envoyer une demande",
+  sendInquiryButton: "Envoyer la demande",
   sending: "Envoi...",
-  subject: "Objet",
-  message: "Détails du message",
+  sendingInquiry: "Envoi de la demande…",
+  subject: "Objet de la demande",
+  message: "Détails de la demande",
   fullNameLabel: "Nom complet",
   phoneLabel: "Numéro de téléphone",
   fullNamePlaceholder: "Saisissez votre nom complet",
   phonePlaceholder: "Saisissez votre numéro de téléphone",
-  subjectPlaceholder: "Objet de votre demande",
-  messagePlaceholder: "Écrivez les détails de votre message ici",
-  contactHeroTitle: "Contactez-nous ou réservez votre visite",
+  subjectPlaceholder: "Écrivez l’objet de votre demande",
+  messagePlaceholder: "Écrivez les détails de votre demande ici",
+  contactHeroTitle: "Contactez-nous et prenez rendez-vous facilement",
   contactHeroLead:
-    "Envoyez une demande à l’équipe, ou choisissez spécialité, médecin et créneau.",
+    "L’équipe de la clinique El Wissam est prête à répondre à vos questions et à vous aider à choisir le médecin et le créneau adaptés avant votre visite.",
+  inquiryFormLead:
+    "Écrivez votre demande ; l’équipe vous contactera au numéro de téléphone saisi.",
+  inquirySuccessTitle: "Votre demande a bien été envoyée",
+  inquirySuccessMessage:
+    "L’équipe de la clinique El Wissam vous recontactera dans les plus brefs délais.",
+  contactInfoSummaryTitle: "Coordonnées",
+  addressCardTitle: "Emplacement de la clinique El Wissam",
+  addressCardKicker: "Adresse",
+  whatsappCta: "Contacter via WhatsApp",
+  contactBookingLead:
+    "Choisissez la spécialité, le médecin et le créneau adapté, puis envoyez votre demande et attendez la confirmation de l’équipe.",
+  noBookableDoctors:
+    "Aucun médecin n’est disponible pour la réservation pour le moment. Veuillez contacter la clinique.",
   tabInquiry: "Envoyer une demande",
-  tabBookDoctor: "Réserver avec un médecin",
+  tabBookDoctor: "Prendre rendez-vous avec un médecin",
   noSlots: "Aucun créneau ce jour-là. Essayez une autre date.",
   loadingSlots: "Chargement des créneaux...",
   bookTitle: "Demande de rendez-vous",
@@ -783,8 +885,9 @@ const fr: PublicCopy = {
   preferredDate: "Date préférée",
   preferredTime: "Heure préférée",
   visitReason: "Motif de visite",
-  confirmationTitle: "Demande reçue",
-  confirmationLead: "Conservez votre référence et attendez l’accueil.",
+  confirmationTitle: "Demande de rendez-vous envoyée avec succès",
+  confirmationLead:
+    "Votre demande a été enregistrée. L’équipe de la clinique El Wissam vous contactera pour confirmer le rendez-vous.",
   queueLabel: "Référence",
   backHome: "Retour à l’accueil",
   effective: "Date d’effet / mise à jour",
@@ -817,6 +920,21 @@ const fr: PublicCopy = {
   facebookLabel: "Page Facebook",
   callClinic: "Appeler la clinique",
   directionsLabel: "Afficher l’itinéraire",
+  openDirectionsMaps: "Ouvrir l’itinéraire dans Google Maps",
+  openDirectionsMapsShort: "Accéder à la clinique",
+  mapsUrlLabel: "Lien Google Maps de l’emplacement",
+  heroBookDoctor: "Prendre rendez-vous avec un médecin",
+  heroDirections: "Accéder à la clinique",
+  sendEmailAction: "Envoyer un e-mail",
+  quickCallSupport: "Appelez directement la réception",
+  quickWaSupport: "Écrivez à la clinique sur WhatsApp",
+  quickEmailSupport: "Envoyez un message à l’adresse e-mail",
+  quickMapsSupport: "Ouvrez l’emplacement sur la carte",
+  selectDoctorAction: "Choisir le médecin",
+  doctorSelectedAction: "Médecin sélectionné",
+  contactFinalCtaTitle: "Prêts pour votre demande ou votre rendez-vous",
+  contactFinalCtaLead:
+    "Appelez-nous ou écrivez sur WhatsApp, envoyez une demande, ou réservez avec un médecin de la clinique.",
   contactClinic: "Contacter la clinique",
   bookingConvenienceKicker: "Réservation à domicile",
   bookingConvenienceTitle:

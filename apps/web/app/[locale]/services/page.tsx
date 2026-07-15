@@ -6,6 +6,10 @@ import { PublicChrome } from "../../../components/public/PublicChrome";
 import { PublicSection } from "../../../components/public/PublicSection";
 import { ServiceCard } from "../../../components/public/ServiceCard";
 import { isLocale, locales, type Locale } from "../../../lib/i18n/config";
+import {
+  buildPublicMetadata,
+  titleSegment,
+} from "../../../lib/seo/page-metadata";
 import { getDictionary } from "../../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../../lib/i18n/public-copy";
 import {
@@ -24,21 +28,19 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
-  const copy = getPublicCopy(locale);
-  const languages = Object.fromEntries(
-    locales.map((l) => [l, `/${l}/services`]),
-  ) as Record<string, string>;
-  return {
-    title: copy.sectionDentalServices,
-    description: copy.sectionDentalServicesLead.slice(0, 160),
-    alternates: { canonical: `/${locale}/services`, languages },
-    openGraph: {
-      title: copy.sectionDentalServices,
-      description: copy.sectionDentalServicesLead.slice(0, 160),
-      locale,
-    },
-  };
+  return buildPublicMetadata({
+    locale,
+    path: "/services",
+    title: titleSegment(locale, "services"),
+    description:
+      locale === "en"
+        ? "Dental services available at Al Wissam Clinic — clear information to help you book."
+        : locale === "fr"
+          ? "Services dentaires proposés à la Clinique El Wissam — informations claires pour réserver."
+          : "خدمات طب الأسنان المتاحة في عيادة الوسام — معلومات عامة لحجز موعدك بوضوح.",
+  });
 }
+
 
 export default async function ServicesPage({
   params,
