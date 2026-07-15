@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type MedicalCaseDocument = HydratedDocument<MedicalCase>;
 
@@ -15,13 +15,13 @@ export const MEDICAL_CASE_STATUSES = [
 
 @Schema({ timestamps: true, collection: "medical_cases" })
 export class MedicalCase {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment", index: true })
   appointmentId?: Types.ObjectId;
 
   @Prop({ required: true, trim: true })
@@ -82,16 +82,16 @@ export const PATIENT_FILE_VISIBILITIES = [
 
 @Schema({ timestamps: true, collection: "medical_files" })
 export class MedicalFile {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "MedicalCase", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "MedicalCase", index: true })
   medicalCaseId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment", index: true })
   appointmentId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   uploadedById?: Types.ObjectId;
 
   @Prop({ required: true })
@@ -135,16 +135,16 @@ MedicalFileSchema.index({ patientId: 1, visibility: 1, createdAt: -1 });
 
 @Schema({ timestamps: true, collection: "doctor_instructions" })
 export class DoctorInstruction {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true })
   doctorId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment", index: true })
   appointmentId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "MedicalCase", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "MedicalCase", index: true })
   medicalCaseId?: Types.ObjectId;
 
   @Prop({ required: true })
@@ -194,14 +194,14 @@ export const MESSAGE_THREAD_STATUSES = [
 
 @Schema({ timestamps: true, collection: "medical_message_threads" })
 export class MedicalMessageThread {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   doctorId!: Types.ObjectId;
 
   @Prop({
-    type: Types.ObjectId,
+    type: SchemaTypes.ObjectId,
     ref: "Appointment",
     required: true,
     unique: true,
@@ -209,7 +209,7 @@ export class MedicalMessageThread {
   })
   appointmentId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "MedicalCase" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "MedicalCase" })
   medicalCaseId?: Types.ObjectId;
 
   @Prop({
@@ -242,18 +242,22 @@ export const MedicalMessageThreadSchema =
   SchemaFactory.createForClass(MedicalMessageThread);
 MedicalMessageThreadSchema.index({ patientId: 1, lastMessageAt: -1 });
 MedicalMessageThreadSchema.index({ doctorId: 1, status: 1, lastMessageAt: -1 });
+MedicalMessageThreadSchema.index(
+  { patientId: 1, doctorId: 1, appointmentId: 1 },
+  { unique: true },
+);
 
 @Schema({ timestamps: true, collection: "medical_messages" })
 export class MedicalMessage {
   @Prop({
-    type: Types.ObjectId,
+    type: SchemaTypes.ObjectId,
     ref: "MedicalMessageThread",
     required: true,
     index: true,
   })
   threadId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true })
   senderId!: Types.ObjectId;
 
   @Prop({ required: true, enum: ["PATIENT", "DOCTOR", "STAFF"] })
@@ -262,7 +266,7 @@ export class MedicalMessage {
   @Prop({ required: true, maxlength: 4000 })
   message!: string;
 
-  @Prop({ type: [Types.ObjectId], ref: "MedicalFile", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "MedicalFile", default: [] })
   attachments!: Types.ObjectId[];
 
   @Prop({ default: false })
@@ -281,7 +285,7 @@ MedicalMessageSchema.index({ threadId: 1, createdAt: 1 });
 
 @Schema({ timestamps: true, collection: "patient_notifications" })
 export class PatientNotification {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
   @Prop({ required: true })
@@ -309,16 +313,16 @@ PatientNotificationSchema.index({ patientId: 1, isRead: 1, createdAt: -1 });
 
 @Schema({ timestamps: true, collection: "follow_up_recommendations" })
 export class FollowUpRecommendation {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   doctorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment" })
   appointmentId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "MedicalCase" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "MedicalCase" })
   medicalCaseId?: Types.ObjectId;
 
   @Prop({ required: true })
@@ -353,7 +357,7 @@ FollowUpRecommendationSchema.index({ patientId: 1, status: 1, recommendedFrom: 1
 
 @Schema({ timestamps: true, collection: "patient_consents" })
 export class PatientConsent {
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
   @Prop({ required: true, index: true })
@@ -381,10 +385,10 @@ PatientConsentSchema.index({ patientId: 1, consentType: 1 }, { unique: true });
 
 @Schema({ timestamps: true, collection: "account_deletion_requests" })
 export class AccountDeletionRequest {
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   userId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true })
   patientId!: Types.ObjectId;
 
   @Prop()
@@ -406,10 +410,10 @@ export const AccountDeletionRequestSchema =
 
 @Schema({ timestamps: true, collection: "data_export_requests" })
 export class DataExportRequest {
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   userId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true })
   patientId!: Types.ObjectId;
 
   @Prop({
@@ -431,3 +435,51 @@ export class DataExportRequest {
 
 export const DataExportRequestSchema =
   SchemaFactory.createForClass(DataExportRequest);
+
+export const PATIENT_SUPPORT_CATEGORIES = [
+  "account_access",
+  "password_security",
+  "personal_info",
+  "appointment_display",
+  "missing_file",
+  "notifications",
+  "technical",
+  "other",
+] as const;
+
+@Schema({ timestamps: true, collection: "patient_support_requests" })
+export class PatientSupportRequest {
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
+  userId!: Types.ObjectId;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
+  patientId!: Types.ObjectId;
+
+  @Prop({
+    enum: PATIENT_SUPPORT_CATEGORIES,
+    required: true,
+    index: true,
+  })
+  category!: string;
+
+  @Prop({ required: true, trim: true, maxlength: 160 })
+  subject!: string;
+
+  @Prop({ required: true, trim: true, maxlength: 4000 })
+  description!: string;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment" })
+  relatedAppointmentId?: Types.ObjectId;
+
+  @Prop({
+    enum: ["pending", "under_review", "resolved", "closed"],
+    default: "pending",
+    index: true,
+  })
+  status!: string;
+}
+
+export const PatientSupportRequestSchema =
+  SchemaFactory.createForClass(PatientSupportRequest);
+PatientSupportRequestSchema.index({ patientId: 1, createdAt: -1 });
+

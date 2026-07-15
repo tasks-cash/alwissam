@@ -24,13 +24,14 @@ export function SpecialtiesSection({ locale, copy, specialties }: Props) {
       {specialties.length === 0 ? (
         <p className="muted empty-state">{copy.emptySpecialties}</p>
       ) : (
-        <div className="pub-tile-grid pub-tile-grid-3">
-          {specialties.map((s) => (
+        <div className="pub-tile-grid pub-tile-grid-3 specialty-card-grid">
+          {specialties.map((s, i) => (
             <SpecialtyCard
               key={s.slug}
               locale={locale}
               copy={copy}
               specialty={s}
+              index={i}
             />
           ))}
         </div>

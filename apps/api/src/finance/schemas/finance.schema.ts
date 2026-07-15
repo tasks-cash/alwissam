@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export const PAYMENT_METHODS = [
   "CASH",
@@ -25,13 +25,13 @@ export class Invoice {
   @Prop({ required: true, unique: true, index: true })
   invoiceNumber!: string;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment" })
   appointmentId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   doctorId?: Types.ObjectId;
 
   /** Fixed 2-decimal money strings (e.g. "150.00") — never JS float. */
@@ -61,7 +61,7 @@ export class Invoice {
   @Prop()
   notes?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   createdById?: Types.ObjectId;
 
   @Prop()
@@ -75,7 +75,7 @@ export type PaymentDocument = HydratedDocument<Payment>;
 
 @Schema({ timestamps: true, collection: "payments" })
 export class Payment {
-  @Prop({ type: Types.ObjectId, ref: "Invoice", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Invoice", required: true, index: true })
   invoiceId!: Types.ObjectId;
 
   @Prop({ required: true })
@@ -98,10 +98,10 @@ export class Payment {
   @Prop({ default: () => new Date(), index: true })
   paymentDate!: Date;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   createdById?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   voidedById?: Types.ObjectId;
 
   @Prop()

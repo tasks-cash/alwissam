@@ -25,14 +25,27 @@ type DashboardRes = {
 };
 
 function Body() {
-  const { locale, reloadKey } = usePatientPortal();
+  const { locale, dict, reloadKey } = usePatientPortal();
   const { data, error, loading, reload } = usePatientFetch<DashboardRes>(
     "/api/patient/dashboard",
     reloadKey,
   );
-  if (loading) return <SkeletonBlock />;
+  if (loading) {
+    return (
+      <div aria-busy="true">
+        <p className="muted">{dict.dashboardLoading}</p>
+        <SkeletonBlock />
+      </div>
+    );
+  }
   if (error) {
-    return <ErrorRetry message={error} onRetry={reload} label="إعادة المحاولة" />;
+    return (
+      <ErrorRetry
+        message={error || dict.dashboardLoadError}
+        onRetry={reload}
+        label={dict.retry}
+      />
+    );
   }
   const d = data?.dashboard;
   if (!d) return <EmptyState>لا توجد بيانات للعرض.</EmptyState>;
@@ -73,6 +86,7 @@ function Body() {
           <Link className="btn btn-outline" href={`/${locale}/patient/medical-cases`}>متابعة حالتي العلاجية</Link>
           <Link className="btn btn-outline" href={`/${locale}/patient/files`}>عرض صوري وتقاريري</Link>
           <Link className="btn btn-outline" href={`/${locale}/patient/messages`}>رسائلي</Link>
+          <Link className="btn btn-outline" href={`/${locale}/patient/help`}>المساعدة والدعم</Link>
           <Link className="btn btn-outline" href={`/${locale}/patient/profile`}>تعديل معلوماتي</Link>
           <Link className="btn btn-outline" href={`/${locale}/patient/security`}>تغيير كلمة المرور</Link>
         </div>

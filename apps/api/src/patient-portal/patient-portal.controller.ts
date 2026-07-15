@@ -111,6 +111,28 @@ class ProfileUpdateDto {
   locale?: "ar" | "en" | "fr";
 }
 
+class SupportRequestDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(40)
+  category!: string;
+
+  @IsString()
+  @MinLength(3)
+  @MaxLength(160)
+  subject!: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(4000)
+  description!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  relatedAppointmentReference?: string;
+}
+
 @ApiTags("patient-portal")
 @Controller("api/patient")
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
@@ -121,6 +143,25 @@ export class PatientPortalController {
   @Get("dashboard")
   dashboard(@CurrentUser() user: AuthUser) {
     return this.portal.dashboard(user);
+  }
+
+  @Get("help")
+  help(@CurrentUser() user: AuthUser) {
+    return this.portal.helpSummary(user);
+  }
+
+  @Get("help/summary")
+  helpSummary(@CurrentUser() user: AuthUser) {
+    return this.portal.helpSummary(user);
+  }
+
+  @Post("support")
+  @HttpCode(200)
+  createSupport(
+    @CurrentUser() user: AuthUser,
+    @Body() body: SupportRequestDto,
+  ) {
+    return this.portal.createSupportRequest(user, body);
   }
 
   @Get("appointments")

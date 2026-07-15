@@ -28,6 +28,25 @@ export type PublicCopy = {
   emptyServices: string;
   searchSpecialtyService: string;
   medicalTreatmentDisclaimer: string;
+  specialtiesHeroTitle: string;
+  specialtiesHeroLead: string;
+  browseSpecialtiesCta: string;
+  featuredSpecialtyBadge: string;
+  featuredSpecialtiesTitle: string;
+  allSpecialtiesTitle: string;
+  specialtyStatsLabel: string;
+  serviceAvailableLabel: string;
+  specialtyJourneyTitle: string;
+  specialtyJourneyLead: string;
+  specialtyJourneySteps: string[];
+  specialtyDoctorDecidesNote: string;
+  specialtyLinkedServicesTitle: string;
+  specialtyLinkedServicesLead: string;
+  specialtyBookPanelTitle: string;
+  specialtyBookPanelLead: string;
+  viewDoctorsCta: string;
+  specialtyOverviewTitle: string;
+  specialtyRelatedLabel: string;
   wizardService: string;
   sectionDoctors: string;
   sectionDoctorsLead: string;
@@ -359,12 +378,43 @@ const ar: PublicCopy = {
   viewSpecialtyDetails: "عرض التخصص",
   viewServiceDetails: "تفاصيل الخدمة",
   serviceCountLabel: "خدمة متاحة",
-  consultationRequired: "يتطلب استشارة مسبقة",
+  consultationRequired: "تحتاج إلى فحص أولي",
   parentSpecialtyLabel: "التخصص",
   serviceInfoAction: "معلومات الخدمة",
   emptyServices: "لا تتوفر خدمات عامة للعرض حاليًا.",
-  searchSpecialtyService: "ابحث عن تخصص أو خدمة",
-  medicalTreatmentDisclaimer: "تحدد ملاءمة العلاج بعد الفحص والتقييم من طرف الطبيب، وقد تختلف الخطة العلاجية من حالة إلى أخرى.",
+  searchSpecialtyService: "ابحث عن تخصص أو خدمة...",
+  medicalTreatmentDisclaimer: "تحدد ملاءمة الخدمة وخطتها بعد الفحص والتقييم من طرف الطبيب، وقد تختلف الخطة والنتائج من حالة إلى أخرى.",
+  specialtiesHeroTitle: "تخصصات طب الأسنان",
+  specialtiesHeroLead:
+    "استعرض تخصصات عيادة الوسام والخدمات المرتبطة بكل تخصص، وتعرّف على الأطباء المتاحين للحجز.",
+  browseSpecialtiesCta: "استعرض التخصصات",
+  featuredSpecialtyBadge: "مميز",
+  featuredSpecialtiesTitle: "تخصصات مميزة",
+  allSpecialtiesTitle: "كل التخصصات",
+  specialtyStatsLabel: "إحصاءات التخصص",
+  serviceAvailableLabel: "متاحة للحجز",
+  specialtyJourneyTitle: "كيف تبدأ زيارتك؟",
+  specialtyJourneyLead: "مسار واضح من اختيار التخصص حتى المتابعة الطبية.",
+  specialtyJourneySteps: [
+    "اختر التخصص",
+    "اختر الخدمة أو اترك الاختيار للطبيب",
+    "اختر الطبيب أو اطلب مساعدة الاستقبال",
+    "حدد الموعد",
+    "يتم الفحص والتقييم",
+    "يوضح الطبيب الخطة المناسبة",
+    "تبدأ المتابعة حسب الحالة",
+  ],
+  specialtyDoctorDecidesNote:
+    "يحدد الطبيب الخدمة والخطة العلاجية المناسبة بعد الفحص والتقييم.",
+  specialtyLinkedServicesTitle: "الخدمات المرتبطة بالتخصص",
+  specialtyLinkedServicesLead:
+    "تعرّف على الخدمات المتاحة ضمن هذا التخصص واختر الخدمة المناسبة عند حجز موعدك.",
+  specialtyBookPanelTitle: "احجز موعدًا لهذا التخصص",
+  specialtyBookPanelLead:
+    "اختر الخدمة والطبيب والموعد المناسب، أو اترك اختيار الطبيب لفريق الاستقبال لمراجعة طلبك.",
+  viewDoctorsCta: "عرض الأطباء",
+  specialtyOverviewTitle: "نظرة عامة على التخصص",
+  specialtyRelatedLabel: "خدمات مرتبطة بهذا التخصص",
   wizardService: "الخدمة",
   sectionDoctors: "أطباؤنا",
   sectionDoctorsLead:
@@ -627,7 +677,7 @@ const ar: PublicCopy = {
   patientFloatNotice: "تذكير",
   patientFloatFile: "ملف طبي",
   patientSecurityBadge: "خصوصية محسّنة",
-  emptySpecialties: "لا تتوفر تخصصات عامة للعرض حاليًا.",
+  emptySpecialties: "لا توجد تخصصات منشورة حاليًا.",
   emptyFaq: "لا تتوفر أسئلة شائعة للعرض حاليًا.",
   retryLabel: "إعادة المحاولة",
   doctorCountLabel: "أطباء",
@@ -764,12 +814,44 @@ const en: PublicCopy = {
   viewSpecialtyDetails: "View specialty",
   viewServiceDetails: "Service details",
   serviceCountLabel: "available services",
-  consultationRequired: "Consultation required",
+  consultationRequired: "Initial exam required",
   parentSpecialtyLabel: "Specialty",
   serviceInfoAction: "Service information",
   emptyServices: "No public services are available yet.",
-  searchSpecialtyService: "Search for a specialty or service",
-  medicalTreatmentDisclaimer: "Suitability of treatment is determined after examination and assessment by the dentist, and the care plan may vary from one case to another.",
+  searchSpecialtyService: "Search for a specialty or service...",
+  medicalTreatmentDisclaimer:
+    "Suitability of the service and its care plan is determined after examination and assessment by the dentist; the plan and outcomes may vary from one case to another.",
+  specialtiesHeroTitle: "Dental specialties",
+  specialtiesHeroLead:
+    "Browse Al Wissam specialties and related services, and meet the doctors available for booking.",
+  browseSpecialtiesCta: "Browse specialties",
+  featuredSpecialtyBadge: "Featured",
+  featuredSpecialtiesTitle: "Featured specialties",
+  allSpecialtiesTitle: "All specialties",
+  specialtyStatsLabel: "Specialty statistics",
+  serviceAvailableLabel: "Available to book",
+  specialtyJourneyTitle: "How does your visit start?",
+  specialtyJourneyLead: "A clear path from choosing a specialty to clinical follow-up.",
+  specialtyJourneySteps: [
+    "Choose a specialty",
+    "Choose a service or leave it to the dentist",
+    "Choose a doctor or ask reception for help",
+    "Pick an appointment time",
+    "Examination and assessment",
+    "The dentist explains a suitable plan",
+    "Follow-up begins as needed",
+  ],
+  specialtyDoctorDecidesNote:
+    "The dentist determines the suitable service and treatment plan after examination and assessment.",
+  specialtyLinkedServicesTitle: "Services linked to this specialty",
+  specialtyLinkedServicesLead:
+    "Explore the public services available in this specialty and choose one when booking.",
+  specialtyBookPanelTitle: "Book an appointment for this specialty",
+  specialtyBookPanelLead:
+    "Choose the service, doctor, and time — or leave doctor selection to reception for review.",
+  viewDoctorsCta: "View doctors",
+  specialtyOverviewTitle: "Specialty overview",
+  specialtyRelatedLabel: "Services related to this specialty",
   wizardService: "Service",
   sectionDoctors: "Doctors",
   sectionDoctorsLead:
@@ -1165,12 +1247,45 @@ const fr: PublicCopy = {
   viewSpecialtyDetails: "Voir la spécialité",
   viewServiceDetails: "Détails du service",
   serviceCountLabel: "services disponibles",
-  consultationRequired: "Consultation requise",
+  consultationRequired: "Examen initial requis",
   parentSpecialtyLabel: "Spécialité",
   serviceInfoAction: "Informations sur le service",
   emptyServices: "Aucun service public pour le moment.",
-  searchSpecialtyService: "Rechercher une spécialité ou un service",
-  medicalTreatmentDisclaimer: "L’indication du traitement est déterminée après examen et évaluation par le dentiste ; le plan de soins peut varier selon les cas.",
+  searchSpecialtyService: "Rechercher une spécialité ou un service...",
+  medicalTreatmentDisclaimer:
+    "L’indication du service et son plan de soins sont déterminés après examen et évaluation par le dentiste ; le plan et les résultats peuvent varier selon les cas.",
+  specialtiesHeroTitle: "Spécialités dentaires",
+  specialtiesHeroLead:
+    "Parcourez les spécialités de la Clinique El Wissam, les services associés et les médecins disponibles à la réservation.",
+  browseSpecialtiesCta: "Parcourir les spécialités",
+  featuredSpecialtyBadge: "À la une",
+  featuredSpecialtiesTitle: "Spécialités mises en avant",
+  allSpecialtiesTitle: "Toutes les spécialités",
+  specialtyStatsLabel: "Statistiques de la spécialité",
+  serviceAvailableLabel: "Disponible à la réservation",
+  specialtyJourneyTitle: "Comment commence votre visite ?",
+  specialtyJourneyLead:
+    "Un parcours clair, du choix de la spécialité au suivi clinique.",
+  specialtyJourneySteps: [
+    "Choisir la spécialité",
+    "Choisir le service ou laisser le choix au dentiste",
+    "Choisir le médecin ou demander l’aide de l’accueil",
+    "Choisir le rendez-vous",
+    "Examen et évaluation",
+    "Le dentiste explique le plan adapté",
+    "Le suivi commence selon le cas",
+  ],
+  specialtyDoctorDecidesNote:
+    "Le dentiste détermine le service et le plan de soins adaptés après examen et évaluation.",
+  specialtyLinkedServicesTitle: "Services liés à cette spécialité",
+  specialtyLinkedServicesLead:
+    "Découvrez les services publics disponibles dans cette spécialité et choisissez-en un lors de la réservation.",
+  specialtyBookPanelTitle: "Prendre rendez-vous pour cette spécialité",
+  specialtyBookPanelLead:
+    "Choisissez le service, le médecin et l’horaire — ou laissez la sélection du médecin à l’accueil.",
+  viewDoctorsCta: "Voir les médecins",
+  specialtyOverviewTitle: "Aperçu de la spécialité",
+  specialtyRelatedLabel: "Services liés à cette spécialité",
   wizardService: "Service",
   sectionDoctors: "Nos médecins",
   sectionDoctorsLead:

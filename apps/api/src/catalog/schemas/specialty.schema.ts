@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type SpecialtyDocument = HydratedDocument<Specialty>;
 
@@ -44,7 +44,7 @@ export class Specialty {
   @Prop({ default: 100 })
   displayOrder!: number;
 
-  @Prop({ type: [Types.ObjectId], ref: "User", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "User", default: [] })
   doctorIds!: Types.ObjectId[];
 
   @Prop({ type: [String], default: [] })

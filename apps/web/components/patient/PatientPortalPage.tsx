@@ -6,9 +6,11 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { DashboardShell } from "../layout/DashboardShell";
+import { apiRequest } from "../../lib/api";
 import type { Dictionary } from "../../lib/i18n/dictionaries";
 import type { Locale } from "../../lib/i18n/config";
 import { useDashboardSession } from "../../lib/use-dashboard-session";
@@ -38,18 +40,30 @@ type Props = {
 };
 
 export function PatientPortalPage({ title, description, children }: Props) {
-  const { locale, dict, user, loading, error } = useDashboardSession({
-    roles: ["PATIENT"],
-    loginPath: "patient",
-  });
+  const { locale, dict, user, loading, authResolved, error } =
+    useDashboardSession({
+      roles: ["PATIENT"],
+      loginPath: "auth",
+    });
   const [reloadKey, setReloadKey] = useState(0);
   const bump = useCallback(() => setReloadKey((k) => k + 1), []);
 
-  if (loading || !user) {
-    return <main className="dash-panel">{dict.loading}</main>;
+  if (!authResolved || loading) {
+    return (
+      <main className="dash-panel" aria-busy="true">
+        {dict.sessionResolving}
+      </main>
+    );
   }
   if (error) {
     return <main className="dash-panel alert-error">{error}</main>;
+  }
+  if (!user) {
+    return (
+      <main className="dash-panel" aria-busy="true">
+        {dict.sessionResolving}
+      </main>
+    );
   }
 
   return (
@@ -103,45 +117,63 @@ export function usePatientFetch<T>(
   url: string | null,
   reloadKey = 0,
 ): { data: T | null; error: string; loading: boolean; reload: () => void } {
+  const { dict } = usePatientPortal();
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(Boolean(url));
   const [tick, setTick] = useState(0);
+  const requestGen = useRef(0);
 
   useEffect(() => {
     if (!url) {
       setLoading(false);
       return;
     }
-    let cancelled = false;
+    const gen = ++requestGen.current;
+    const controller = new AbortController();
     setLoading(true);
     setError("");
     (async () => {
-      try {
-        const res = await fetch(url, { credentials: "include" });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (!cancelled) {
-            setError(
-              (typeof json.message === "string" && json.message) ||
-                json.error ||
-                "تعذر تحميل البيانات",
-            );
-            setData(null);
-          }
-          return;
+      const { ok, status, data: json } = await apiRequest<T>(url, {
+        signal: controller.signal,
+        headers: {
+          "Cache-Control": "private, no-store",
+        },
+      });
+      if (controller.signal.aborted || gen !== requestGen.current) return;
+      if (!ok) {
+        const body = json as { code?: string; message?: string };
+        if (
+          status === 404 &&
+          (body?.code === "NOT_FOUND" ||
+            (typeof body?.message === "string" &&
+              body.message.includes("غير مرتبط")))
+        ) {
+          setError(dict.missingPatientProfile);
+        } else {
+          setError(
+            (typeof body?.message === "string" && body.message) ||
+              dict.dashboardLoadError,
+          );
         }
-        if (!cancelled) setData(json as T);
-      } catch {
-        if (!cancelled) setError("تعذر الاتصال بالخادم");
-      } finally {
-        if (!cancelled) setLoading(false);
+        setData(null);
+        setLoading(false);
+        return;
       }
-    })();
+      setData(json as T);
+      setLoading(false);
+    })().catch((err) => {
+      if (controller.signal.aborted || (err as Error)?.name === "AbortError") {
+        return;
+      }
+      if (gen !== requestGen.current) return;
+      setError(dict.dashboardLoadError);
+      setLoading(false);
+    });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [url, reloadKey, tick]);
+  }, [url, reloadKey, tick, dict.dashboardLoadError, dict.missingPatientProfile]);
 
   return {
     data,

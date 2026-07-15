@@ -13,6 +13,34 @@ export function normalizePhoneDigits(raw: string): string {
 }
 
 /**
+ * Canonical Algerian phone form for uniqueness: 0XXXXXXXXX (local).
+ * Accepts 0663..., +213663..., 213663..., 00213663...
+ */
+export function toCanonicalPhone(raw: string): string {
+  let digits = normalizePhoneDigits(raw);
+  if (!digits) return "";
+  if (digits.startsWith("00213")) digits = digits.slice(2);
+  if (digits.startsWith("213") && digits.length >= 12) {
+    digits = `0${digits.slice(3)}`;
+  }
+  return digits;
+}
+
+/** Variants used for login lookup against legacy rows. */
+export function phoneLookupVariants(raw: string): string[] {
+  const canonical = toCanonicalPhone(raw);
+  const digits = normalizePhoneDigits(raw);
+  const out = new Set<string>();
+  for (const v of [canonical, digits]) {
+    if (v) out.add(v);
+  }
+  if (canonical.startsWith("0") && canonical.length >= 9) {
+    out.add(`213${canonical.slice(1)}`);
+  }
+  return [...out];
+}
+
+/**
  * Phone identifiers: digits only.
  * Reject letters, spaces, +, -, decimals, and scientific notation characters.
  */

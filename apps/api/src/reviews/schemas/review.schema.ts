@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 /**
  * Public patient-facing reviews (collection: reviews).
@@ -62,19 +62,19 @@ export class Review {
   @Prop({ trim: true })
   subjectFr?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", index: true })
   patientId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment", index: true })
   appointmentId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, index: true })
   specialtyId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, index: true })
   serviceId?: Types.ObjectId;
 
   @Prop()
@@ -136,10 +136,10 @@ export class Review {
   @Prop({ type: Date, index: true })
   publishedAt?: Date;
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: SchemaTypes.ObjectId })
   createdBy?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: SchemaTypes.ObjectId })
   updatedBy?: Types.ObjectId;
 
   @Prop()

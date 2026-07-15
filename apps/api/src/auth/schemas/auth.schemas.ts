@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -8,8 +8,16 @@ export class User {
   @Prop({ sparse: true, unique: true, lowercase: true, trim: true })
   email?: string;
 
+  /** Lowercase email for case-insensitive uniqueness (mirrors email when present). */
+  @Prop({ sparse: true, unique: true, lowercase: true, trim: true })
+  emailNormalized?: string;
+
   @Prop({ sparse: true, unique: true, trim: true })
   phone?: string;
+
+  /** Canonical phone (Algeria local 0…) for login dedupe. */
+  @Prop({ sparse: true, unique: true, trim: true, index: true })
+  phoneCanonical?: string;
 
   @Prop({ required: true })
   passwordHash!: string;
@@ -19,7 +27,17 @@ export class User {
 
   @Prop({
     required: true,
-    enum: ["ADMIN", "SECRETARY", "DOCTOR_GENERAL", "DOCTOR_SPECIALIST", "PATIENT"],
+    enum: [
+      "ADMIN",
+      "ADMIN_OWNER",
+      "SECRETARY",
+      "DOCTOR",
+      "DOCTOR_GENERAL",
+      "DOCTOR_SPECIALIST",
+      "PATIENT",
+      "OWNER",
+      "SUPER_ADMIN",
+    ],
   })
   roleCode!: string;
 
@@ -95,6 +113,10 @@ export class User {
     employeeCode?: string;
   };
 
+  /** Bidirectional link to patients collection (_id). */
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", unique: true, sparse: true, index: true })
+  patientProfileId?: Types.ObjectId;
+
   @Prop({ default: 0 })
   failedLoginCount!: number;
 
@@ -121,7 +143,7 @@ export type SessionDocument = HydratedDocument<Session>;
 
 @Schema({ timestamps: { createdAt: true, updatedAt: false }, collection: "sessions" })
 export class Session {
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   userId!: Types.ObjectId;
 
   @Prop({ required: true, unique: true })
@@ -147,6 +169,9 @@ export class Session {
 
   @Prop({ type: Date, default: Date.now })
   lastActivityAt!: Date;
+
+  @Prop()
+  revokedReason?: string;
 }
 
 export const SessionSchema = SchemaFactory.createForClass(Session);
@@ -158,7 +183,7 @@ export type PasswordResetTokenDocument = HydratedDocument<PasswordResetToken>;
   collection: "password_reset_tokens",
 })
 export class PasswordResetToken {
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   userId!: Types.ObjectId;
 
   @Prop({ required: true, unique: true })
@@ -181,7 +206,7 @@ export type AuditLogDocument = HydratedDocument<AuditLog>;
   collection: "audit_logs",
 })
 export class AuditLog {
-  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   userId?: Types.ObjectId;
 
   @Prop()

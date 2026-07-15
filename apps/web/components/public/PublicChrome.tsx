@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Dictionary } from "../../lib/i18n/dictionaries";
 import type { Locale } from "../../lib/i18n/config";
@@ -12,6 +12,8 @@ import {
   resolveClinicContact,
   type ClinicContact,
 } from "../../lib/clinic-contact";
+import { usePublicAuthSession } from "../../lib/auth/use-public-auth-session";
+import { apiPost } from "../../lib/api";
 import { BidiSafeValue } from "./BidiSafeValue";
 import { GlobalWhatsAppButton } from "./GlobalWhatsAppButton";
 
@@ -64,8 +66,11 @@ export function PublicChrome({
   const copy = getPublicCopy(locale);
   const name = brand || dict.brand;
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const year = new Date().getFullYear();
+  const { user, resolved, dashboardHref, accountHref } =
+    usePublicAuthSession(locale);
   const contact = resolveClinicContact(
     locale,
     {
@@ -117,7 +122,115 @@ export function PublicChrome({
   ];
 
   const isActive = (href: string) =>
-    pathname === href || (href !== `/${locale}` && pathname.startsWith(`${href}/`));
+    pathname === href ||
+    (href !== `/${locale}` && pathname.startsWith(`${href}/`));
+
+  const dashboardLabel =
+    locale === "en"
+      ? "Dashboard"
+      : locale === "fr"
+        ? "Tableau de bord"
+        : "لوحة التحكم";
+  const accountLabel =
+    locale === "en" ? "My account" : locale === "fr" ? "Mon compte" : "حسابي";
+
+  async function onLogout() {
+    await apiPost("/api/auth/logout", {});
+    router.push(`/${locale}/auth/login`);
+    router.refresh();
+  }
+
+  const authActionsDesktop = !resolved ? null : user ? (
+    <>
+      <Link className="public-login-link desktop-only" href={dashboardHref}>
+        {dashboardLabel}
+      </Link>
+      <Link
+        className="btn btn-outline public-register-btn desktop-only"
+        href={accountHref}
+      >
+        {accountLabel}
+      </Link>
+      <button
+        type="button"
+        className="btn btn-outline desktop-only"
+        onClick={() => void onLogout()}
+      >
+        {dict.logout}
+      </button>
+    </>
+  ) : (
+    <>
+      <Link
+        className="public-login-link desktop-only"
+        href={`/${locale}/auth/login`}
+      >
+        {copy.navLogin}
+      </Link>
+      <Link
+        className="btn btn-outline public-register-btn desktop-only"
+        href={`/${locale}/auth/register`}
+      >
+        <span className="public-register-icon" aria-hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <circle
+              cx="10"
+              cy="8"
+              r="3.2"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            />
+            <path
+              d="M4.5 18.5c1.4-2.8 3.3-4.2 5.5-4.2s4.1 1.4 5.5 4.2"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+            <path
+              d="M18 8v5M15.5 10.5H20.5"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
+        {copy.navCreateAccount}
+      </Link>
+    </>
+  );
+
+  const authActionsMobile = !resolved ? null : user ? (
+    <>
+      <Link className="btn btn-outline" href={dashboardHref}>
+        {dashboardLabel}
+      </Link>
+      <Link className="btn btn-outline" href={accountHref}>
+        {accountLabel}
+      </Link>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => void onLogout()}
+      >
+        {dict.logout}
+      </button>
+    </>
+  ) : (
+    <>
+      <Link
+        className="btn btn-outline public-register-btn public-register-btn--drawer"
+        href={`/${locale}/auth/register`}
+      >
+        {copy.navCreateAccount}
+      </Link>
+      <Link
+        className="public-login-link public-login-link--drawer"
+        href={`/${locale}/auth/login`}
+      >
+        {copy.navLogin}
+      </Link>
+    </>
+  );
 
   return (
     <div className="public-shell">
@@ -143,36 +256,11 @@ export function PublicChrome({
         </nav>
 
         <div className="public-header-actions">
+          {authActionsDesktop}
           <Link
-            className="public-login-link desktop-only"
-            href={`/${locale}/patient/login`}
+            className="btn btn-primary public-book-btn"
+            href={`/${locale}/book-appointment`}
           >
-            {copy.navLogin}
-          </Link>
-          <Link
-            className="btn btn-outline public-register-btn desktop-only"
-            href={`/${locale}/patient/register`}
-          >
-            <span className="public-register-icon" aria-hidden>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-                <circle cx="10" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
-                <path
-                  d="M4.5 18.5c1.4-2.8 3.3-4.2 5.5-4.2s4.1 1.4 5.5 4.2"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M18 8v5M15.5 10.5H20.5"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
-            {copy.navCreateAccount}
-          </Link>
-          <Link className="btn btn-primary public-book-btn" href={`/${locale}/book-appointment`}>
             {copy.navBook}
           </Link>
           <button
@@ -197,25 +285,21 @@ export function PublicChrome({
         >
           <nav className="public-mobile-nav">
             {links.map((l) => (
-              <Link key={l.href} href={l.href} className={isActive(l.href) ? "active" : undefined}>
+              <Link
+                key={l.href}
+                href={l.href}
+                className={isActive(l.href) ? "active" : undefined}
+              >
                 {l.label}
               </Link>
             ))}
-            <Link className="btn btn-primary" href={`/${locale}/book-appointment`}>
+            <Link
+              className="btn btn-primary"
+              href={`/${locale}/book-appointment`}
+            >
               {copy.navBook}
             </Link>
-            <Link
-              className="btn btn-outline public-register-btn public-register-btn--drawer"
-              href={`/${locale}/patient/register`}
-            >
-              {copy.navCreateAccount}
-            </Link>
-            <Link
-              className="public-login-link public-login-link--drawer"
-              href={`/${locale}/patient/login`}
-            >
-              {copy.navLogin}
-            </Link>
+            {authActionsMobile}
           </nav>
           <button
             type="button"
@@ -233,7 +317,10 @@ export function PublicChrome({
           <div>
             <h2>{copy.footerClinic}</h2>
             <p>{dict.brandSubtitle}</p>
-            <Link className="btn btn-primary" href={`/${locale}/book-appointment`}>
+            <Link
+              className="btn btn-primary"
+              href={`/${locale}/book-appointment`}
+            >
               {copy.navBook}
             </Link>
           </div>
@@ -251,13 +338,19 @@ export function PublicChrome({
             <h2>{copy.footerPatients}</h2>
             <ul>
               <li>
-                <Link href={`/${locale}/patient-information`}>{copy.patientInfo}</Link>
+                <Link href={`/${locale}/patient-information`}>
+                  {copy.patientInfo}
+                </Link>
               </li>
               <li>
-                <Link href={`/${locale}/before-your-visit`}>{copy.beforeVisit}</Link>
+                <Link href={`/${locale}/before-your-visit`}>
+                  {copy.beforeVisit}
+                </Link>
               </li>
               <li>
-                <Link href={`/${locale}/after-your-visit`}>{copy.afterVisit}</Link>
+                <Link href={`/${locale}/after-your-visit`}>
+                  {copy.afterVisit}
+                </Link>
               </li>
               <li>
                 <Link href={`/${locale}/support`}>{copy.support}</Link>
@@ -266,7 +359,9 @@ export function PublicChrome({
                 <Link href={`/${locale}/refund-policy`}>{copy.refund}</Link>
               </li>
               <li>
-                <Link href={`/${locale}/cancellation-policy`}>{copy.cancellation}</Link>
+                <Link href={`/${locale}/cancellation-policy`}>
+                  {copy.cancellation}
+                </Link>
               </li>
             </ul>
           </div>
@@ -283,10 +378,14 @@ export function PublicChrome({
                 <Link href={`/${locale}/cookies`}>{copy.cookies}</Link>
               </li>
               <li>
-                <Link href={`/${locale}/accessibility`}>{copy.accessibility}</Link>
+                <Link href={`/${locale}/accessibility`}>
+                  {copy.accessibility}
+                </Link>
               </li>
               <li>
-                <Link href={`/${locale}/medical-disclaimer`}>{copy.disclaimer}</Link>
+                <Link href={`/${locale}/medical-disclaimer`}>
+                  {copy.disclaimer}
+                </Link>
               </li>
             </ul>
           </div>
@@ -309,7 +408,10 @@ export function PublicChrome({
               ) : null}
               {contact.address ? <li>{contact.address}</li> : null}
               {displayHours ? (
-                <li className="working-hours-footer" style={{ whiteSpace: "pre-line" }}>
+                <li
+                  className="working-hours-footer"
+                  style={{ whiteSpace: "pre-line" }}
+                >
                   <BidiSafeValue>{displayHours}</BidiSafeValue>
                 </li>
               ) : null}

@@ -12,18 +12,66 @@ export type ApiResult<T> = {
   data: T & ApiErrorBody;
 };
 
+/** Single-flight refresh promise — only one POST /api/auth/refresh at a time. */
+let refreshPromise: Promise<boolean> | null = null;
+
+export function resetRefreshMutexForTests() {
+  refreshPromise = null;
+}
+
+async function refreshAccessTokenOnce(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      // Clear after microtask so concurrent waiters share this flight.
+      queueMicrotask(() => {
+        refreshPromise = null;
+      });
+    }
+  })();
+
+  return refreshPromise;
+}
+
+type RequestOptions = RequestInit & {
+  /** When true, do not attempt refresh+retry on 401 (used by refresh itself / me bootstrap). */
+  skipAuthRefresh?: boolean;
+};
+
 export async function apiRequest<T>(
   path: string,
-  init?: RequestInit,
+  init?: RequestOptions,
 ): Promise<ApiResult<T>> {
-  const res = await fetch(path, {
-    credentials: "include",
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-  });
+  const { skipAuthRefresh, ...rest } = init || {};
+  const doFetch = () =>
+    fetch(path, {
+      credentials: "include",
+      ...rest,
+      headers: {
+        "Content-Type": "application/json",
+        ...(rest.headers || {}),
+      },
+    });
+
+  let res = await doFetch();
+
+  if (res.status === 401 && !skipAuthRefresh && !path.includes("/api/auth/refresh")) {
+    const refreshed = await refreshAccessTokenOnce();
+    if (refreshed) {
+      res = await doFetch();
+    }
+  }
+
   const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
   return { ok: res.ok, status: res.status, data };
 }
@@ -31,7 +79,7 @@ export async function apiRequest<T>(
 export async function apiPost<T>(
   path: string,
   body: unknown,
-  init?: RequestInit,
+  init?: RequestOptions,
 ): Promise<ApiResult<T>> {
   return apiRequest<T>(path, {
     method: "POST",
@@ -43,7 +91,7 @@ export async function apiPost<T>(
 export async function apiPatch<T>(
   path: string,
   body: unknown,
-  init?: RequestInit,
+  init?: RequestOptions,
 ): Promise<ApiResult<T>> {
   return apiRequest<T>(path, {
     method: "PATCH",
@@ -55,7 +103,7 @@ export async function apiPatch<T>(
 export async function apiDelete<T>(
   path: string,
   body: unknown,
-  init?: RequestInit,
+  init?: RequestOptions,
 ): Promise<ApiResult<T>> {
   return apiRequest<T>(path, {
     method: "DELETE",
@@ -64,7 +112,6 @@ export async function apiDelete<T>(
   });
 }
 
-/** Map Nest fieldErrors into a simple record for controlled forms. */
 export function mapFieldErrors(data: ApiErrorBody): Record<string, string> {
   const out: Record<string, string> = {};
   if (data.fieldErrors) {

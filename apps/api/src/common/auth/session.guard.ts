@@ -105,6 +105,9 @@ export class ClinicOwnerGuard implements CanActivate {
     }
     const ok =
       user.roleCode === "ADMIN" ||
+      user.roleCode === "ADMIN_OWNER" ||
+      user.roleCode === "OWNER" ||
+      user.roleCode === "SUPER_ADMIN" ||
       (user.roleCode === "DOCTOR_SPECIALIST" &&
         user.doctor?.type === "SPECIALIST");
     if (!ok) {

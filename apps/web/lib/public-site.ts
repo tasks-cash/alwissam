@@ -42,6 +42,7 @@ export type PublicSpecialty = {
   serviceCount?: number;
   doctorCount?: number;
   isFeatured?: boolean;
+  servicePreviews?: Array<{ slug: string; name: string }>;
 };
 
 export type PublicFaq = {

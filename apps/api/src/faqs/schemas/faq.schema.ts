@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 import { FAQ_CATEGORIES } from "../faq.categories";
 
 export type FaqDocument = HydratedDocument<Faq>;
@@ -49,13 +49,13 @@ export class Faq {
   @Prop({ type: [String], default: [] })
   keywordsFr!: string[];
 
-  @Prop({ type: [Types.ObjectId], ref: "Specialty", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "Specialty", default: [] })
   relatedSpecialtyIds!: Types.ObjectId[];
 
-  @Prop({ type: [Types.ObjectId], ref: "DentalService", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "DentalService", default: [] })
   relatedServiceIds!: Types.ObjectId[];
 
-  @Prop({ type: [Types.ObjectId], ref: "User", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "User", default: [] })
   relatedDoctorIds!: Types.ObjectId[];
 
   @Prop({ type: [String], default: [] })
@@ -79,10 +79,10 @@ export class Faq {
   @Prop({ type: Date, default: null })
   publishedAt!: Date | null;
 
-  @Prop({ type: Types.ObjectId, ref: "User", default: null })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", default: null })
   createdBy!: Types.ObjectId | null;
 
-  @Prop({ type: Types.ObjectId, ref: "User", default: null })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", default: null })
   updatedBy!: Types.ObjectId | null;
 
   @Prop({ type: Date, default: null, index: true })

@@ -37,9 +37,6 @@ function Body() {
         سياسة العيادة.
       </p>
       <div className="patient-quick-actions">
-        <Link className="btn btn-outline" href={`/${locale}/patient/consents`}>
-          الموافقات
-        </Link>
         <Link
           className="btn btn-outline"
           href={`/${locale}/patient/account/export`}
@@ -51,6 +48,9 @@ function Body() {
           href={`/${locale}/patient/account/delete`}
         >
           طلب حذف الحساب
+        </Link>
+        <Link className="btn btn-outline" href={`/${locale}/patient/help`}>
+          المساعدة والدعم
         </Link>
       </div>
     </article>

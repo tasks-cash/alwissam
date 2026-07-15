@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type PatientDocument = HydratedDocument<Patient>;
 
@@ -62,16 +62,17 @@ export class Patient {
   @Prop({ enum: ["REGULAR", "LONG_TERM"], default: "REGULAR" })
   patientType!: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   primaryDoctorId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  /** Linked auth user for patient portal — unique when set. */
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", unique: true, sparse: true, index: true })
   userId?: Types.ObjectId;
 
   @Prop()
   notes?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   createdById?: Types.ObjectId;
 
   @Prop({ type: Date, default: null, index: true })

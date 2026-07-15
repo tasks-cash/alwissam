@@ -114,10 +114,6 @@ Safety: no reset/clean/force; Prisma/PostgreSQL not reset; legacy `src/` and `pr
 
 ## Exact next action
 
-**Phase 3 — Core backend parity (module-by-module):**  
-1. Nest Auth module: cookie session compatible with `alwisam_session` + bcrypt password verify + CSRF.  
-2. Users / Roles schemas in Mongo with `legacyId`.  
-3. Port `POST /api/auth/login|logout` first; add API tests.  
-4. Keep Redis for rate-limit parity.  
-5. Do **not** cut over production or run data migration execute yet.  
-6. Mirror `seed:owner` into Nest/Mongo once auth collections exist.
+**Patient portal link bug fixed (2026-07-15):** Nest `Types.ObjectId`→`SchemaMixed` caused `/api/patient/dashboard` 404 despite linked Mongo docs. Replaced with `SchemaTypes.ObjectId` across schemas; added `User.patientProfileId`, repair script `pnpm repair:patient-profiles`, and hardened `requirePatient`. Verified login→dashboard via API `:4001` and web `:3004`.
+
+Continue Phase 3–5 remaining staff/domain parity. Do **not** cut over production or run destructive data migration.

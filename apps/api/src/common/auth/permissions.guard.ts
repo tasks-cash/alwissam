@@ -13,6 +13,7 @@ import {
   defaultPermissionsForRole,
   type PermissionKey,
 } from "./permissions";
+import { isOwnerRole, roleMatchesAny } from "./roles";
 
 export const PERMISSIONS_KEY = "permissions";
 export const ROLES_KEY = "roles";
@@ -50,7 +51,7 @@ export class RolesGuard implements CanActivate {
         message: "يلزم تسجيل الدخول",
       });
     }
-    if (!roles.includes(user.roleCode)) {
+    if (!roleMatchesAny(user.roleCode, roles)) {
       throw new ForbiddenException({
         code: ErrorCodes.FORBIDDEN,
         message: "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
@@ -81,11 +82,8 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    // Clinic owner / ADMIN always allowed for permission-gated staff ops.
     if (
-      user.roleCode === "ADMIN" ||
-      user.roleCode === "OWNER" ||
-      user.roleCode === "SUPER_ADMIN" ||
+      isOwnerRole(user.roleCode) ||
       (user.roleCode === "DOCTOR_SPECIALIST" &&
         user.doctor?.type === "SPECIALIST")
     ) {

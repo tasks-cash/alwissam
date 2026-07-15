@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type BeforeAfterCaseDocument = HydratedDocument<BeforeAfterCase>;
 
@@ -47,7 +47,7 @@ export class BeforeAfterCase {
   @Prop({ trim: true })
   afterAltFr?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
 
   @Prop({ trim: true, index: true })
@@ -92,10 +92,10 @@ export class BeforeAfterCase {
   @Prop({ type: Date })
   publishedAt?: Date;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   createdById?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   updatedById?: Types.ObjectId;
 
   @Prop({ type: Date, default: null, index: true })

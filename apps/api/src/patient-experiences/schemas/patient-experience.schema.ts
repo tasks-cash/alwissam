@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type PatientExperienceDocument = HydratedDocument<PatientExperience>;
 
@@ -35,10 +35,10 @@ export class PatientExperience {
   @Prop({ trim: true })
   subjectFr?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", index: true })
   patientId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Appointment", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Appointment", index: true })
   appointmentId?: Types.ObjectId;
 
   @Prop({
@@ -72,7 +72,7 @@ export class PatientExperience {
   @Prop()
   patientImageUrl?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
 
   @Prop({ trim: true, index: true })
@@ -118,10 +118,10 @@ export class PatientExperience {
   @Prop({ type: Date })
   publishedAt?: Date;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   createdById?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   updatedById?: Types.ObjectId;
 
   @Prop({ type: Date, default: null, index: true })

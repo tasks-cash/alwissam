@@ -1,40 +1,16 @@
-# Public image asset sources
+# Specialty & Service Image Asset Sources
 
-Download date: 2026-07-15  
-Updated: 2026-07-15 (homepage six-section redesign)
+Date: 2026-07-15
 
-Stock photos under `apps/web/public/images/stock/` are used for public marketing surfaces. They are royalty-free style clinic imagery stored locally (not hotlinked). Private patient medical images are never used for decorative homepage marketing.
+Public Specialty/Service cards prefer MongoDB `image` fields when present.
+When empty, premium UI falls back to DentalIcon illustrations or local clinic art.
 
-Before/After and Patient Experience images must come from MongoDB-backed public APIs after approval + consent — never from this stock folder as fake clinical results.
+| Specialty/Service | Source page | Original image URL | Author | License note | Local path | Arabic alt | English alt | French alt |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Specialty/Service hero fallback | Public marketing | local asset | Project | Project-owned SVG | `apps/web/public/images/hero-clinic.svg` | تخصصات طب الأسنان في عيادة الوسام | Dental specialties at Al Wissam Dental Clinic | Spécialités dentaires de la Clinique Dentaire El Wissam |
+| Contact/team decorative (not used here) | Public | local | Project | Project-owned SVG | `apps/web/public/images/about-team.svg` | — | — | — |
+| Contact clinic decorative | Public | local | Project | Project-owned SVG | `apps/web/public/images/contact-clinic.svg` | — | — | — |
 
-| Homepage section | Local path | Source page / origin | Photographer | License / usage note | Arabic alt | English alt | French alt |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Hero — main flowing image | `apps/web/public/images/stock/dental-care-hero.jpg` | Project local stock (clinic marketing set) | Uncredited stock set in repo | Local marketing asset; non-identified care atmosphere; do not mirror in RTL | رعاية فموية هادئة ودقيقة | Calm, precise oral care | Des soins bucco-dentaires calmes et précis |
-| Hero — supporting layered image | `apps/web/public/images/stock/dental-clinic-interior.jpg` | Project local stock | Uncredited stock set in repo | Decorative layered frame only; empty `alt` when decorative companion | (decorative companion; empty alt) | (decorative companion; empty alt) | (decorative companion; empty alt) |
-| Clinic introduction | `apps/web/public/images/stock/dental-clinic-interior.jpg` | Project local stock | Uncredited stock set in repo | Clinic interior atmosphere | نفس تعليق البطل المحلي | Same localized `heroVisualCaption` / intro alt | Idem |
-| Patient account motivation | `apps/web/public/images/stock/dental-team-care.jpg` | Project local stock | Uncredited stock set in repo | Care team environment; no patient identity | فريق رعاية | Care team | Équipe soignante |
-| Final booking CTA | CSS composition (`pub-cta-visual`) — no stock photo required | — | — | Decorative clinic mark | Section atmosphere only | — | — | — |
-| Auth login visual | `apps/web/public/images/stock/dental-care-hero.jpg` | Project local stock | — | Auth visual plane | مريض يسجّل الدخول لمتابعة مواعيده في عيادة الوسام | Patient signing in to follow Al-Wissam appointments | Patient se connectant pour suivre ses rendez-vous |
-| Auth registration visual | `apps/web/public/images/stock/dental-clinic-interior.jpg` | Project local stock | — | Auth visual plane | مريض يستخدم حسابه لمتابعة مواعيد عيادة الأسنان | Patient using account to follow dental appointments | Patient utilisant son compte pour suivre ses rendez-vous |
-| Services / treatment surfaces | `apps/web/public/images/stock/dental-treatment.jpg` | Project local stock | — | Treatment setting (non-identified) | — | — | — |
-| Before/After cases | MongoDB → `GET /api/public/before-after` | Admin-uploaded approved media | Clinician/admin upload | Publish only when `isApproved`, `isPublished`, `consentConfirmed`; alt from case locale fields | Case `beforeAlt`/`afterAlt` (ar) | Case alts (en) | Case alts (fr) |
-| Patient experiences avatars | MongoDB → `GET /api/public/patient-experiences` | Admin-uploaded when consented | — | Anonymous monogram fallback when no approved photo | Display name + review (not private identity) | Same | Same |
-| Contact Hero | `apps/web/public/images/stock/dental-team-care.jpg` | Project local stock (clinic marketing set) | Uncredited stock set in repo | Local royalty-free-style marketing asset; downloaded into repo; not hotlinked; no other clinic branding | فريق عيادة أسنان جاهز لاستقبال الاستفسارات وحجز المواعيد | A dental clinic team ready to receive inquiries and book appointments | Une équipe de clinique dentaire prête à recevoir les demandes et à prendre rendez-vous |
-| Contact location map | Google Maps query embed from clinic address (no API key); directions short link separate | Google Maps | — | Embed via `https://www.google.com/maps?q=<encoded-address>&output=embed`; directions button uses `https://maps.app.goo.gl/1KtpHq8VWw98enw8A` only | موقع عيادة الوسام لطب الأسنان على خرائط Google | Al Wissam Dental Clinic location on Google Maps | Emplacement de la Clinique Dentaire El Wissam sur Google Maps |
-| Contact / location | Clinic settings + maps | Clinic-owned / maps | — | Prefer clinic-provided photography when available | — | — | — |
+Specialty/Service Mongo `image` values (when uploaded via admin public-content) remain canonical and are rendered with `next/image` (`unoptimized` for dynamic CMS URLs).
 
-## Licensing policy
-
-- Prefer clinic-owned approved photography.
-- When using stock, use reputable royalty-free libraries (e.g. Unsplash, Pexels, Pixabay) with clear commercial usage rights, then download into the repo.
-- Do not copy competing clinic websites.
-- Do not use images with other clinic logos.
-- Do not use private patient X-rays, before/after without consent, or fictional doctor identities.
-- Images must not be mirrored in RTL layouts.
-
-## Optimization
-
-- Prefer WebP/AVIF when regenerating assets.
-- Use Next.js `Image` with explicit width/height or `fill` + sizes.
-- Priority only above the fold (hero main); lazy-load below the fold.
-- Doctor profile images and clinical case images use API delivery URLs (`unoptimized` where remote hosts are not in `images.remotePatterns`).
+No third-party clinic photos or before/after patient images were introduced in this redesign.

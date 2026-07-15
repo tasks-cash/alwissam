@@ -27,14 +27,23 @@ import {
   MedicalMessage,
   MedicalMessageThread,
   PATIENT_FILE_VISIBILITIES,
+  PATIENT_SUPPORT_CATEGORIES,
   PatientConsent,
   PatientNotification,
+  PatientSupportRequest,
 } from "./schemas/portal.schemas";
-import { assertCompletedVisitMessaging } from "./messaging-eligibility";
+import {
+  assertCompletedVisitMessaging,
+  isDoctorMessagingEligible,
+  resolveFollowUpWindowDays,
+} from "./messaging-eligibility";
 import { ReviewsService } from "../reviews/reviews.service";
 import { PatientExperiencesService } from "../patient-experiences/patient-experiences.service";
 
 const PATIENT_SAFE_APPT_FIELDS = true;
+
+const CLINIC_PHONE_TEL = "tel:+213663098208";
+const CLINIC_WHATSAPP = "https://wa.me/213663098208";
 
 @Injectable()
 export class PatientPortalService {
@@ -65,22 +74,146 @@ export class PatientPortalService {
     private readonly deletions: Model<AccountDeletionRequest>,
     @InjectModel(DataExportRequest.name)
     private readonly exports: Model<DataExportRequest>,
+    @InjectModel(PatientSupportRequest.name)
+    private readonly supportRequests: Model<PatientSupportRequest>,
     @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
     private readonly reviews: ReviewsService,
     private readonly experiences: PatientExperiencesService,
   ) {}
 
+  /**
+   * Resolve the Patient document owned by this auth user.
+   * Looks up by ObjectId `userId` (and User.patientProfileId fallback).
+   * Never trusts a client-supplied patientId.
+   */
   private async requirePatient(userId: string) {
-    const patient = await this.patients
-      .findOne({ userId, deletedAt: null })
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "سجل المريض غير مرتبط بهذا الحساب.",
+      });
+    }
+    const oid = new Types.ObjectId(userId);
+
+    let patient = await this.patients
+      .findOne({ userId: oid, deletedAt: null })
       .lean();
+
+    if (!patient) {
+      const user = await this.users
+        .findOne({ _id: oid, roleCode: "PATIENT", deletedAt: null })
+        .lean();
+      if (user?.patientProfileId) {
+        patient = await this.patients
+          .findOne({ _id: user.patientProfileId, deletedAt: null })
+          .lean();
+        if (patient) {
+          const linked = (patient as { userId?: Types.ObjectId }).userId;
+          if (!linked || String(linked) !== String(oid)) {
+            // Heal one-way link without reassigning another user's profile.
+            if (!linked) {
+              await this.patients.updateOne(
+                { _id: patient._id, $or: [{ userId: null }, { userId: { $exists: false } }] },
+                { $set: { userId: oid } },
+              );
+            }
+          }
+        }
+      }
+      if (!patient && user) {
+        // Safe repair: PATIENT account with no profile → create owned profile
+        // (does not attach an existing phone-matched patient that already has a userId).
+        patient = await this.ensurePatientProfileForUser(user as {
+          _id: Types.ObjectId;
+          fullName: string;
+          phone?: string;
+          phoneCanonical?: string;
+          email?: string;
+        });
+      }
+    }
+
     if (!patient) {
       throw new NotFoundException({
         code: ErrorCodes.NOT_FOUND,
         message: "سجل المريض غير مرتبط بهذا الحساب.",
       });
     }
+
+    // Keep User.patientProfileId in sync when missing.
+    await this.users.updateOne(
+      {
+        _id: oid,
+        $or: [
+          { patientProfileId: { $exists: false } },
+          { patientProfileId: null },
+        ],
+      },
+      { $set: { patientProfileId: patient._id } },
+    );
+
     return patient as Patient & { _id: Types.ObjectId; createdAt?: Date };
+  }
+
+  private async nextPatientNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `P${year}`;
+    const latest = await this.patients
+      .findOne({ patientNumber: { $regex: `^${prefix}` } })
+      .sort({ patientNumber: -1 })
+      .select("patientNumber")
+      .lean();
+    let seq = 1;
+    if (latest?.patientNumber) {
+      const n = Number(latest.patientNumber.slice(prefix.length));
+      if (Number.isFinite(n)) seq = n + 1;
+    }
+    return `${prefix}${String(seq).padStart(5, "0")}`;
+  }
+
+  private async ensurePatientProfileForUser(user: {
+    _id: Types.ObjectId;
+    fullName: string;
+    phone?: string;
+    phoneCanonical?: string;
+    email?: string;
+  }) {
+    const phone = user.phoneCanonical || user.phone;
+    if (phone) {
+      const orphan = await this.patients
+        .findOne({
+          phone,
+          deletedAt: null,
+          $or: [{ userId: null }, { userId: { $exists: false } }],
+        })
+        .lean();
+      if (orphan) {
+        await this.patients.updateOne(
+          { _id: orphan._id },
+          { $set: { userId: user._id } },
+        );
+        await this.users.updateOne(
+          { _id: user._id },
+          { $set: { patientProfileId: orphan._id } },
+        );
+        return this.patients.findOne({ _id: orphan._id, deletedAt: null }).lean();
+      }
+    }
+
+    const created = await this.patients.create({
+      patientNumber: await this.nextPatientNumber(),
+      fullName: user.fullName,
+      phone: phone || `unlinked-${String(user._id).slice(-8)}`,
+      email: user.email,
+      userId: user._id,
+      patientType: "REGULAR",
+      createdById: user._id,
+    });
+    await this.users.updateOne(
+      { _id: user._id },
+      { $set: { patientProfileId: created._id } },
+    );
+    return created.toObject();
   }
 
   private async audit(
@@ -910,9 +1043,9 @@ export class PatientPortalService {
     return {
       ok: true,
       disclaimer:
-        "هذه المحادثة مخصصة للاستفسارات المتعلقة بالزيارة المكتملة، وليست لخدمات الطوارئ أو التشخيص الجديد.",
+        "هذه المحادثة مخصصة للاستفسارات المتعلقة بالزيارة المكتملة، وليست لتشخيص حالة جديدة أو لخدمات الطوارئ.",
       emergency:
-        "في حالة الألم الشديد أو النزيف أو تورم الوجه أو صعوبة التنفس أو البلع، تواصل مع العيادة فورًا أو اطلب الرعاية العاجلة.",
+        "في حالة النزيف الشديد أو تورم الوجه أو صعوبة التنفس أو البلع أو الألم غير المحتمل، تواصل مع العيادة فورًا أو اطلب الرعاية العاجلة المناسبة.",
       threads: rows.map((t) => ({
         id: String(t._id),
         status: t.status,
@@ -937,35 +1070,245 @@ export class PatientPortalService {
     const doctor = appt.doctorId
       ? await this.users.findById(appt.doctorId).lean()
       : null;
+    const existing = await this.threads.findOne({
+      appointmentId: appt._id,
+      deletedAt: null,
+    });
     assertCompletedVisitMessaging({
       appointmentStatus: appt.status,
       appointmentPatientId: String(appt.patientId),
       actorPatientId: String(patient._id),
       doctorId: appt.doctorId ? String(appt.doctorId) : null,
       doctorRoleCode: doctor?.roleCode,
+      doctorAccountStatus: doctor?.status,
+      doctorDeleted: Boolean(doctor?.deletedAt),
+      doctorProfileActive: doctor?.doctor?.isActive,
+      threadStatus: existing?.status,
+      completedAt: appt.endAt || appt.startAt,
+      followUpWindowDays: resolveFollowUpWindowDays(),
     });
-    if (!doctor) {
+    if (!doctor || !isDoctorMessagingEligible(doctor)) {
       throw new ForbiddenException({
         code: ErrorCodes.FORBIDDEN,
-        message: "لا يوجد طبيب معيّن لهذا الموعد.",
+        message: "لا يوجد طبيب متاح للتواصل بخصوص هذه الزيارة.",
       });
     }
-    let thread = await this.threads.findOne({
-      appointmentId: appt._id,
-      deletedAt: null,
-    });
+    let thread = existing;
     if (!thread) {
-      thread = await this.threads.create({
-        patientId: patient._id,
-        doctorId: appt.doctorId,
-        appointmentId: appt._id,
-        status: "open",
-        openedAt: new Date(),
-        lastMessageAt: new Date(),
-      });
-      await this.audit(actor, "MESSAGE_THREAD_CREATED", "MedicalMessageThread", String(thread._id));
+      try {
+        thread = await this.threads.create({
+          patientId: patient._id,
+          doctorId: appt.doctorId,
+          appointmentId: appt._id,
+          status: "open",
+          openedAt: new Date(),
+          lastMessageAt: new Date(),
+        });
+        await this.audit(
+          actor,
+          "MESSAGE_THREAD_CREATED",
+          "MedicalMessageThread",
+          String(thread._id),
+        );
+      } catch (err) {
+        const code = (err as { code?: number })?.code;
+        if (code !== 11000) throw err;
+        thread = await this.threads.findOne({
+          appointmentId: appt._id,
+          deletedAt: null,
+        });
+        if (!thread) throw err;
+      }
     }
-    return { ok: true, threadId: String(thread._id) };
+    return { ok: true, threadId: String(thread._id), status: thread.status };
+  }
+
+  async helpSummary(actor: AuthUser) {
+    const patient = await this.requirePatient(actor.id);
+    const windowDays = resolveFollowUpWindowDays();
+    const completed = await this.appointments
+      .find({
+        patientId: patient._id,
+        status: "COMPLETED",
+        deletedAt: null,
+        doctorId: { $ne: null },
+      })
+      .sort({ endAt: -1, startAt: -1 })
+      .limit(40)
+      .lean();
+
+    const doctorIds = [
+      ...new Set(
+        completed
+          .map((a) => (a.doctorId ? String(a.doctorId) : ""))
+          .filter(Boolean),
+      ),
+    ];
+    const doctors = doctorIds.length
+      ? await this.users
+          .find({ _id: { $in: doctorIds } })
+          .select("fullName roleCode status deletedAt doctor")
+          .lean()
+      : [];
+    const doctorMap = new Map(doctors.map((d) => [String(d._id), d]));
+
+    const apptIds = completed.map((a) => a._id);
+    const threads = apptIds.length
+      ? await this.threads
+          .find({
+            patientId: patient._id,
+            appointmentId: { $in: apptIds },
+            deletedAt: null,
+          })
+          .lean()
+      : [];
+    const threadByAppt = new Map(
+      threads.map((t) => [String(t.appointmentId), t]),
+    );
+
+    const eligible = completed
+      .map((a) => {
+        const doctor = a.doctorId
+          ? doctorMap.get(String(a.doctorId))
+          : undefined;
+        const thread = threadByAppt.get(String(a._id));
+        if (!doctor || !isDoctorMessagingEligible(doctor)) return null;
+        if (thread?.status === "archived") return null;
+        const completedAt = a.endAt || a.startAt;
+        if (windowDays != null && completedAt) {
+          const ms = windowDays * 24 * 60 * 60 * 1000;
+          if (Date.now() - new Date(completedAt).getTime() > ms) return null;
+        }
+        const specialty =
+          doctor.doctor?.specialtyAr ||
+          doctor.doctor?.specialtyEn ||
+          doctor.doctor?.specialtyFr ||
+          "";
+        return {
+          reference: a.appointmentNumber,
+          completedAt,
+          service: a.appointmentType,
+          specialty,
+          doctor: {
+            id: String(doctor._id),
+            fullName: doctor.fullName,
+            imageUrl: doctor.doctor?.profileImage || null,
+          },
+          thread: thread
+            ? {
+                id: String(thread._id),
+                status: thread.status,
+                patientUnreadCount: thread.patientUnreadCount || 0,
+              }
+            : null,
+          action:
+            thread?.status === "open" ||
+            thread?.status === "awaiting_doctor" ||
+            thread?.status === "awaiting_patient"
+              ? "open"
+              : thread?.status === "closed"
+                ? "view"
+                : "start",
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      ok: true,
+      routes: {
+        support: "/patient/support",
+        booking: "/book-appointment",
+        contact: "/contact",
+        messages: "/patient/messages",
+      },
+      clinic: {
+        phoneTel: CLINIC_PHONE_TEL,
+        whatsappUrl: CLINIC_WHATSAPP,
+      },
+      supportAvailable: true,
+      messagingDisclaimer:
+        "هذه المحادثة مخصصة للاستفسارات المتعلقة بالزيارة المكتملة، وليست لتشخيص حالة جديدة أو لخدمات الطوارئ.",
+      emergencyWarning:
+        "في حالة النزيف الشديد أو تورم الوجه أو صعوبة التنفس أو البلع أو الألم غير المحتمل، تواصل مع العيادة فورًا أو اطلب الرعاية العاجلة المناسبة.",
+      eligibleAppointments: eligible,
+      hasEligibleVisits: eligible.length > 0,
+    };
+  }
+
+  async createSupportRequest(
+    actor: AuthUser,
+    input: {
+      category: string;
+      subject: string;
+      description: string;
+      relatedAppointmentReference?: string;
+    },
+  ) {
+    const patient = await this.requirePatient(actor.id);
+    if (
+      !(PATIENT_SUPPORT_CATEGORIES as readonly string[]).includes(
+        input.category,
+      )
+    ) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "تصنيف طلب الدعم غير صالح.",
+      });
+    }
+    const subject = (input.subject || "").trim().slice(0, 160);
+    const description = (input.description || "").trim().slice(0, 4000);
+    if (subject.length < 3) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "الموضوع قصير جدًا.",
+      });
+    }
+    if (description.length < 10) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "الوصف قصير جدًا.",
+      });
+    }
+
+    let relatedAppointmentId: Types.ObjectId | undefined;
+    if (input.relatedAppointmentReference?.trim()) {
+      const appt = await this.appointments
+        .findOne({
+          appointmentNumber: input.relatedAppointmentReference.trim(),
+          patientId: patient._id,
+          deletedAt: null,
+        })
+        .select("_id")
+        .lean();
+      if (!appt) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "الموعد المرتبط غير موجود ضمن حسابك.",
+        });
+      }
+      relatedAppointmentId = appt._id as Types.ObjectId;
+    }
+
+    const doc = await this.supportRequests.create({
+      userId: new Types.ObjectId(actor.id),
+      patientId: patient._id,
+      category: input.category,
+      subject,
+      description,
+      relatedAppointmentId,
+      status: "pending",
+    });
+    await this.audit(
+      actor,
+      "PATIENT_SUPPORT_REQUEST_CREATED",
+      "PatientSupportRequest",
+      String(doc._id),
+    );
+    return {
+      ok: true,
+      requestId: String(doc._id),
+      status: doc.status,
+    };
   }
 
   async getThread(actor: AuthUser, threadId: string) {
@@ -1004,9 +1347,9 @@ export class PatientPortalService {
     return {
       ok: true,
       disclaimer:
-        "هذه المحادثة مخصصة للاستفسارات المتعلقة بالزيارة المكتملة، وليست لخدمات الطوارئ أو التشخيص الجديد.",
+        "هذه المحادثة مخصصة للاستفسارات المتعلقة بالزيارة المكتملة، وليست لتشخيص حالة جديدة أو لخدمات الطوارئ.",
       emergency:
-        "في حالة الألم الشديد أو النزيف أو تورم الوجه أو صعوبة التنفس أو البلع، تواصل مع العيادة فورًا أو اطلب الرعاية العاجلة.",
+        "في حالة النزيف الشديد أو تورم الوجه أو صعوبة التنفس أو البلع أو الألم غير المحتمل، تواصل مع العيادة فورًا أو اطلب الرعاية العاجلة المناسبة.",
       thread: {
         id: String(thread._id),
         status: thread.status,
@@ -1259,7 +1602,7 @@ export class PatientPortalService {
     },
   ) {
     const patient = await this.patients.findOne({
-      userId: actor.id,
+      userId: new Types.ObjectId(actor.id),
       deletedAt: null,
     });
     if (!patient) {

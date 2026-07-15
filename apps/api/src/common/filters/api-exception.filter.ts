@@ -112,6 +112,15 @@ export class ApiExceptionFilter implements ExceptionFilter {
           requestId,
         };
       }
+    } else {
+      // Log unexpected errors server-side only (never expose stacks to clients).
+      const err = exception instanceof Error ? exception : new Error(String(exception));
+      // eslint-disable-next-line no-console
+      console.error(
+        `[${requestId}] Unhandled ${req.method} ${req.originalUrl || req.url}:`,
+        err.message,
+        err.stack,
+      );
     }
 
     res.status(status).json(body);

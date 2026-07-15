@@ -45,6 +45,7 @@ export type Dictionary = {
   navAppointments: string;
   navDoctors: string;
   navSecretaries: string;
+  navInvitations: string;
   navPatientDashboard: string;
   navPatientAppointments: string;
   navPatientCases: string;
@@ -130,6 +131,14 @@ export type Dictionary = {
   successSaved: string;
   durationMinutes: string;
   emergency: string;
+  sessionResolving: string;
+  sessionCheckError: string;
+  dashboardLoading: string;
+  dashboardLoadError: string;
+  retry: string;
+  sessionExpired: string;
+  wrongRoleRedirect: string;
+  missingPatientProfile: string;
 };
 
 const ar: Dictionary = {
@@ -179,6 +188,7 @@ const ar: Dictionary = {
   navAppointments: "المواعيد",
   navDoctors: "الأطباء",
   navSecretaries: "السكرتارية",
+  navInvitations: "دعوات الطاقم",
   navPatientDashboard: "نظرة عامة",
   navPatientAppointments: "مواعيدي",
   navPatientCases: "حالاتي العلاجية",
@@ -264,6 +274,15 @@ const ar: Dictionary = {
   successSaved: "تم الحفظ بنجاح.",
   durationMinutes: "المدة (دقيقة)",
   emergency: "حالة طارئة",
+  sessionResolving: "جارٍ التحقق من جلسة الدخول...",
+  sessionCheckError: "تعذر التحقق من جلسة الدخول حاليًا.",
+  dashboardLoading: "جارٍ تحميل لوحة التحكم...",
+  dashboardLoadError: "تعذر تحميل بيانات لوحة التحكم حاليًا.",
+  retry: "إعادة المحاولة",
+  sessionExpired: "انتهت جلسة الدخول. يرجى تسجيل الدخول من جديد.",
+  wrongRoleRedirect: "سيتم توجيهك إلى لوحة التحكم المخصصة لحسابك.",
+  missingPatientProfile:
+    "تعذر العثور على ملف المريض المرتبط بهذا الحساب. يرجى التواصل مع إدارة العيادة.",
 };
 
 const en: Dictionary = {
@@ -313,6 +332,7 @@ const en: Dictionary = {
   navAppointments: "Appointments",
   navDoctors: "Doctors",
   navSecretaries: "Secretaries",
+  navInvitations: "Staff invitations",
   navPatientDashboard: "Overview",
   navPatientAppointments: "My appointments",
   navPatientCases: "Medical cases",
@@ -398,6 +418,15 @@ const en: Dictionary = {
   successSaved: "Saved successfully.",
   durationMinutes: "Duration (min)",
   emergency: "Emergency",
+  sessionResolving: "Checking your session...",
+  sessionCheckError: "Unable to verify your session right now.",
+  dashboardLoading: "Loading dashboard...",
+  dashboardLoadError: "Unable to load dashboard data right now.",
+  retry: "Retry",
+  sessionExpired: "Your session has ended. Please sign in again.",
+  wrongRoleRedirect: "Redirecting you to the dashboard for your account.",
+  missingPatientProfile:
+    "No patient profile is linked to this account. Please contact the clinic.",
 };
 
 const fr: Dictionary = {
@@ -448,6 +477,7 @@ const fr: Dictionary = {
   navAppointments: "Rendez-vous",
   navDoctors: "Médecins",
   navSecretaries: "Secrétaires",
+  navInvitations: "Invitations du personnel",
   navPatientDashboard: "Vue d’ensemble",
   navPatientAppointments: "Mes rendez-vous",
   navPatientCases: "Dossiers médicaux",
@@ -534,6 +564,17 @@ const fr: Dictionary = {
   successSaved: "Enregistré avec succès.",
   durationMinutes: "Durée (min)",
   emergency: "Urgence",
+  sessionResolving: "Vérification de la session...",
+  sessionCheckError: "Impossible de vérifier la session pour le moment.",
+  dashboardLoading: "Chargement du tableau de bord...",
+  dashboardLoadError:
+    "Impossible de charger les données du tableau de bord pour le moment.",
+  retry: "Réessayer",
+  sessionExpired: "Votre session a expiré. Veuillez vous reconnecter.",
+  wrongRoleRedirect:
+    "Redirection vers le tableau de bord associé à votre compte.",
+  missingPatientProfile:
+    "Aucun dossier patient n’est lié à ce compte. Contactez la clinique.",
 };
 
 const dictionaries: Record<Locale, Dictionary> = { ar, en, fr };

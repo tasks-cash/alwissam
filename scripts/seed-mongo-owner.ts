@@ -8,13 +8,38 @@ import * as bcrypt from "bcryptjs";
 
 const BCRYPT_ROUNDS = 12;
 
-/** Mirror of active Nest permission set for ADMIN/owner. */
+/** Mirror of Nest PERMISSIONS registry — full owner set. Keep in sync with apps/api/src/common/auth/permissions.ts */
 const OWNER_PERMISSIONS = [
   "manage_users",
   "manage_doctors",
   "manage_secretaries",
   "manage_roles",
   "manage_services",
+  "specialties.view",
+  "specialties.create",
+  "specialties.update",
+  "specialties.publish",
+  "specialties.archive",
+  "specialties.reorder",
+  "services.view",
+  "services.create",
+  "services.update",
+  "services.publish",
+  "services.archive",
+  "services.reorder",
+  "faqs.view",
+  "faqs.create",
+  "faqs.update",
+  "faqs.publish",
+  "faqs.archive",
+  "faqs.reorder",
+  "reviews.view",
+  "reviews.create",
+  "reviews.update",
+  "reviews.approve",
+  "reviews.publish",
+  "reviews.archive",
+  "reviews.reorder",
   "manage_schedules",
   "manage_settings",
   "view_audit_logs",
@@ -32,6 +57,13 @@ const OWNER_PERMISSIONS = [
   "approve_patient_account",
   "view_own_medical",
   "request_appointment_change",
+  "view_dashboard",
+  "manage_patient_experiences",
+  "approve_patient_experiences",
+  "publish_patient_experiences",
+  "manage_before_after",
+  "approve_before_after",
+  "publish_before_after",
 ] as const;
 
 function requireEnv(name: string): string {
@@ -117,10 +149,11 @@ async function main() {
 
   const setFields = {
     email,
+    emailNormalized: email,
     fullName,
     phone: phone ?? existing?.phone ?? null,
     passwordHash,
-    roleCode: "ADMIN",
+    roleCode: "ADMIN_OWNER",
     status: "ACTIVE",
     emailVerified: true,
     permissions: [...OWNER_PERMISSIONS],
@@ -145,7 +178,7 @@ async function main() {
     action = "created";
   }
 
-  if (passwordChanged) {
+  if (passwordChanged || existing?.roleCode !== "ADMIN_OWNER") {
     await sessions.updateMany(
       { userId, revokedAt: null },
       { $set: { revokedAt: now } },
@@ -154,19 +187,19 @@ async function main() {
 
   await auditLogs.insertOne({
     userId,
-    roleCode: "ADMIN",
+    roleCode: "ADMIN_OWNER",
     action: action === "created" ? "OWNER_SEEDED" : "OWNER_UPDATED",
     entityType: "User",
     entityId: String(userId),
     newValue: {
       email,
-      roleCode: "ADMIN",
+      roleCode: "ADMIN_OWNER",
       status: "ACTIVE",
       emailVerified: true,
       permissionCount: OWNER_PERMISSIONS.length,
       passwordRotated: passwordChanged,
     },
-    reason: "pnpm seed:owner",
+    reason: "pnpm auth:ensure-owner",
     createdAt: now,
   });
 
@@ -260,8 +293,9 @@ async function main() {
           : 0,
         passwordRotated: passwordChanged,
         sessionsRevokedOnPasswordChange: passwordChanged,
-        dashboardPath: "/doctor/specialist/dashboard",
+        dashboardPath: "/ar/doctor/specialist/dashboard",
         store: "mongodb",
+        dbName: db.databaseName,
       },
       null,
       2,

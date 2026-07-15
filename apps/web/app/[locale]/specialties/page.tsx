@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PageHero } from "../../../components/public/PageHero";
+import { SpecialtiesExplorer } from "../../../components/public/SpecialtiesExplorer";
+import { SpecialtiesPremiumHero } from "../../../components/public/SpecialtiesPremiumHero";
 import { PublicChrome } from "../../../components/public/PublicChrome";
 import { PublicSection } from "../../../components/public/PublicSection";
-import { SpecialtyCard } from "../../../components/public/SpecialtyCard";
-import { CatalogSearch } from "../../../components/public/CatalogSearch";
-import { isLocale, locales, type Locale } from "../../../lib/i18n/config";
+import { PubBookingCta } from "../../../components/public/PubBookingCta";
+import { SectionReveal } from "../../../components/public/motion/SectionReveal";
+import { isLocale, type Locale } from "../../../lib/i18n/config";
 import {
   buildPublicMetadata,
   titleSegment,
@@ -40,37 +41,29 @@ export async function generateMetadata({
   });
 }
 
-
 export default async function SpecialtiesPage({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { locale: raw } = await params;
-  const { q, page: pageRaw } = await searchParams;
+  const { q } = await searchParams;
   if (!isLocale(raw)) notFound();
   const locale = raw as Locale;
   const dict = getDictionary(locale);
   const copy = getPublicCopy(locale);
-  const page = Math.max(1, Number(pageRaw) || 1);
   const [site, catalog] = await Promise.all([
     fetchPublicSite(),
-    fetchPublicSpecialties({ locale, limit: 24, page }),
+    fetchPublicSpecialties({ locale, limit: 48, page: 1 }),
   ]);
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const hours = localizedWorkingHours(locale, site.clinic);
-  const query = (q || "").trim().toLowerCase();
-  const specialties = query
-    ? catalog.specialties.filter((s) => {
-        const blob = [s.nameAr, s.nameEn, s.nameFr, s.slug, s.name]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return blob.includes(query);
-      })
-    : catalog.specialties;
+  const specialties = catalog.specialties;
+  const floating = specialties.filter((s) => s.isFeatured).slice(0, 3);
+  const floatLabels =
+    floating.length > 0 ? floating : specialties.slice(0, 3);
 
   return (
     <PublicChrome
@@ -83,38 +76,35 @@ export default async function SpecialtiesPage({
       address={site.clinic?.address}
       hours={hours}
     >
-      <PageHero
-        title={copy.sectionSpecialties}
-        description={copy.sectionSpecialtiesLead}
-        crumbs={[
-          { href: `/${locale}`, label: copy.navHome },
-          { label: copy.navSpecialties },
-        ]}
-        tone="mist"
+      <SpecialtiesPremiumHero
+        locale={locale}
+        copy={copy}
+        floatingLabels={floatLabels}
       />
+
       <PublicSection>
-        <CatalogSearch
-          locale={locale}
-          placeholder={copy.searchSpecialtyService}
-          basePath={`/${locale}/specialties`}
-          initialQuery={q || ""}
-        />
-        {specialties.length === 0 ? (
-          <div className="empty-state card-surface">
-            <p>{copy.emptySpecialties}</p>
+        <SectionReveal>
+          <SpecialtiesExplorer
+            locale={locale}
+            copy={copy}
+            specialties={specialties}
+            initialQuery={q || ""}
+          />
+        </SectionReveal>
+      </PublicSection>
+
+      <PublicSection tone="soft">
+        <SectionReveal>
+          <div className="specialties-explain card-surface">
+            <h2>{copy.specialtyLinkedServicesTitle}</h2>
+            <p className="pub-lead">{copy.specialtyLinkedServicesLead}</p>
+            <p className="muted">{copy.specialtyDoctorDecidesNote}</p>
           </div>
-        ) : (
-          <div className="pub-tile-grid pub-tile-grid-3">
-            {specialties.map((s) => (
-              <SpecialtyCard
-                key={s.slug}
-                locale={locale}
-                copy={copy}
-                specialty={s}
-              />
-            ))}
-          </div>
-        )}
+        </SectionReveal>
+      </PublicSection>
+
+      <PublicSection>
+        <PubBookingCta locale={locale} copy={copy} />
       </PublicSection>
     </PublicChrome>
   );

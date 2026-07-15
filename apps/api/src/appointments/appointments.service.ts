@@ -496,8 +496,11 @@ export class AppointmentsService {
   }
 
   async listForPatientUser(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      return { ok: true, appointments: [] };
+    }
     const patient = await this.patients.findOne({
-      userId,
+      userId: new Types.ObjectId(userId),
       deletedAt: null,
     });
     if (!patient) {

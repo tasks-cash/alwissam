@@ -1,40 +1,21 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { PatientAuthShell } from "../../../../components/public/PatientAuthShell";
-import { PatientRegisterForm } from "../../../../components/public/PatientRegisterForm";
-import { isLocale, type Locale } from "../../../../lib/i18n/config";
-import { getPatientAuthCopy } from "../../../../lib/i18n/patient-auth-copy";
-import { CLINIC_TITLE_BRAND } from "../../../../lib/seo/page-metadata";
+import { redirect } from "next/navigation";
+import { isLocale } from "../../../../lib/i18n/config";
 
-export async function generateMetadata({
+/** Legacy patient register → unified auth register (preserve invitation/query). */
+export default async function PatientRegisterRedirect({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale: raw } = await params;
-  if (!isLocale(raw)) return {};
-  const locale = raw as Locale;
-  const copy = getPatientAuthCopy(locale);
-  return {
-    title: {
-      absolute: `${CLINIC_TITLE_BRAND[locale]} | ${copy.documentTitleRegister}`,
-    },
-    robots: { index: false, follow: false },
-  };
-}
-
-export default async function PatientRegisterPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale: raw } = await params;
-  if (!isLocale(raw)) notFound();
-  const locale = raw as Locale;
-
-  return (
-    <PatientAuthShell locale={locale}>
-      <PatientRegisterForm locale={locale} />
-    </PatientAuthShell>
-  );
+  const locale = isLocale(raw) ? raw : "ar";
+  const q = await searchParams;
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) {
+    if (typeof v === "string") sp.set(k, v);
+  }
+  const qs = sp.toString() ? `?${sp.toString()}` : "";
+  redirect(`/${locale}/auth/register${qs}`);
 }

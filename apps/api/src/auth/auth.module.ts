@@ -1,7 +1,11 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
-import { AuthController } from "./auth.controller";
+import {
+  AuthController,
+  StaffInvitationsController,
+} from "./auth.controller";
 import { AuthService } from "./auth.service";
+import { StaffInvitationsService } from "./staff-invitations.service";
 import {
   AuditLog,
   AuditLogSchema,
@@ -12,6 +16,14 @@ import {
   User,
   UserSchema,
 } from "./schemas/auth.schemas";
+import {
+  StaffInvitation,
+  StaffInvitationSchema,
+} from "./schemas/staff-invitation.schema";
+import {
+  VerificationToken,
+  VerificationTokenSchema,
+} from "./schemas/verification-token.schema";
 import { Patient, PatientSchema } from "../patients/schemas/patient.schema";
 import {
   AppointmentRequest,
@@ -21,7 +33,10 @@ import {
   PatientConsent,
   PatientConsentSchema,
 } from "../patient-portal/schemas/portal.schemas";
-import { JwtAuthGuard } from "../common/auth/session.guard";
+import {
+  ClinicOwnerGuard,
+  JwtAuthGuard,
+} from "../common/auth/session.guard";
 import { JwtTokenService } from "../common/auth/jwt-token.service";
 
 @Module({
@@ -34,10 +49,18 @@ import { JwtTokenService } from "../common/auth/jwt-token.service";
       { name: Patient.name, schema: PatientSchema },
       { name: AppointmentRequest.name, schema: AppointmentRequestSchema },
       { name: PatientConsent.name, schema: PatientConsentSchema },
+      { name: StaffInvitation.name, schema: StaffInvitationSchema },
+      { name: VerificationToken.name, schema: VerificationTokenSchema },
     ]),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, JwtTokenService],
+  controllers: [AuthController, StaffInvitationsController],
+  providers: [
+    AuthService,
+    StaffInvitationsService,
+    JwtAuthGuard,
+    ClinicOwnerGuard,
+    JwtTokenService,
+  ],
   exports: [AuthService, MongooseModule, JwtTokenService, JwtAuthGuard],
 })
 export class AuthModule {}

@@ -24,13 +24,14 @@ export function DentalServicesSection({ locale, copy, services }: Props) {
       {services.length === 0 ? (
         <p className="muted empty-state">{copy.emptyServices}</p>
       ) : (
-        <div className="service-card-grid">
-          {services.map((s) => (
+        <div className="service-card-grid service-card-grid--premium">
+          {services.map((s, i) => (
             <ServiceCard
               key={s.slug}
               locale={locale}
               copy={copy}
               service={s}
+              index={i}
             />
           ))}
         </div>

@@ -140,6 +140,7 @@ export const PATIENT_PERMISSIONS: PermissionKey[] = [
 export function defaultPermissionsForRole(roleCode: string): PermissionKey[] {
   switch (roleCode) {
     case "ADMIN":
+    case "ADMIN_OWNER":
     case "OWNER":
     case "SUPER_ADMIN":
       return [...ADMIN_PERMISSIONS];
@@ -148,6 +149,7 @@ export function defaultPermissionsForRole(roleCode: string): PermissionKey[] {
     case "DOCTOR_SPECIALIST":
       return [...DOCTOR_SPECIALIST_PERMISSIONS];
     case "DOCTOR_GENERAL":
+    case "DOCTOR":
       return [...DOCTOR_GENERAL_PERMISSIONS];
     case "PATIENT":
       return [...PATIENT_PERMISSIONS];

@@ -53,14 +53,19 @@ export const DASHBOARD_NAV: NavItem[] = [
     roles: ["ADMIN", "SECRETARY", "DOCTOR_SPECIALIST"],
   },
   {
+    href: "/doctor/specialist/invitations",
+    labelKey: "navInvitations",
+    roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"],
+  },
+  {
     href: "/doctor/specialist/doctors",
     labelKey: "navDoctors",
-    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+    roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"],
   },
   {
     href: "/doctor/specialist/secretaries",
     labelKey: "navSecretaries",
-    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+    roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"],
   },
   {
     href: "/doctor/specialist/settings",
@@ -158,19 +163,31 @@ export const DASHBOARD_NAV: NavItem[] = [
     roles: ["PATIENT"],
   },
   {
-    href: "/patient/consents",
-    labelKey: "navPatientConsents",
-    roles: ["PATIENT"],
-  },
-  {
     href: "/patient/help",
     labelKey: "navPatientHelp",
     roles: ["PATIENT"],
   },
 ];
 
+function roleAllowed(userRole: string, allowed: string[]) {
+  if (allowed.includes(userRole)) return true;
+  if (
+    (userRole === "ADMIN_OWNER" || userRole === "OWNER" || userRole === "SUPER_ADMIN") &&
+    allowed.includes("ADMIN")
+  ) {
+    return true;
+  }
+  if (
+    userRole === "DOCTOR" &&
+    (allowed.includes("DOCTOR_GENERAL") || allowed.includes("DOCTOR_SPECIALIST"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function navForRole(role: string, locale: Locale) {
-  return DASHBOARD_NAV.filter((item) => item.roles.includes(role)).map(
+  return DASHBOARD_NAV.filter((item) => roleAllowed(role, item.roles)).map(
     (item) => ({
       ...item,
       href: `/${locale}${item.href}`,

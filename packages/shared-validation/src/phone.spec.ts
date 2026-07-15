@@ -59,3 +59,24 @@ describe("phone normalization and validation", () => {
     expect(normalizePhoneDigits("٠٥٥١١٢٣٤٥٦٧")).toBe("05511234567");
   });
 });
+
+describe("canonical Algeria phone", () => {
+  // Lazy import to keep prior tests intact if build cache lags
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const {
+    toCanonicalPhone,
+    phoneLookupVariants,
+  } = require("./phone") as typeof import("./phone");
+
+  it("maps +213 and 213 to local 0 form", () => {
+    expect(toCanonicalPhone("+213663098208")).toBe("0663098208");
+    expect(toCanonicalPhone("213663098208")).toBe("0663098208");
+    expect(toCanonicalPhone("0663098208")).toBe("0663098208");
+  });
+
+  it("builds lookup variants", () => {
+    const variants = phoneLookupVariants("+213663098208");
+    expect(variants).toContain("0663098208");
+    expect(variants).toContain("213663098208");
+  });
+});

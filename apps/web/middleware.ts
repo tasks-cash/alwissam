@@ -25,14 +25,48 @@ const PROTECTED_SEGMENTS = [
   "/patient/profile",
   "/patient/security",
   "/patient/privacy",
-  "/patient/consents",
   "/patient/help",
   "/patient/support",
   "/patient/account",
 ];
 
+/** Always public within a locale — never bounce these to themselves. */
+const PUBLIC_PREFIXES = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/verify",
+  "/auth/invitation",
+  "/auth/account-created",
+  "/staff/login",
+  "/patient/login",
+  "/patient/register",
+  "/patient/consents",
+  "/patients/login",
+  "/patients/register",
+  "/forgot-password",
+  "/reset-password",
+  "/activate-account",
+];
+
+function stripLocale(pathname: string) {
+  return pathname.replace(/^\/(ar|en|fr)(?=\/|$)/, "") || "/";
+}
+
+function isPublicPath(pathname: string) {
+  const withoutLocale = stripLocale(pathname);
+  return PUBLIC_PREFIXES.some(
+    (seg) =>
+      withoutLocale === seg ||
+      withoutLocale.startsWith(`${seg}/`) ||
+      withoutLocale.startsWith(`${seg}?`),
+  );
+}
+
 function isProtectedPath(pathname: string) {
-  const withoutLocale = pathname.replace(/^\/(ar|en|fr)(?=\/|$)/, "") || "/";
+  if (isPublicPath(pathname)) return false;
+  const withoutLocale = stripLocale(pathname);
   return PROTECTED_SEGMENTS.some(
     (seg) =>
       withoutLocale === seg.replace(/\/$/, "") ||
@@ -64,12 +98,13 @@ export function middleware(request: NextRequest) {
         request.cookies.get("alwisam_access")?.value ||
         request.cookies.get("alwisam_refresh")?.value;
       if (!hasAccess) {
-        const isPatient = pathname.includes("/patient/");
         const login = request.nextUrl.clone();
-        login.pathname = isPatient
-          ? `/${pathLocale}/patient/login`
-          : `/${pathLocale}/staff/login`;
-        login.searchParams.set("next", pathname);
+        login.pathname = `/${pathLocale}/auth/login`;
+        const nextPath = pathname;
+        // Avoid next=/.../auth/login loops
+        if (!isPublicPath(nextPath)) {
+          login.searchParams.set("next", nextPath);
+        }
         return NextResponse.redirect(login);
       }
     }
@@ -98,6 +133,7 @@ export function middleware(request: NextRequest) {
       ? `/${locale}`
       : `/${locale}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
 
+  // Locale normalization — exactly one redirect for unprefixed paths.
   const response = NextResponse.redirect(url);
   response.cookies.set(localeCookieName, locale || defaultLocale, {
     path: "/",
@@ -108,7 +144,9 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };
 
 void locales;

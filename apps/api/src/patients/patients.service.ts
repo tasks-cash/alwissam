@@ -108,8 +108,14 @@ export class PatientsService {
   }
 
   async getByUserId(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "سجل المريض غير موجود",
+      });
+    }
     const patient = await this.patients
-      .findOne({ userId, deletedAt: null })
+      .findOne({ userId: new Types.ObjectId(userId), deletedAt: null })
       .lean();
     if (!patient) {
       throw new NotFoundException({

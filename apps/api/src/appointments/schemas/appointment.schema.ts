@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export const APPOINTMENT_STATUSES = [
   "NEW_REQUEST",
@@ -56,10 +56,10 @@ export class Appointment {
   @Prop({ required: true, unique: true, index: true })
   appointmentNumber!: string;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   doctorId!: Types.ObjectId;
 
   @Prop({ required: true, enum: APPOINTMENT_TYPES })
@@ -94,7 +94,7 @@ export class Appointment {
   @Prop()
   cancelReason?: string;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   createdById?: Types.ObjectId;
 
   @Prop({ type: Date, default: null })
@@ -113,17 +113,17 @@ export type WaitingRoomEntryDocument = HydratedDocument<WaitingRoomEntry>;
 @Schema({ timestamps: true, collection: "waiting_room_entries" })
 export class WaitingRoomEntry {
   @Prop({
-    type: Types.ObjectId,
+    type: SchemaTypes.ObjectId,
     ref: "Appointment",
     required: true,
     unique: true,
   })
   appointmentId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "Patient", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", required: true, index: true })
   patientId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true, index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", required: true, index: true })
   doctorId!: Types.ObjectId;
 
   @Prop({

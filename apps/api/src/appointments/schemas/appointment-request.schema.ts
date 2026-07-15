@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 import { APPOINTMENT_TYPES } from "./appointment.schema";
 
 export type AppointmentRequestDocument = HydratedDocument<AppointmentRequest>;
@@ -32,16 +32,16 @@ export class AppointmentRequest {
   @Prop({ default: false })
   isEmergency!: boolean;
 
-  @Prop({ type: Types.ObjectId, ref: "User", default: null })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", default: null })
   preferredDoctorId?: Types.ObjectId | null;
 
-  @Prop({ type: Types.ObjectId, ref: "User", default: null })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", default: null })
   doctorId?: Types.ObjectId | null;
 
-  @Prop({ type: Types.ObjectId, default: null })
+  @Prop({ type: SchemaTypes.ObjectId, default: null })
   specialtyId?: Types.ObjectId | null;
 
-  @Prop({ type: Types.ObjectId, default: null })
+  @Prop({ type: SchemaTypes.ObjectId, default: null })
   serviceId?: Types.ObjectId | null;
 
   @Prop()
@@ -66,7 +66,7 @@ export class AppointmentRequest {
   })
   assignmentMode!: AssignmentMode;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User" })
   assignedBy?: Types.ObjectId;
 
   @Prop({ type: Date })
@@ -103,10 +103,10 @@ export class AppointmentRequest {
   source?: string;
 
   /** Linked only when phone matches an authenticated patient account (not by name). */
-  @Prop({ type: Types.ObjectId, ref: "Patient", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Patient", index: true })
   linkedPatientId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: "User", index: true })
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   linkedUserId?: Types.ObjectId;
 
   @Prop({ type: Date, default: null })

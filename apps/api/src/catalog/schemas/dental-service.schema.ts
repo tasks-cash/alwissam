@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { HydratedDocument, Types, SchemaTypes } from "mongoose";
 
 export type DentalServiceDocument = HydratedDocument<DentalService>;
 
@@ -35,10 +35,10 @@ export class DentalService {
   @Prop({ default: "", trim: true })
   shortDescriptionFr!: string;
 
-  @Prop({ type: [Types.ObjectId], ref: "Specialty", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "Specialty", default: [] })
   specialtyIds!: Types.ObjectId[];
 
-  @Prop({ type: [Types.ObjectId], ref: "User", default: [] })
+  @Prop({ type: [SchemaTypes.ObjectId], ref: "User", default: [] })
   doctorIds!: Types.ObjectId[];
 
   @Prop({ default: "tooth", trim: true })

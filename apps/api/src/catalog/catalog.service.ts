@@ -309,6 +309,64 @@ export class CatalogService {
     };
   }
 
+  private serializePublicDoctor(d: {
+    _id: Types.ObjectId;
+    fullName: string;
+    doctor?: {
+      specialtyAr?: string;
+      specialtyEn?: string;
+      specialtyFr?: string;
+      bioAr?: string;
+      bioEn?: string;
+      bioFr?: string;
+      professionalTitleAr?: string;
+      professionalTitleEn?: string;
+      professionalTitleFr?: string;
+      profileImage?: string;
+      languages?: string[];
+      isBookable?: boolean;
+      workingHours?: Array<{
+        dayOfWeek: string;
+        startTime: string;
+        endTime: string;
+        isActive?: boolean;
+      }>;
+      availabilityNoteAr?: string;
+      availabilityNoteEn?: string;
+      availabilityNoteFr?: string;
+    };
+  }) {
+    const schedule = Array.isArray(d.doctor?.workingHours)
+      ? d.doctor.workingHours.filter((h) => h && h.isActive !== false)
+      : [];
+    return {
+      id: String(d._id),
+      fullName: d.fullName,
+      specialtyAr: d.doctor?.specialtyAr,
+      specialtyEn: d.doctor?.specialtyEn,
+      specialtyFr: d.doctor?.specialtyFr,
+      bioAr: d.doctor?.bioAr,
+      bioEn: d.doctor?.bioEn,
+      bioFr: d.doctor?.bioFr,
+      professionalTitleAr: d.doctor?.professionalTitleAr || "",
+      professionalTitleEn:
+        d.doctor?.professionalTitleEn || d.doctor?.professionalTitleAr || "",
+      professionalTitleFr:
+        d.doctor?.professionalTitleFr ||
+        d.doctor?.professionalTitleEn ||
+        d.doctor?.professionalTitleAr ||
+        "",
+      profileImage: d.doctor?.profileImage || "",
+      languages: Array.isArray(d.doctor?.languages) ? d.doctor.languages : [],
+      isBookable: d.doctor?.isBookable !== false,
+      isPublic: true,
+      workingHours: schedule,
+      availabilityNoteAr: d.doctor?.availabilityNoteAr,
+      availabilityNoteEn: d.doctor?.availabilityNoteEn,
+      availabilityNoteFr: d.doctor?.availabilityNoteFr,
+    };
+  }
+
   async listPublicSpecialties(query: {
     locale?: string;
     featured?: boolean;
@@ -349,6 +407,40 @@ export class CatalogService {
       serviceCounts.map((c) => [String(c._id), c.count]),
     );
 
+    const previewRows = await this.services
+      .find({
+        ...this.publicServiceFilter(),
+        specialtyIds: { $in: specialtyIds },
+      })
+      .select({
+        specialtyIds: 1,
+        slug: 1,
+        nameAr: 1,
+        nameEn: 1,
+        nameFr: 1,
+        displayOrder: 1,
+        isFeatured: 1,
+      })
+      .sort({ isFeatured: -1, displayOrder: 1, nameAr: 1 })
+      .lean();
+    const previewMap = new Map<
+      string,
+      Array<{ slug: string; name: string }>
+    >();
+    for (const svc of previewRows) {
+      for (const sid of svc.specialtyIds || []) {
+        const key = String(sid);
+        if (!specialtyIds.some((id) => String(id) === key)) continue;
+        const list = previewMap.get(key) || [];
+        if (list.length >= 3) continue;
+        list.push({
+          slug: svc.slug,
+          name: localized(query.locale, svc.nameAr, svc.nameEn, svc.nameFr),
+        });
+        previewMap.set(key, list);
+      }
+    }
+
     const doctorCountMap = new Map<string, number>();
     for (const row of rows) {
       const ids = (row.doctorIds || []).map(String);
@@ -362,6 +454,7 @@ export class CatalogService {
         status: "ACTIVE",
         doctor: { $exists: true },
         "doctor.isActive": { $ne: false },
+        "doctor.isPublic": { $ne: false },
       });
       doctorCountMap.set(String(row._id), count);
     }
@@ -392,6 +485,7 @@ export class CatalogService {
         isFeatured: r.isFeatured,
         serviceCount: serviceCountMap.get(String(r._id)) || 0,
         doctorCount: doctorCountMap.get(String(r._id)) || 0,
+        servicePreviews: previewMap.get(String(r._id)) || [],
       })),
     };
   }
@@ -419,6 +513,7 @@ export class CatalogService {
         status: "ACTIVE",
         doctor: { $exists: true },
         "doctor.isActive": { $ne: false },
+        "doctor.isPublic": { $ne: false },
       })
       .select({
         fullName: 1,
@@ -428,6 +523,16 @@ export class CatalogService {
         "doctor.bioAr": 1,
         "doctor.bioEn": 1,
         "doctor.bioFr": 1,
+        "doctor.professionalTitleAr": 1,
+        "doctor.professionalTitleEn": 1,
+        "doctor.professionalTitleFr": 1,
+        "doctor.profileImage": 1,
+        "doctor.languages": 1,
+        "doctor.isBookable": 1,
+        "doctor.workingHours": 1,
+        "doctor.availabilityNoteAr": 1,
+        "doctor.availabilityNoteEn": 1,
+        "doctor.availabilityNoteFr": 1,
       })
       .lean();
 
@@ -456,16 +561,7 @@ export class CatalogService {
         doctorCount: doctors.length,
       },
       services: services.services,
-      doctors: doctors.map((d) => ({
-        id: String(d._id),
-        fullName: d.fullName,
-        specialtyAr: d.doctor?.specialtyAr,
-        specialtyEn: d.doctor?.specialtyEn,
-        specialtyFr: d.doctor?.specialtyFr,
-        bioAr: d.doctor?.bioAr,
-        bioEn: d.doctor?.bioEn,
-        bioFr: d.doctor?.bioFr,
-      })),
+      doctors: doctors.map((d) => this.serializePublicDoctor(d)),
     };
   }
 
@@ -559,6 +655,7 @@ export class CatalogService {
           status: "ACTIVE",
           doctor: { $exists: true },
           "doctor.isActive": { $ne: false },
+          "doctor.isPublic": { $ne: false },
         });
       }
       const parents = (r.specialtyIds || [])
@@ -633,12 +730,26 @@ export class CatalogService {
         status: "ACTIVE",
         doctor: { $exists: true },
         "doctor.isActive": { $ne: false },
+        "doctor.isPublic": { $ne: false },
       })
       .select({
         fullName: 1,
         "doctor.specialtyAr": 1,
         "doctor.specialtyEn": 1,
         "doctor.specialtyFr": 1,
+        "doctor.bioAr": 1,
+        "doctor.bioEn": 1,
+        "doctor.bioFr": 1,
+        "doctor.professionalTitleAr": 1,
+        "doctor.professionalTitleEn": 1,
+        "doctor.professionalTitleFr": 1,
+        "doctor.profileImage": 1,
+        "doctor.languages": 1,
+        "doctor.isBookable": 1,
+        "doctor.workingHours": 1,
+        "doctor.availabilityNoteAr": 1,
+        "doctor.availabilityNoteEn": 1,
+        "doctor.availabilityNoteFr": 1,
       })
       .lean();
 
@@ -678,13 +789,7 @@ export class CatalogService {
         requiresConsultation: row.requiresConsultation === true,
         isFeatured: row.isFeatured,
       },
-      doctors: doctors.map((d) => ({
-        id: String(d._id),
-        fullName: d.fullName,
-        specialtyAr: d.doctor?.specialtyAr,
-        specialtyEn: d.doctor?.specialtyEn,
-        specialtyFr: d.doctor?.specialtyFr,
-      })),
+      doctors: doctors.map((d) => this.serializePublicDoctor(d)),
     };
   }
 

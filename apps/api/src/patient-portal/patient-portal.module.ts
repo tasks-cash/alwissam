@@ -48,6 +48,8 @@ import {
   PatientConsentSchema,
   PatientNotification,
   PatientNotificationSchema,
+  PatientSupportRequest,
+  PatientSupportRequestSchema,
 } from "./schemas/portal.schemas";
 import { ReviewsModule } from "../reviews/reviews.module";
 import { PatientExperiencesModule } from "../patient-experiences/patient-experiences.module";
@@ -74,6 +76,10 @@ import { PatientExperiencesModule } from "../patient-experiences/patient-experie
       { name: PatientConsent.name, schema: PatientConsentSchema },
       { name: AccountDeletionRequest.name, schema: AccountDeletionRequestSchema },
       { name: DataExportRequest.name, schema: DataExportRequestSchema },
+      {
+        name: PatientSupportRequest.name,
+        schema: PatientSupportRequestSchema,
+      },
     ]),
   ],
   controllers: [PatientPortalController, DoctorMessagesController],
