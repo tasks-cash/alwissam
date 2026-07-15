@@ -106,6 +106,9 @@ async function main() {
     bioFr: "Compte propriétaire — permissions administratives complètes",
     colorCode: "#0F9A9A",
     isActive: true,
+    isPublic: false,
+    isBookable: false,
+    isFeatured: false,
   };
 
   const now = new Date();

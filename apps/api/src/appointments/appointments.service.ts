@@ -531,11 +531,28 @@ export class AppointmentsService {
       });
     }
 
+    let specialtyId: Types.ObjectId | undefined;
+    let serviceId: Types.ObjectId | undefined;
+
     if (dto.specialtySlug || dto.serviceSlug || dto.preferredDoctorId) {
-      await this.catalog.assertBookingRelation({
+      const related = await this.catalog.assertBookingRelation({
         specialtySlug: dto.specialtySlug,
         serviceSlug: dto.serviceSlug,
         doctorId: dto.preferredDoctorId,
+      });
+      if (related.specialty?._id) {
+        specialtyId = related.specialty._id as Types.ObjectId;
+      }
+      if (related.service?._id) {
+        serviceId = related.service._id as Types.ObjectId;
+      }
+    }
+
+    if (dto.preferredDoctorId && !Types.ObjectId.isValid(dto.preferredDoctorId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف الطبيب غير صالح.",
+        fieldErrors: { preferredDoctorId: ["معرّف غير صالح."] },
       });
     }
 
@@ -550,7 +567,7 @@ export class AppointmentsService {
           fieldErrors: { preferredDate: ["لا يمكن اختيار تاريخ في الماضي."] },
         });
       }
-      if (dto.preferredTime) {
+      if (dto.preferredTime && dto.preferredDoctorId) {
         const avail = await this.getAvailableTimes({
           date: dto.preferredDate,
           doctorId: dto.preferredDoctorId,
@@ -579,9 +596,25 @@ export class AppointmentsService {
     }
 
     const { requestNumber, queueNumber } = await this.nextRequestNumber();
-    const status = dto.isEmergency || dto.appointmentType === "EMERGENCY"
-      ? "EMERGENCY"
-      : "NEW_REQUEST";
+
+    const hasDoctor = Boolean(dto.preferredDoctorId);
+    const hasSpecialty = Boolean(dto.specialtySlug || specialtyId);
+    const assignmentMode = hasDoctor
+      ? "patient_selected_doctor"
+      : hasSpecialty
+        ? "patient_selected_specialty"
+        : "reception_assignment_required";
+
+    let status: string;
+    if (dto.isEmergency || dto.appointmentType === "EMERGENCY") {
+      status = "EMERGENCY";
+    } else if (hasDoctor && dto.preferredDate && dto.preferredTime) {
+      status = "pending_confirmation";
+    } else if (!hasDoctor) {
+      status = "pending_reception_assignment";
+    } else {
+      status = "NEW_REQUEST";
+    }
 
     const created = await this.requests.create({
       requestNumber,
@@ -591,29 +624,209 @@ export class AppointmentsService {
       reason: dto.reason,
       appointmentType: dto.appointmentType,
       isEmergency: dto.appointmentType === "EMERGENCY" || dto.isEmergency === true,
-      preferredDoctorId: dto.preferredDoctorId
+      preferredDoctorId: hasDoctor
         ? new Types.ObjectId(dto.preferredDoctorId)
-        : undefined,
+        : null,
+      doctorId: hasDoctor ? new Types.ObjectId(dto.preferredDoctorId) : null,
+      specialtyId: specialtyId || null,
+      serviceId: serviceId || null,
+      specialtySlug: dto.specialtySlug || undefined,
+      serviceSlug: dto.serviceSlug || undefined,
       preferredDate: dto.preferredDate ? new Date(dto.preferredDate) : undefined,
       preferredTime: dto.preferredTime,
       consentAccepted: true,
+      assignmentMode,
       status,
-      additionalNotes: [
-        dto.specialtySlug ? `specialty:${dto.specialtySlug}` : "",
-        dto.serviceSlug ? `service:${dto.serviceSlug}` : "",
-        dto.additionalNotes || "",
-      ]
-        .filter(Boolean)
-        .join(" | ") || undefined,
+      source: "public_website",
+      additionalNotes: dto.additionalNotes || undefined,
     });
+
+    const message =
+      status === "pending_reception_assignment"
+        ? "تم إرسال طلب الحجز بنجاح. سيقوم فريق الاستقبال بمراجعة الطلب واختيار الطبيب المناسب، ثم التواصل معك لتأكيد الموعد."
+        : status === "pending_confirmation"
+          ? "تم استلام طلبكم بنجاح. سيتم تأكيد الموعد بعد مراجعة الاستقبال."
+          : "تم استلام طلبكم بنجاح.";
 
     return {
       ok: true,
-      message: "تم استلام طلبكم بنجاح.",
+      message,
       requestNumber: created.requestNumber,
       queueNumber: created.queueNumber || queueNumber,
       status: created.status,
+      assignmentMode: created.assignmentMode,
     };
+  }
+
+  async listReceptionAssignmentQueue(query?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }) {
+    const page = Math.max(1, query?.page ?? 1);
+    const limit = Math.min(50, Math.max(1, query?.limit ?? 20));
+    const filter: Record<string, unknown> = {
+      deletedAt: null,
+      $or: [
+        { status: "pending_reception_assignment" },
+        { assignmentMode: "reception_assignment_required", status: { $in: ["NEW_REQUEST", "pending_reception_assignment", "UNDER_SECRETARY_REVIEW"] } },
+        { preferredDoctorId: null, status: { $in: ["NEW_REQUEST", "pending_reception_assignment", "UNDER_SECRETARY_REVIEW", "patient_selected_specialty"] } },
+        { doctorId: null, status: { $in: ["pending_reception_assignment", "UNDER_SECRETARY_REVIEW"] } },
+      ],
+    };
+    if (query?.status) {
+      filter.status = query.status;
+      delete filter.$or;
+    }
+    const [total, rows] = await Promise.all([
+      this.requests.countDocuments(filter),
+      this.requests
+        .find(filter)
+        .sort({ createdAt: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+    ]);
+    return {
+      ok: true,
+      items: rows.map((r) => ({
+        id: String(r._id),
+        requestNumber: r.requestNumber,
+        queueNumber: r.queueNumber,
+        fullName: r.fullName,
+        phone: r.phone,
+        reason: r.reason,
+        appointmentType: r.appointmentType,
+        preferredDate: r.preferredDate
+          ? new Date(r.preferredDate).toISOString().slice(0, 10)
+          : null,
+        preferredTime: r.preferredTime || null,
+        specialtySlug: r.specialtySlug || null,
+        serviceSlug: r.serviceSlug || null,
+        specialtyId: r.specialtyId ? String(r.specialtyId) : null,
+        serviceId: r.serviceId ? String(r.serviceId) : null,
+        preferredDoctorId: r.preferredDoctorId
+          ? String(r.preferredDoctorId)
+          : null,
+        doctorId: r.doctorId ? String(r.doctorId) : null,
+        assignmentMode: r.assignmentMode,
+        status: r.status,
+        additionalNotes: r.additionalNotes || null,
+        createdAt: (r as { createdAt?: Date }).createdAt,
+      })),
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async assignDoctorToRequest(
+    input: {
+      requestId: string;
+      doctorId: string;
+      preferredDate?: string;
+      preferredTime?: string;
+      assignmentNotes?: string;
+      confirm?: boolean;
+    },
+    actor: AuthUser,
+  ) {
+    if (!Types.ObjectId.isValid(input.requestId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف الطلب غير صالح.",
+      });
+    }
+    if (!Types.ObjectId.isValid(input.doctorId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف الطبيب غير صالح.",
+      });
+    }
+
+    const doctor = await this.users.findOne({
+      _id: input.doctorId,
+      deletedAt: null,
+      status: "ACTIVE",
+      doctor: { $exists: true },
+      "doctor.isActive": { $ne: false },
+      roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] },
+    });
+    if (!doctor) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "لا يمكن تعيين هذا الحساب كطبيب.",
+        fieldErrors: { doctorId: ["اختر طبيبًا عامًا أو أخصائيًا نشطًا."] },
+      });
+    }
+
+    const req = await this.requests.findOne({
+      _id: input.requestId,
+      deletedAt: null,
+    });
+    if (!req) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "طلب الموعد غير موجود.",
+      });
+    }
+
+    const dateStr =
+      input.preferredDate ||
+      (req.preferredDate
+        ? new Date(req.preferredDate).toISOString().slice(0, 10)
+        : undefined);
+    const timeStr = input.preferredTime || req.preferredTime;
+
+    if (dateStr && timeStr) {
+      const avail = await this.getAvailableTimes({
+        date: dateStr,
+        doctorId: input.doctorId,
+      });
+      if (!avail.times.includes(timeStr)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "الوقت غير متاح لهذا الطبيب.",
+          fieldErrors: { preferredTime: ["اختر وقتًا متاحًا."] },
+        });
+      }
+    }
+
+    const status = input.confirm ? "CONFIRMED" : "DOCTOR_ASSIGNED";
+    const updated = await this.requests
+      .findOneAndUpdate(
+        { _id: input.requestId },
+        {
+          $set: {
+            preferredDoctorId: new Types.ObjectId(input.doctorId),
+            doctorId: new Types.ObjectId(input.doctorId),
+            preferredDate: dateStr ? new Date(dateStr) : req.preferredDate,
+            preferredTime: timeStr,
+            assignmentMode: "patient_selected_doctor",
+            assignedBy: new Types.ObjectId(actor.id),
+            assignedAt: new Date(),
+            assignmentNotes: input.assignmentNotes?.trim() || undefined,
+            status,
+          },
+        },
+        { new: true },
+      )
+      .lean();
+
+    await this.audit.write({
+      actor,
+      action: "appointment_request.assign_doctor",
+      entityType: "appointment_request",
+      entityId: input.requestId,
+      newValue: {
+        doctorId: input.doctorId,
+        status,
+        requestNumber: req.requestNumber,
+      },
+    });
+
+    return { ok: true, item: updated };
   }
 
   async getPublicRequest(requestNumber: string) {
@@ -702,8 +915,9 @@ export class AppointmentsService {
           status: "ACTIVE",
           doctor: { $exists: true },
           "doctor.isActive": { $ne: false },
+          roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] },
         })
-        .select("doctor.workingHours")
+        .select("doctor.workingHours doctor.weeklySchedule")
         .lean();
       if (!doctor) {
         throw new NotFoundException({
@@ -711,18 +925,27 @@ export class AppointmentsService {
           message: "الطبيب غير متاح.",
         });
       }
-      const hours = (
-        doctor as {
-          doctor?: {
-            workingHours?: Array<{
-              dayOfWeek: string;
-              startTime: string;
-              endTime: string;
-              isActive?: boolean;
-            }>;
-          };
-        }
-      ).doctor?.workingHours;
+      const doctorDoc = doctor as {
+        doctor?: {
+          workingHours?: Array<{
+            dayOfWeek: string;
+            startTime: string;
+            endTime: string;
+            isActive?: boolean;
+          }>;
+          weeklySchedule?: Array<{
+            dayOfWeek: string;
+            startTime: string;
+            endTime: string;
+            isActive?: boolean;
+          }>;
+        };
+      };
+      const hours =
+        (Array.isArray(doctorDoc.doctor?.workingHours) &&
+        doctorDoc.doctor.workingHours.length
+          ? doctorDoc.doctor.workingHours
+          : doctorDoc.doctor?.weeklySchedule) || [];
       if (Array.isArray(hours) && hours.length) {
         windows = hours
           .filter(
@@ -733,10 +956,20 @@ export class AppointmentsService {
           )
           .map((h) => ({ startTime: h.startTime, endTime: h.endTime }));
       }
+      // No fabricated clinic-wide fallback when a doctor is selected but has no day window.
+      if (!windows.length) {
+        return {
+          ok: true,
+          date,
+          times: [] as string[],
+          closed: true,
+          noSchedule: true,
+        };
+      }
     }
 
     if (!windows.length) {
-      // Default clinic: Sun–Thu 08:00–17:00 (Friday/Saturday closed)
+      // Default clinic window only when no specific doctor was requested.
       if (dayOfWeek === "FRIDAY" || dayOfWeek === "SATURDAY") {
         return { ok: true, date, times: [] as string[], closed: true };
       }

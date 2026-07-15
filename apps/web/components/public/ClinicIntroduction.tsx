@@ -35,14 +35,13 @@ export function ClinicIntroduction({
       </div>
       <div className="clinic-intro-media">
         <Image
-          src="/images/hero-clinic.svg"
+          src="/images/stock/dental-clinic-interior.jpg"
           alt={imageAlt}
-          width={1200}
-          height={900}
+          width={1600}
+          height={1070}
           sizes="(max-width: 768px) 100vw, 48vw"
           className="clinic-photo"
-          priority={false}
-          unoptimized
+          loading="lazy"
         />
       </div>
     </div>

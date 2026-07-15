@@ -96,6 +96,40 @@ export class AppointmentsController {
     return this.appointmentsService.listWaiting(doctorId);
   }
 
+  @Get("secretary/assignment-queue")
+  @RequireRoles("ADMIN", "SECRETARY", "DOCTOR_SPECIALIST")
+  @RequirePermissions(PERMISSIONS.manage_appointments)
+  assignmentQueue(
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("status") status?: string,
+  ) {
+    return this.appointmentsService.listReceptionAssignmentQueue({
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+      status,
+    });
+  }
+
+  @Post("secretary/assignment-queue/assign")
+  @HttpCode(200)
+  @RequireRoles("ADMIN", "SECRETARY", "DOCTOR_SPECIALIST")
+  @RequirePermissions(PERMISSIONS.manage_appointments)
+  assignDoctor(
+    @Body()
+    body: {
+      requestId: string;
+      doctorId: string;
+      preferredDate?: string;
+      preferredTime?: string;
+      assignmentNotes?: string;
+      confirm?: boolean;
+    },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.appointmentsService.assignDoctorToRequest(body, user);
+  }
+
   @Patch("waiting-room")
   @HttpCode(200)
   @RequireRoles(

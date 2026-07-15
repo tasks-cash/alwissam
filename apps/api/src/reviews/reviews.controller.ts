@@ -8,6 +8,7 @@ import {
   Req,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
+import { ListPublicReviewsQueryDto } from "./dto/review-query.dto";
 import { SubmitPublicReviewDto } from "./dto/submit-review.dto";
 import { ReviewsService } from "./reviews.service";
 
@@ -17,8 +18,13 @@ export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
   @Get()
-  list(@Query("limit") limit?: string) {
-    return this.reviewsService.listApproved(Number(limit) || 24);
+  async list(@Query() query: ListPublicReviewsQueryDto) {
+    const result = await this.reviewsService.listPublic(query);
+    return {
+      ...result,
+      /** Backward-compatible alias */
+      reviews: result.items,
+    };
   }
 
   @Post()
@@ -31,6 +37,6 @@ export class ReviewsController {
       req.ip ||
       req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ||
       undefined;
-    return this.reviewsService.submit(dto, ip);
+    return this.reviewsService.submitPublic(dto, ip);
   }
 }

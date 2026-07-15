@@ -24,6 +24,8 @@
     "seed:clinic-contact": "tsx scripts/update-clinic-contact.ts",
     "seed:clinic-doctors": "tsx scripts/ensure-clinic-doctors.ts",
     "seed:catalog": "tsx scripts/seed-catalog.ts",
+    "seed:faqs": "tsx scripts/seed-faqs.ts",
+    "seed:reviews": "tsx scripts/seed-reviews.ts",
     "migration:dry-run": "tsx scripts/migration/dry-run.ts",
     "migration:execute": "tsx scripts/migration/execute.ts",
     "migration:verify": "tsx scripts/migration/verify.ts",

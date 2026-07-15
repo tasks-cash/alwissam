@@ -15,6 +15,7 @@ export class PublicDoctorsController {
     @Query("active") active?: string,
     @Query("public") isPublic?: string,
     @Query("bookable") bookable?: string,
+    @Query("featured") featured?: string,
     @Query("limit") limit?: string,
   ) {
     return this.doctorsService.listPublic({
@@ -23,6 +24,7 @@ export class PublicDoctorsController {
       active,
       public: isPublic,
       bookable,
+      featured,
       limit,
     });
   }

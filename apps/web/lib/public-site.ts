@@ -45,6 +45,14 @@ export type PublicSpecialty = {
 };
 
 export type PublicFaq = {
+  id?: string;
+  slug?: string;
+  category?: string;
+  keywords?: string[];
+  relatedSpecialtySlugs?: string[];
+  relatedServiceSlugs?: string[];
+  displayOrder?: number;
+  isFeatured?: boolean;
   question?: string;
   questionAr?: string;
   questionEn?: string;
@@ -53,6 +61,21 @@ export type PublicFaq = {
   answerAr?: string;
   answerEn?: string;
   answerFr?: string;
+};
+
+export type PublicFaqCategory = {
+  id: string;
+  label: string;
+  count: number;
+};
+
+export type PublicFaqsResponse = {
+  faqs: PublicFaq[];
+  total: number;
+  page: number;
+  limit: number;
+  categories: PublicFaqCategory[];
+  allCount: number;
 };
 
 export type PublicPolicies = Record<string, string | undefined>;
@@ -138,12 +161,37 @@ export type PublicReview = {
   nameAr?: string;
   nameEn?: string;
   nameFr?: string;
+  quote?: string;
   quoteAr?: string;
   quoteEn?: string;
   quoteFr?: string;
   rating?: number;
   verified?: boolean;
+  isVerified?: boolean;
+  isFeatured?: boolean;
+  isAnonymous?: boolean;
+  reviewDate?: string;
   createdAt?: string;
+  doctorId?: string | null;
+  specialtySlug?: string | null;
+  serviceSlug?: string | null;
+  patientImage?: string | null;
+};
+
+export type PublicReviewsStats = {
+  publishedCount: number;
+  averageRating: number;
+  verifiedCount: number;
+  featuredCount: number;
+};
+
+export type PublicReviewsResponse = {
+  items: PublicReview[];
+  stats: PublicReviewsStats;
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 };
 
 export type PublicDoctor = {
@@ -192,6 +240,51 @@ export async function fetchPublicSite(): Promise<PublicSitePayload> {
     return (await res.json()) as PublicSitePayload;
   } catch {
     return {};
+  }
+}
+
+export async function fetchPublicFaqs(opts?: {
+  locale?: Locale;
+  category?: string;
+  search?: string;
+  featured?: boolean;
+  page?: number;
+  limit?: number;
+}): Promise<PublicFaqsResponse> {
+  const empty: PublicFaqsResponse = {
+    faqs: [],
+    total: 0,
+    page: 1,
+    limit: 100,
+    categories: [],
+    allCount: 0,
+  };
+  try {
+    const params = new URLSearchParams({
+      locale: opts?.locale || "ar",
+      page: String(Math.max(1, opts?.page ?? 1)),
+      limit: String(Math.min(200, Math.max(1, opts?.limit ?? 100))),
+    });
+    if (opts?.category && opts.category !== "all") {
+      params.set("category", opts.category);
+    }
+    if (opts?.search?.trim()) params.set("search", opts.search.trim());
+    if (opts?.featured) params.set("featured", "true");
+    const res = await fetch(`${apiBase()}/api/public/faqs?${params}`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return empty;
+    const data = (await res.json()) as PublicFaqsResponse;
+    return {
+      faqs: Array.isArray(data.faqs) ? data.faqs : [],
+      total: Number(data.total) || 0,
+      page: Number(data.page) || 1,
+      limit: Number(data.limit) || 100,
+      categories: Array.isArray(data.categories) ? data.categories : [],
+      allCount: Number(data.allCount) || 0,
+    };
+  } catch {
+    return empty;
   }
 }
 
@@ -305,11 +398,30 @@ export async function fetchPublicServiceDetail(
   }
 }
 
+const NON_PUBLIC_DOCTOR_ROLES = new Set([
+  "ADMIN",
+  "OWNER",
+  "SUPER_ADMIN",
+  "SECRETARY",
+]);
+
+export function filterPublicDoctors(list: PublicDoctor[]): PublicDoctor[] {
+  return list.filter(
+    (d) =>
+      d &&
+      !NON_PUBLIC_DOCTOR_ROLES.has(String(d.type || "").toUpperCase()) &&
+      !/مالك النظام|System Owner|Clinic administration|إدارة العيادة/i.test(
+        `${d.fullName} ${d.specialtyAr || ""} ${d.specialtyEn || ""}`,
+      ),
+  );
+}
+
 export async function fetchPublicDoctors(opts?: {
   q?: string;
   specialty?: string;
   bookable?: boolean;
   publicOnly?: boolean;
+  featured?: boolean;
   limit?: number;
 }): Promise<PublicDoctor[]> {
   try {
@@ -318,9 +430,11 @@ export async function fetchPublicDoctors(opts?: {
     if (opts?.specialty) params.set("specialty", opts.specialty);
     if (opts?.bookable) params.set("bookable", "true");
     if (opts?.publicOnly !== false) params.set("public", "true");
-    if (opts?.bookable || opts?.limit) {
-      params.set("limit", String(opts?.limit ?? (opts?.bookable ? 5 : 48)));
-    }
+    if (opts?.featured) params.set("featured", "true");
+    const limit =
+      opts?.limit ??
+      (opts?.featured ? 3 : opts?.bookable ? 5 : undefined);
+    if (limit != null) params.set("limit", String(limit));
     if (opts?.bookable) params.set("active", "true");
     const qs = params.toString();
     const res = await fetch(
@@ -329,8 +443,10 @@ export async function fetchPublicDoctors(opts?: {
     );
     if (!res.ok) return [];
     const data = await res.json();
-    const list = Array.isArray(data.doctors) ? data.doctors : [];
-    return opts?.limit ? list.slice(0, opts.limit) : list;
+    const list = filterPublicDoctors(
+      Array.isArray(data.doctors) ? data.doctors : [],
+    );
+    return limit != null ? list.slice(0, limit) : list;
   } catch {
     return [];
   }
@@ -351,41 +467,81 @@ export async function fetchPublicDoctor(
   }
 }
 
-export async function fetchPublicReviews(limit = 24): Promise<PublicReview[]> {
+function normalizePublicReview(r: PublicReview): PublicReview {
+  return {
+    ...r,
+    nameAr: r.displayName || r.nameAr,
+    nameEn: r.displayName || r.nameEn,
+    nameFr: r.displayName || r.nameFr,
+    verified: r.isVerified ?? r.verified,
+    createdAt: r.reviewDate || r.createdAt,
+  };
+}
+
+export async function fetchPublicReviews(opts?: {
+  locale?: Locale;
+  page?: number;
+  limit?: number;
+  rating?: number;
+  doctorId?: string;
+  specialtySlug?: string;
+  serviceSlug?: string;
+  verified?: boolean;
+  featured?: boolean;
+  search?: string;
+}): Promise<PublicReviewsResponse> {
+  const empty: PublicReviewsResponse = {
+    items: [],
+    stats: {
+      publishedCount: 0,
+      averageRating: 0,
+      verifiedCount: 0,
+      featuredCount: 0,
+    },
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 1,
+  };
   try {
-    const res = await fetch(
-      `${apiBase()}/api/public/reviews?limit=${limit}`,
-      { next: { revalidate: 30 } },
-    );
-    if (!res.ok) return [];
+    const params = new URLSearchParams({
+      locale: opts?.locale || "ar",
+      page: String(Math.max(1, opts?.page ?? 1)),
+      limit: String(Math.min(48, Math.max(1, opts?.limit ?? 12))),
+    });
+    if (opts?.rating) params.set("rating", String(opts.rating));
+    if (opts?.doctorId) params.set("doctorId", opts.doctorId);
+    if (opts?.specialtySlug) params.set("specialtySlug", opts.specialtySlug);
+    if (opts?.serviceSlug) params.set("serviceSlug", opts.serviceSlug);
+    if (opts?.verified) params.set("verified", "true");
+    if (opts?.featured) params.set("featured", "true");
+    if (opts?.search?.trim()) params.set("search", opts.search.trim());
+    const res = await fetch(`${apiBase()}/api/public/reviews?${params}`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return empty;
     const data = await res.json();
-    if (!Array.isArray(data.reviews)) return [];
-    return data.reviews.map(
-      (r: {
-        id?: string;
-        displayName?: string;
-        quoteAr?: string;
-        quoteEn?: string;
-        quoteFr?: string;
-        rating?: number;
-        verified?: boolean;
-        createdAt?: string;
-      }) => ({
-        id: r.id,
-        displayName: r.displayName,
-        nameAr: r.displayName,
-        nameEn: r.displayName,
-        nameFr: r.displayName,
-        quoteAr: r.quoteAr,
-        quoteEn: r.quoteEn,
-        quoteFr: r.quoteFr,
-        rating: r.rating,
-        verified: r.verified,
-        createdAt: r.createdAt,
-      }),
-    );
+    const raw = Array.isArray(data.items)
+      ? data.items
+      : Array.isArray(data.reviews)
+        ? data.reviews
+        : [];
+    const stats = data.stats || {};
+    return {
+      items: raw.map((r: PublicReview) => normalizePublicReview(r)),
+      stats: {
+        publishedCount: Number(stats.publishedCount) || 0,
+        averageRating: Number(stats.averageRating) || 0,
+        verifiedCount: Number(stats.verifiedCount) || 0,
+        featuredCount: Number(stats.featuredCount) || 0,
+      },
+      page: Number(data.page) || 1,
+      limit: Number(data.limit) || 12,
+      total: Number(data.total) || 0,
+      totalPages: Number(data.totalPages) || 1,
+    };
   } catch {
-    return [];
+    return empty;
   }
 }
 
@@ -557,10 +713,16 @@ export function localizedDoctorBio(locale: Locale, d: PublicDoctor) {
 }
 
 export function localizedFaqQ(locale: Locale, f: PublicFaq) {
+  if (f.question && !f.questionAr && !f.questionEn && !f.questionFr) {
+    return f.question;
+  }
   return pickLocalized(locale, f.questionAr || f.question, f.questionEn, f.questionFr);
 }
 
 export function localizedFaqA(locale: Locale, f: PublicFaq) {
+  if (f.answer && !f.answerAr && !f.answerEn && !f.answerFr) {
+    return f.answer;
+  }
   return pickLocalized(locale, f.answerAr || f.answer, f.answerEn, f.answerFr);
 }
 
@@ -642,6 +804,9 @@ export function verifiedReviews(
 }
 
 export function localizedReviewQuote(locale: Locale, r: PublicReview) {
+  if (r.quote && !r.quoteAr && !r.quoteEn && !r.quoteFr) {
+    return r.quote;
+  }
   return pickLocalized(locale, r.quoteAr, r.quoteEn, r.quoteFr);
 }
 

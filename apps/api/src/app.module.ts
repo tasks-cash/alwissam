@@ -18,6 +18,7 @@ import { PatientExperiencesModule } from "./patient-experiences/patient-experien
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SettingsModule } from "./settings/settings.module";
 import { CatalogModule } from "./catalog/catalog.module";
+import { FaqsModule } from "./faqs/faqs.module";
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { CatalogModule } from "./catalog/catalog.module";
     FinanceModule,
     SettingsModule,
     CatalogModule,
+    FaqsModule,
     ReviewsModule,
     PatientExperiencesModule,
     BeforeAfterModule,

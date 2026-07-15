@@ -65,13 +65,12 @@ export function HomePageContent({
       <section className="pub-hero">
         <div className="pub-hero-media" aria-hidden>
           <Image
-            src="/images/hero-clinic.svg"
+            src="/images/stock/dental-care-hero.jpg"
             alt=""
-            width={1200}
-            height={900}
+            width={1600}
+            height={1200}
             className="pub-hero-image"
             priority
-            unoptimized
             sizes="(max-width: 900px) 100vw, 46vw"
           />
         </div>

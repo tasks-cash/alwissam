@@ -63,13 +63,12 @@ export function BookingConvenience({ locale, copy }: Props) {
         </div>
         <div className="booking-convenience-media">
           <Image
-            src="/images/contact-clinic.svg"
+            src="/images/stock/dental-treatment.jpg"
             alt={copy.bookingConvenienceImageAlt}
-            width={960}
-            height={720}
+            width={1600}
+            height={1067}
             className="booking-convenience-image"
             loading="lazy"
-            unoptimized
             sizes="(max-width: 900px) 100vw, 44vw"
           />
         </div>

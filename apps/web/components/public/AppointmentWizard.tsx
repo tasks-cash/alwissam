@@ -327,7 +327,7 @@ export function AppointmentWizard({
       {step === 0 ? (
         <div className="stack-form">
           <div className="field">
-            <label htmlFor="specialty">{copy.wizardSpecialty}</label>
+            <label htmlFor="specialty">{copy.wizardSpecialtyOptional}</label>
             <select
               id="specialty"
               className="input"
@@ -371,7 +371,7 @@ export function AppointmentWizard({
 
       {step === 1 ? (
         <div className="field">
-          <label htmlFor="serviceSlug">{copy.wizardService}</label>
+          <label htmlFor="serviceSlug">{copy.wizardServiceOptional}</label>
           <select
             id="serviceSlug"
             className="input"
@@ -402,7 +402,7 @@ export function AppointmentWizard({
 
       {step === 2 ? (
         <div className="wizard-doctor-step">
-          <label htmlFor="doctorId">{copy.wizardDoctor}</label>
+          <label htmlFor="doctorId">{copy.wizardDoctorOptional}</label>
           <select
             id="doctorId"
             className="input wizard-doctor-select"
@@ -656,16 +656,17 @@ export function AppointmentWizard({
               {copy.wizardSpecialty}:{" "}
               {selectedSpecialty
                 ? localizedSpecialtyName(locale, selectedSpecialty)
-                : "—"}
+                : copy.reviewNoSpecialty}
             </li>
             <li>
               {copy.wizardService}:{" "}
               {selectedService
                 ? localizedServiceName(locale, selectedService)
-                : "—"}
+                : copy.reviewNoService}
             </li>
             <li>
-              {copy.wizardDoctor}: {selectedDoctor?.fullName || copy.anyDoctor}
+              {copy.wizardDoctor}:{" "}
+              {selectedDoctor?.fullName || copy.reviewNoDoctor}
             </li>
             <li>
               {copy.preferredDate}: {form.preferredDate || "—"}

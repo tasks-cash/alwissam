@@ -43,6 +43,11 @@ export const DASHBOARD_NAV: NavItem[] = [
     roles: ["ADMIN", "SECRETARY", "DOCTOR_SPECIALIST"],
   },
   {
+    href: "/secretary/assignment-queue",
+    labelKey: "navAssignmentQueue",
+    roles: ["ADMIN", "SECRETARY", "DOCTOR_SPECIALIST"],
+  },
+  {
     href: "/secretary/payments",
     labelKey: "navPayments",
     roles: ["ADMIN", "SECRETARY", "DOCTOR_SPECIALIST"],
@@ -80,6 +85,16 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/doctor/specialist/public-content/services",
     labelKey: "navServicesAdmin",
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+  },
+  {
+    href: "/doctor/specialist/public-content/faqs",
+    labelKey: "navFaqsAdmin",
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+  },
+  {
+    href: "/doctor/specialist/public-content/reviews",
+    labelKey: "navReviewsAdmin",
     roles: ["ADMIN", "DOCTOR_SPECIALIST"],
   },
   {

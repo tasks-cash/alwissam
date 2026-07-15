@@ -52,6 +52,19 @@ export type Dictionary = {
   navBeforeAfter: string;
   navSpecialtiesAdmin: string;
   navServicesAdmin: string;
+  navFaqsAdmin: string;
+  navReviewsAdmin: string;
+  navAssignmentQueue: string;
+  assignmentQueueDesc: string;
+  assignDoctor: string;
+  confirmAssignment: string;
+  reference: string;
+  preferredDate: string;
+  preferredTime: string;
+  page: string;
+  total: string;
+  previous: string;
+  next: string;
   navAuditLogs: string;
   patientsTotal: string;
   patientsToday: string;
@@ -161,6 +174,19 @@ const ar: Dictionary = {
   navBeforeAfter: "قبل وبعد العلاج",
   navSpecialtiesAdmin: "إدارة التخصصات",
   navServicesAdmin: "إدارة الخدمات",
+  navFaqsAdmin: "إدارة الأسئلة الشائعة",
+  navReviewsAdmin: "إدارة التقييمات",
+  navAssignmentQueue: "تعيين الأطباء",
+  assignmentQueueDesc: "طلبات المواعيد التي تحتاج تعيين طبيب من الاستقبال.",
+  assignDoctor: "تعيين طبيب",
+  confirmAssignment: "تأكيد الموعد بعد التعيين",
+  reference: "المرجع",
+  preferredDate: "التاريخ المفضّل",
+  preferredTime: "الوقت المفضّل",
+  page: "صفحة",
+  total: "الإجمالي",
+  previous: "السابق",
+  next: "التالي",
   navAuditLogs: "سجل التدقيق",
   patientsTotal: "إجمالي المرضى",
   patientsToday: "مرضى جدد اليوم",
@@ -270,6 +296,19 @@ const en: Dictionary = {
   navBeforeAfter: "Before & after",
   navSpecialtiesAdmin: "Specialties",
   navServicesAdmin: "Services",
+  navFaqsAdmin: "FAQs",
+  navReviewsAdmin: "Reviews admin",
+  navAssignmentQueue: "Doctor assignment",
+  assignmentQueueDesc: "Appointment requests awaiting reception doctor assignment.",
+  assignDoctor: "Assign doctor",
+  confirmAssignment: "Confirm appointment after assignment",
+  reference: "Reference",
+  preferredDate: "Preferred date",
+  preferredTime: "Preferred time",
+  page: "Page",
+  total: "Total",
+  previous: "Previous",
+  next: "Next",
   navAuditLogs: "Audit logs",
   patientsTotal: "Active patients",
   patientsToday: "New patients today",
@@ -381,6 +420,19 @@ const fr: Dictionary = {
   navBeforeAfter: "Avant / après",
   navSpecialtiesAdmin: "Spécialités",
   navServicesAdmin: "Services",
+  navFaqsAdmin: "FAQ",
+  navReviewsAdmin: "Gestion des avis",
+  navAssignmentQueue: "Attribution médecin",
+  assignmentQueueDesc: "Demandes de rendez-vous en attente d’attribution par l’accueil.",
+  assignDoctor: "Attribuer un médecin",
+  confirmAssignment: "Confirmer le rendez-vous après attribution",
+  reference: "Référence",
+  preferredDate: "Date préférée",
+  preferredTime: "Heure préférée",
+  page: "Page",
+  total: "Total",
+  previous: "Précédent",
+  next: "Suivant",
   navAuditLogs: "Journal d’audit",
   patientsTotal: "Patients actifs",
   patientsToday: "Nouveaux aujourd’hui",

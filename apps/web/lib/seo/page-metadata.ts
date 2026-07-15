@@ -18,7 +18,7 @@ export const PAGE_TITLE_SEGMENT = {
   services: { ar: "الخدمات", en: "Services", fr: "Services" },
   book: { ar: "حجز موعد", en: "Book an Appointment", fr: "Prendre rendez-vous" },
   faq: { ar: "الأسئلة الشائعة", en: "Frequently Asked Questions", fr: "Questions fréquentes" },
-  reviews: { ar: "تجارب مرضانا", en: "Patient Experiences", fr: "Expériences patients" },
+  reviews: { ar: "تجارب وآراء مرضانا", en: "Patient Reviews", fr: "Avis patients" },
   beforeAfter: { ar: "قبل وبعد العلاج", en: "Before and After", fr: "Avant et après" },
   privacy: { ar: "سياسة الخصوصية", en: "Privacy Policy", fr: "Politique de confidentialité" },
   terms: { ar: "الشروط والأحكام", en: "Terms and Conditions", fr: "Conditions générales" },

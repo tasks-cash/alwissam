@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicChrome } from "../../../../components/public/PublicChrome";
@@ -15,6 +16,7 @@ import {
   localizedDoctorBio,
   localizedDoctorSpecialty,
   localizedWorkingHours,
+  pickLocalized,
 } from "../../../../lib/public-site";
 import {
   buildPublicMetadata,
@@ -89,6 +91,36 @@ export default async function DoctorProfilePage({
   const hours = localizedWorkingHours(locale, site.clinic);
   const availability = localizedDoctorAvailability(locale, doctor);
   const schedule = (doctor.workingHours || []).filter((h) => h.isActive !== false);
+  const dayLabels: Record<string, string> =
+    locale === "en"
+      ? {
+          SATURDAY: "Saturday",
+          SUNDAY: "Sunday",
+          MONDAY: "Monday",
+          TUESDAY: "Tuesday",
+          WEDNESDAY: "Wednesday",
+          THURSDAY: "Thursday",
+          FRIDAY: "Friday",
+        }
+      : locale === "fr"
+        ? {
+            SATURDAY: "Samedi",
+            SUNDAY: "Dimanche",
+            MONDAY: "Lundi",
+            TUESDAY: "Mardi",
+            WEDNESDAY: "Mercredi",
+            THURSDAY: "Jeudi",
+            FRIDAY: "Vendredi",
+          }
+        : {
+            SATURDAY: "السبت",
+            SUNDAY: "الأحد",
+            MONDAY: "الإثنين",
+            TUESDAY: "الثلاثاء",
+            WEDNESDAY: "الأربعاء",
+            THURSDAY: "الخميس",
+            FRIDAY: "الجمعة",
+          };
 
   return (
     <PublicChrome
@@ -107,28 +139,84 @@ export default async function DoctorProfilePage({
     >
       <PublicSection>
         <div className="doctor-profile">
-          <div className="doctor-avatar xl" aria-hidden>
-            {doctor.fullName.slice(0, 1)}
+          <div
+            className={`doctor-avatar xl${doctor.profileImage ? " has-photo" : ""}`}
+            aria-hidden={doctor.profileImage ? undefined : true}
+          >
+            {doctor.profileImage ? (
+              <Image
+                src={doctor.profileImage}
+                alt={doctor.fullName}
+                width={160}
+                height={160}
+                className="doctor-photo"
+                priority
+                unoptimized
+              />
+            ) : (
+              doctor.fullName.slice(0, 1)
+            )}
           </div>
           <div>
             <p className="section-kicker">{copy.navDoctors}</p>
             <h1>{doctor.fullName}</h1>
             <p className="pub-lead">{localizedDoctorSpecialty(locale, doctor)}</p>
+            {pickLocalized(
+              locale,
+              doctor.professionalTitleAr,
+              doctor.professionalTitleEn,
+              doctor.professionalTitleFr,
+            ) ? (
+              <p className="muted">
+                {pickLocalized(
+                  locale,
+                  doctor.professionalTitleAr,
+                  doctor.professionalTitleEn,
+                  doctor.professionalTitleFr,
+                )}
+              </p>
+            ) : null}
             <p>{localizedDoctorBio(locale, doctor) || dict.brandSubtitle}</p>
+            {Array.isArray(doctor.languages) && doctor.languages.length ? (
+              <p className="pub-doctor-langs muted">
+                {locale === "en"
+                  ? "Languages"
+                  : locale === "fr"
+                    ? "Langues"
+                    : "اللغات"}
+                : <span dir="ltr">{doctor.languages.join(" · ")}</span>
+              </p>
+            ) : null}
             {availability ? (
               <p className="pub-availability">
                 {copy.availabilityLabel}: {availability}
               </p>
             ) : null}
-            {schedule.length > 0 ? (
-              <ul className="contact-list" style={{ marginTop: "1rem" }}>
-                {schedule.map((h, i) => (
-                  <li key={i} dir="ltr">
-                    {h.dayOfWeek}: {h.startTime} – {h.endTime}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <div className="doctor-schedule-block">
+              <h2 className="doctor-schedule-title">
+                {locale === "en"
+                  ? "Working schedule"
+                  : locale === "fr"
+                    ? "Horaires"
+                    : "جدول المواعيد"}
+              </h2>
+              {schedule.length > 0 ? (
+                <ul className="doctor-schedule-list">
+                  {schedule.map((h, i) => (
+                    <li key={i}>
+                      <span className="doctor-schedule-day">
+                        {dayLabels[h.dayOfWeek] || h.dayOfWeek}
+                      </span>
+                      <span className="doctor-schedule-time" dir="ltr">
+                        {h.startTime} – {h.endTime}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">{copy.doctorNoSchedule}</p>
+              )}
+            </div>
             <div className="cta-row" style={{ marginTop: "1.25rem" }}>
               <Link
                 className="btn btn-primary"

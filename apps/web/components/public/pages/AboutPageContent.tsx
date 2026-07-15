@@ -41,7 +41,7 @@ export function AboutPageContent({
     <>
       <PageHero
         title={copy.aboutHeroTitle}
-        description={about}
+        description={copy.aboutHeroDescription || about}
         crumbs={[
           { href: `/${locale}`, label: copy.navHome },
           { label: copy.navAbout },
@@ -53,13 +53,12 @@ export function AboutPageContent({
         }
         media={
           <Image
-            src="/images/about-team.svg"
+            src="/images/stock/dental-team-care.jpg"
             alt={brandName}
-            width={1200}
-            height={800}
+            width={1600}
+            height={1067}
             className="page-hero-image"
             priority
-            unoptimized
             sizes="(max-width: 900px) 100vw, 42vw"
           />
         }
@@ -74,13 +73,12 @@ export function AboutPageContent({
           </div>
           <div className="clinic-intro-media">
             <Image
-              src="/images/hero-clinic.svg"
+              src="/images/stock/dental-clinic-interior.jpg"
               alt={brandName}
-              width={1200}
-              height={900}
+              width={1600}
+              height={1070}
               sizes="(max-width: 768px) 100vw, 48vw"
               className="clinic-photo"
-              unoptimized
             />
           </div>
         </div>

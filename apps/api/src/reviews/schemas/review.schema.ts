@@ -1,12 +1,29 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument, Types } from "mongoose";
 
+/**
+ * Public patient-facing reviews (collection: reviews).
+ * Legacy rows used `status: APPROVED|PENDING|...`.
+ * New rows also set isApproved/isPublished for clearer workflow.
+ */
 export type ReviewDocument = HydratedDocument<Review>;
 
 @Schema({ timestamps: true, collection: "reviews" })
 export class Review {
   @Prop({ required: true, trim: true })
   displayName!: string;
+
+  @Prop({ trim: true })
+  displayNameAr?: string;
+
+  @Prop({ trim: true })
+  displayNameEn?: string;
+
+  @Prop({ trim: true })
+  displayNameFr?: string;
+
+  @Prop({ default: true })
+  isAnonymous!: boolean;
 
   @Prop({ required: true, trim: true })
   quoteAr!: string;
@@ -17,14 +34,61 @@ export class Review {
   @Prop({ trim: true })
   quoteFr?: string;
 
-  @Prop({ min: 1, max: 5, default: 5 })
+  /** Aliases for prompt field names — map to quote* in API. */
+  @Prop({ trim: true })
+  reviewAr?: string;
+
+  @Prop({ trim: true })
+  reviewEn?: string;
+
+  @Prop({ trim: true })
+  reviewFr?: string;
+
+  @Prop({ min: 1, max: 5, default: 5, index: true })
   rating!: number;
 
-  @Prop({ type: Types.ObjectId, ref: "User" })
+  @Prop({ type: Date })
+  reviewDate?: Date;
+
+  @Prop()
+  patientImage?: string;
+
+  @Prop({ type: Types.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, index: true })
+  specialtyId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, index: true })
+  serviceId?: Types.ObjectId;
+
+  @Prop()
+  specialtySlug?: string;
 
   @Prop()
   serviceSlug?: string;
+
+  @Prop({ default: false, index: true })
+  isVerified!: boolean;
+
+  /** @deprecated use isVerified */
+  @Prop({ default: false })
+  verified!: boolean;
+
+  @Prop({ default: false })
+  consentConfirmed!: boolean;
+
+  @Prop({ default: false, index: true })
+  isApproved!: boolean;
+
+  @Prop({ default: false, index: true })
+  isPublished!: boolean;
+
+  @Prop({ default: false, index: true })
+  isFeatured!: boolean;
+
+  @Prop({ default: 0, index: true })
+  displayOrder!: number;
 
   @Prop({
     enum: ["PENDING", "APPROVED", "REJECTED", "ARCHIVED"],
@@ -33,15 +97,33 @@ export class Review {
   })
   status!: string;
 
-  @Prop({ default: false })
-  verified!: boolean;
+  @Prop({ default: "clinic", index: true })
+  source!: string;
+
+  /** Stable seed key for idempotent imports (e.g. seed:review:01). */
+  @Prop({ unique: true, sparse: true, index: true })
+  sourceKey?: string;
+
+  @Prop({ type: Date, index: true })
+  publishedAt?: Date;
+
+  @Prop({ type: Types.ObjectId })
+  createdBy?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId })
+  updatedBy?: Types.ObjectId;
 
   @Prop()
   ipAddress?: string;
 
-  @Prop({ type: Date, default: null })
+  @Prop({ type: Date, default: null, index: true })
   deletedAt?: Date | null;
+
+  @Prop({ type: Date, default: null })
+  archivedAt?: Date | null;
 }
 
 export const ReviewSchema = SchemaFactory.createForClass(Review);
+ReviewSchema.index({ isPublished: 1, isApproved: 1, displayOrder: 1 });
 ReviewSchema.index({ status: 1, createdAt: -1 });
+ReviewSchema.index({ isFeatured: 1, rating: -1 });

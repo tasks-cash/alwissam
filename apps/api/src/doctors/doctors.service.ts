@@ -177,6 +177,7 @@ export class DoctorsService {
     active?: string | boolean;
     public?: string | boolean;
     bookable?: string | boolean;
+    featured?: string | boolean;
     limit?: string | number;
   }) {
     const wantPublic =
@@ -185,33 +186,31 @@ export class DoctorsService {
       opts?.public === undefined;
     const wantBookable =
       opts?.bookable === true || opts?.bookable === "true";
+    const preferFeatured =
+      opts?.featured === true || opts?.featured === "true";
     const limitRaw = Number(opts?.limit);
     const limit = Number.isFinite(limitRaw)
       ? Math.min(100, Math.max(1, limitRaw))
-      : wantBookable
-        ? 5
-        : 48;
+      : preferFeatured
+        ? 3
+        : wantBookable
+          ? 5
+          : 48;
 
+    // Public directory: real doctor roles only — never ADMIN/OWNER/SECRETARY.
     const filter: Record<string, unknown> = {
       deletedAt: null,
       status: "ACTIVE",
       doctor: { $exists: true },
       "doctor.isActive": { $ne: false },
       "doctor.archivedAt": null,
-      roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST", "ADMIN"] },
+      roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] },
     };
 
     const andClauses: Record<string, unknown>[] = [];
 
-    // Public directory: require isPublic !== false. ADMIN only when explicitly public.
     if (wantPublic) {
       filter["doctor.isPublic"] = { $ne: false };
-      andClauses.push({
-        $or: [
-          { roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] } },
-          { roleCode: "ADMIN", "doctor.isPublic": true },
-        ],
-      });
       andClauses.push({
         "doctor.specialtyAr": {
           $not: /إدارة العيادة|Clinic administration|Administration de la clinique/i,
@@ -245,12 +244,25 @@ export class DoctorsService {
     if (andClauses.length) {
       filter.$and = andClauses;
     }
-    const doctors = await this.users
-      .find(filter)
-      .select("fullName doctor")
-      .sort({ "doctor.displayOrder": 1, fullName: 1 })
-      .limit(limit)
-      .lean();
+
+    // Prefer featured first, then fill with other public bookable doctors.
+    const baseQuery = () =>
+      this.users
+        .find(filter)
+        .select("fullName doctor")
+        .sort({
+          "doctor.isFeatured": -1,
+          "doctor.displayOrder": 1,
+          "doctor.profileImage": -1,
+          createdAt: 1,
+        });
+
+    let doctors = await baseQuery().limit(limit).lean();
+
+    if (preferFeatured && doctors.length < limit) {
+      doctors = await baseQuery().limit(limit).lean();
+    }
+
     return {
       ok: true,
       doctors: doctors.map((d) => this.serializePublic(d as never)),
@@ -265,6 +277,10 @@ export class DoctorsService {
       "doctor.isActive": { $ne: false },
       "doctor.isPublic": { $ne: false },
       "doctor.archivedAt": null,
+      roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] },
+      fullName: {
+        $not: /مالك النظام|System Owner|طبيب اختبار|Test Doctor/i,
+      },
     };
     if (Types.ObjectId.isValid(id)) {
       filter._id = id;

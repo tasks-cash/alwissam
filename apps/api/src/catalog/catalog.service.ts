@@ -754,6 +754,9 @@ export class CatalogService {
         status: "ACTIVE",
         doctor: { $exists: true },
         "doctor.isActive": { $ne: false },
+        "doctor.isPublic": { $ne: false },
+        "doctor.isBookable": { $ne: false },
+        roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] },
       });
       if (!doctor) {
         throw new NotFoundException({

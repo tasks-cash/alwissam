@@ -53,6 +53,7 @@ export type PublicCopy = {
   careApproach: string;
   careApproachBody: string;
   aboutHeroTitle: string;
+  aboutHeroDescription: string;
   clinicIntroTitle: string;
   learnMoreAbout: string;
   locationTitle: string;
@@ -165,6 +166,36 @@ export type PublicCopy = {
   why3: string;
   hoursLabel: string;
   reviewsTitle: string;
+  reviewsLead: string;
+  reviewsAnonymous: string;
+  reviewsVerifiedBadge: string;
+  reviewsReadMore: string;
+  reviewsReadLess: string;
+  reviewsSearchPlaceholder: string;
+  reviewsSearchLabel: string;
+  reviewsClearSearch: string;
+  reviewsFilterRating: string;
+  reviewsFilterVerified: string;
+  reviewsFilterFeatured: string;
+  reviewsAllRatings: string;
+  reviewsResultsCount: string;
+  reviewsFeaturedTitle: string;
+  reviewsLoadError: string;
+  reviewsStatsPublished: string;
+  reviewsStatsAverage: string;
+  reviewsStatsVerified: string;
+  reviewsPrevPage: string;
+  reviewsNextPage: string;
+  reviewsPageLabel: string;
+  wizardSpecialtyOptional: string;
+  wizardServiceOptional: string;
+  wizardDoctorOptional: string;
+  reviewNoSpecialty: string;
+  reviewNoService: string;
+  reviewNoDoctor: string;
+  confirmationPendingAssignment: string;
+  confirmationPendingAssignmentLead: string;
+  doctorNoSchedule: string;
   experiencesTitle: string;
   experiencesLead: string;
   experiencesEmpty: string;
@@ -402,14 +433,17 @@ const ar: PublicCopy = {
     { title: "الاحترام", description: "تعامل مهني يحفظ كرامة المريض ووقته." },
     { title: "الخصوصية", description: "حماية بيانات التواصل والرعاية ضمن نطاق الاستخدام السريري." },
     { title: "الوضوح", description: "معلومات واضحة عن التخصصات والمواعيد وخطوات الزيارة." },
-    { title: "الجودة", description: "التزام بالدقة السريرية والمسؤولية المهنية." },
-    { title: "المتابعة", description: "استمرارية الرعاية بعد الزيارة عند الحاجة." },
+    { title: "التنظيم", description: "مسار حجز ومتابعة مرتّب من الاستقبال إلى الطبيب." },
     { title: "المسؤولية", description: "تواصل صادق حول التوفر والتأكيدات والتوجيه الإداري." },
+    { title: "المتابعة", description: "استمرارية الرعاية بعد الزيارة عند الحاجة." },
     { title: "التعاون الطبي", description: "تنسيق بين التخصصات والاستقبال لصالح المريض." },
+    { title: "الاهتمام براحة المريض", description: "تجربة هادئة وواضحة من الحجز حتى مغادرة العيادة." },
   ],
   careApproach: "نهج رعاية المريض",
   careApproachBody: "نبدأ بفهم احتياجكم، ثم توجيهكم للتخصص والطبيب المناسب، مع مواعيد واضحة ومتابعة منظمة بعد الزيارة.",
-  aboutHeroTitle: "رعاية طبية قائمة على الثقة والاهتمام",
+  aboutHeroTitle: "رعاية أسنان قائمة على الثقة والاهتمام",
+  aboutHeroDescription:
+    "تجمع عيادة الوسام بين التنظيم الطبي، سهولة الحجز، وتعدد خدمات طب الأسنان لتوفير تجربة واضحة ومريحة لكل مريض.",
   clinicIntroTitle: "تعريف بالعيادة",
   learnMoreAbout: "اعرف المزيد عنّا",
   locationTitle: "الموقع والتواصل",
@@ -463,7 +497,42 @@ const ar: PublicCopy = {
   doctorCountLabel: "أطباء",
   relatedCta: "احجز موعدًا",
   hoursLabel: "ساعات العمل",
-  reviewsTitle: "آراء مرضى موثّقة",
+  reviewsTitle: "تجارب وآراء مرضانا",
+  reviewsLead:
+    "اطّلع على تجارب المرضى المنشورة بعد مراجعتها واعتمادها من عيادة الوسام.",
+  reviewsAnonymous: "مريض/ة",
+  reviewsVerifiedBadge: "مريض موثّق",
+  reviewsReadMore: "اقرأ المزيد",
+  reviewsReadLess: "عرض أقل",
+  reviewsSearchPlaceholder: "ابحث في التقييمات…",
+  reviewsSearchLabel: "بحث",
+  reviewsClearSearch: "مسح",
+  reviewsFilterRating: "التقييم",
+  reviewsFilterVerified: "موثّق فقط",
+  reviewsFilterFeatured: "مميز فقط",
+  reviewsAllRatings: "كل التقييمات",
+  reviewsResultsCount: "{n} تقييم",
+  reviewsFeaturedTitle: "تقييمات مميزة",
+  reviewsLoadError: "تعذر تحميل التقييمات. يرجى المحاولة مرة أخرى.",
+  reviewsStatsPublished: "تقييم منشور",
+  reviewsStatsAverage: "متوسط التقييم",
+  reviewsStatsVerified: "تقييم موثّق",
+  reviewsPrevPage: "السابق",
+  reviewsNextPage: "التالي",
+  reviewsPageLabel: "صفحة",
+  wizardSpecialtyOptional: "التخصص — اختياري",
+  wizardServiceOptional: "الخدمة — اختيارية",
+  wizardDoctorOptional: "الطبيب المفضل — اختياري",
+  reviewNoSpecialty:
+    "سيقوم فريق الاستقبال بمراجعة سبب الزيارة وتوجيه الطلب إلى القسم المناسب.",
+  reviewNoService: "لم تُحدَّد خدمة — يمكن لفريق الاستقبال المساعدة في التوجيه.",
+  reviewNoDoctor:
+    "سيقوم فريق الاستقبال باختيار الطبيب المناسب بعد مراجعة الطلب.",
+  confirmationPendingAssignment: "طلبك بانتظار تعيين الطبيب",
+  confirmationPendingAssignmentLead:
+    "تم إرسال طلب الحجز بنجاح. سيقوم فريق الاستقبال بمراجعة الطلب واختيار الطبيب المناسب، ثم التواصل معك لتأكيد الموعد.",
+  doctorNoSchedule:
+    "لم يتم نشر جدول عمل هذا الطبيب حاليًا. يمكنك التواصل مع الاستقبال للمساعدة في الحجز.",
   experiencesTitle: "تجارب مرضانا",
   experiencesLead:
     "آراء وتجارب حقيقية يشاركها مرضانا بعد تلقي خدمات العيادة.",
@@ -498,9 +567,9 @@ const ar: PublicCopy = {
   wizardReview: "المراجعة",
   next: "التالي",
   previous: "السابق",
-  anyDoctor: "أي طبيب متاح",
+  anyDoctor: "اتركه فارغًا ليختار الاستقبال الطبيب المناسب",
   preferredSlotNote:
-    "الأوقات الموضّحة مفضّلة. يؤكّد الاستقبال الموعد النهائي حسب توفر الطبيب.",
+    "يمكنك اختيار طبيب أو تخصص، كما يمكنك تركهما فارغين وسيقوم فريق الاستقبال بمراجعة سبب الزيارة وتوجيه طلبك إلى الطبيب المناسب.",
   pastDateError: "لا يمكن اختيار تاريخ في الماضي.",
   reviewSummary: "مراجعة الطلب",
   stepLabel: "الخطوة",
@@ -658,6 +727,8 @@ const en: PublicCopy = {
   careApproach: "Patient-care approach",
   careApproachBody: "We start from your need, guide you to the right specialty and clinician, and keep scheduling and follow-up organized.",
   aboutHeroTitle: "Care built on trust and attention",
+  aboutHeroDescription:
+    "Al-Wisam combines organized dental care, clear booking, and a wide range of services for a calm patient experience.",
   clinicIntroTitle: "About the clinic",
   learnMoreAbout: "Learn more about us",
   locationTitle: "Location and Contact",
@@ -711,7 +782,39 @@ const en: PublicCopy = {
   doctorCountLabel: "doctors",
   relatedCta: "Book appointment",
   hoursLabel: "Working hours",
-  reviewsTitle: "Verified patient reviews",
+  reviewsTitle: "Patient reviews & experiences",
+  reviewsLead:
+    "Real ratings and feedback from Al Wissam patients after receiving care — approved and published with consent.",
+  reviewsAnonymous: "Patient",
+  reviewsVerifiedBadge: "Verified patient",
+  reviewsReadMore: "Read more",
+  reviewsReadLess: "Show less",
+  reviewsSearchPlaceholder: "Search reviews…",
+  reviewsSearchLabel: "Search",
+  reviewsClearSearch: "Clear",
+  reviewsFilterRating: "Rating",
+  reviewsFilterVerified: "Verified only",
+  reviewsFilterFeatured: "Featured only",
+  reviewsAllRatings: "All ratings",
+  reviewsResultsCount: "{n} reviews",
+  reviewsFeaturedTitle: "Featured reviews",
+  reviewsLoadError: "Could not load reviews. Please try again.",
+  reviewsStatsPublished: "Published reviews",
+  reviewsStatsAverage: "Average rating",
+  reviewsStatsVerified: "Verified reviews",
+  reviewsPrevPage: "Previous",
+  reviewsNextPage: "Next",
+  reviewsPageLabel: "Page",
+  wizardSpecialtyOptional: "Specialty (optional)",
+  wizardServiceOptional: "Service (optional)",
+  wizardDoctorOptional: "Doctor (optional)",
+  reviewNoSpecialty: "No specialty selected — reception will guide you",
+  reviewNoService: "No service selected — optional",
+  reviewNoDoctor: "No doctor selected — reception will assign a suitable clinician",
+  confirmationPendingAssignment: "Your request is awaiting doctor assignment",
+  confirmationPendingAssignmentLead:
+    "We received your request. Reception will assign a suitable doctor and contact you to confirm the appointment.",
+  doctorNoSchedule: "Schedule not available online — contact reception to book.",
   experiencesTitle: "Patient Experiences",
   experiencesLead:
     "Real opinions and experiences shared by our patients after receiving clinic care.",
@@ -907,6 +1010,8 @@ const fr: PublicCopy = {
   careApproach: "Approche de soins",
   careApproachBody: "Nous partons de votre besoin, vous orientons vers la spécialité et le clinicien adaptés, avec un suivi organisé.",
   aboutHeroTitle: "Des soins fondés sur la confiance et l’attention",
+  aboutHeroDescription:
+    "La clinique Al-Wisam allie organisation médicale, prise de rendez-vous claire et diversité de soins dentaires pour une expérience sereine.",
   clinicIntroTitle: "Présentation de la clinique",
   learnMoreAbout: "En savoir plus",
   locationTitle: "Localisation et contact",
@@ -962,7 +1067,39 @@ const fr: PublicCopy = {
   doctorCountLabel: "médecins",
   relatedCta: "Prendre rendez-vous",
   hoursLabel: "Horaires",
-  reviewsTitle: "Avis patients vérifiés",
+  reviewsTitle: "Avis et expériences patients",
+  reviewsLead:
+    "Évaluations et retours réels de patients de la clinique El Wissam — approuvés et publiés avec consentement.",
+  reviewsAnonymous: "Patient",
+  reviewsVerifiedBadge: "Patient vérifié",
+  reviewsReadMore: "Lire la suite",
+  reviewsReadLess: "Réduire",
+  reviewsSearchPlaceholder: "Rechercher dans les avis…",
+  reviewsSearchLabel: "Recherche",
+  reviewsClearSearch: "Effacer",
+  reviewsFilterRating: "Évaluation",
+  reviewsFilterVerified: "Vérifiés uniquement",
+  reviewsFilterFeatured: "Mis en avant",
+  reviewsAllRatings: "Toutes les notes",
+  reviewsResultsCount: "{n} avis",
+  reviewsFeaturedTitle: "Avis mis en avant",
+  reviewsLoadError: "Impossible de charger les avis. Veuillez réessayer.",
+  reviewsStatsPublished: "Avis publiés",
+  reviewsStatsAverage: "Note moyenne",
+  reviewsStatsVerified: "Avis vérifiés",
+  reviewsPrevPage: "Précédent",
+  reviewsNextPage: "Suivant",
+  reviewsPageLabel: "Page",
+  wizardSpecialtyOptional: "Spécialité (optionnel)",
+  wizardServiceOptional: "Service (optionnel)",
+  wizardDoctorOptional: "Médecin (optionnel)",
+  reviewNoSpecialty: "Aucune spécialité — l’accueil vous orientera",
+  reviewNoService: "Aucun service — optionnel",
+  reviewNoDoctor: "Aucun médecin — l’accueil attribuera un clinicien adapté",
+  confirmationPendingAssignment: "Demande en attente d’attribution",
+  confirmationPendingAssignmentLead:
+    "Votre demande a été reçue. L’accueil attribuera un médecin et vous contactera pour confirmer le rendez-vous.",
+  doctorNoSchedule: "Planning non disponible en ligne — contactez l’accueil pour réserver.",
   experiencesTitle: "Expériences de nos patients",
   experiencesLead:
     "Avis et expériences réels partagés par nos patients après les soins.",

@@ -32,6 +32,7 @@ export default async function BookingConfirmationPage({
   const hours = localizedWorkingHours(locale, site.clinic);
   const request = ref ? await fetchPublicAppointmentRef(ref) : null;
   const publicReference = String(request?.requestNumber || ref || "").trim();
+  const pendingAssignment = request?.status === "pending_reception_assignment";
 
   return (
     <PublicChrome
@@ -53,8 +54,16 @@ export default async function BookingConfirmationPage({
       }
     >
       <PageHero
-        title={copy.confirmationTitle}
-        description={copy.confirmationLead}
+        title={
+          pendingAssignment
+            ? copy.confirmationPendingAssignment
+            : copy.confirmationTitle
+        }
+        description={
+          pendingAssignment
+            ? copy.confirmationPendingAssignmentLead
+            : copy.confirmationLead
+        }
         crumbs={[
           { href: `/${locale}`, label: copy.navHome },
           { href: `/${locale}/book-appointment`, label: copy.navBook },
@@ -67,8 +76,16 @@ export default async function BookingConfirmationPage({
           <p className="section-kicker" aria-hidden>
             ✓
           </p>
-          <h2>{copy.confirmationTitle}</h2>
-          <p className="pub-lead">{copy.confirmationLead}</p>
+          <h2>
+            {pendingAssignment
+              ? copy.confirmationPendingAssignment
+              : copy.confirmationTitle}
+          </h2>
+          <p className="pub-lead">
+            {pendingAssignment
+              ? copy.confirmationPendingAssignmentLead
+              : copy.confirmationLead}
+          </p>
           {(request?.requestNumber || ref) ? (
             <p className="confirmation-ref" dir="ltr">
               <span>{copy.queueLabel}</span>

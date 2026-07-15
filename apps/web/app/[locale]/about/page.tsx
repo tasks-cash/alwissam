@@ -52,7 +52,12 @@ export default async function AboutPage({
   const copy = getPublicCopy(locale);
   const [site, doctors] = await Promise.all([
     fetchPublicSite(),
-    fetchPublicDoctors(),
+    fetchPublicDoctors({
+      featured: true,
+      bookable: true,
+      publicOnly: true,
+      limit: 3,
+    }),
   ]);
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const hours = localizedWorkingHours(locale, site.clinic);

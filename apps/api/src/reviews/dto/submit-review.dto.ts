@@ -19,12 +19,21 @@ export class SubmitPublicReviewDto {
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   displayName!: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MinLength(10)
   @MaxLength(1200)
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
-  quote!: string;
+  quote?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(1200)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  quoteAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

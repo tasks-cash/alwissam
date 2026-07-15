@@ -65,7 +65,12 @@ export default async function HomePage({
   const [site, doctors, experiences, beforeAfterCases, specialtyRes, serviceRes] =
     await Promise.all([
       fetchPublicSite(),
-      fetchPublicDoctors(),
+      fetchPublicDoctors({
+        featured: true,
+        bookable: true,
+        publicOnly: true,
+        limit: 3,
+      }),
       fetchPublicPatientExperiences({ locale, limit: 10 }),
       fetchPublicBeforeAfter({ locale, featured: true, limit: 10 }),
       fetchPublicSpecialties({ locale, featured: true, limit: 6 }),
