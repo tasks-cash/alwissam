@@ -50,6 +50,16 @@ export class User {
     bioFr?: string;
     colorCode?: string;
     isActive?: boolean;
+    /** Public-facing availability summary lines, e.g. "Sun–Thu 09:00–14:00" */
+    availabilityNoteAr?: string;
+    availabilityNoteEn?: string;
+    availabilityNoteFr?: string;
+    workingHours?: Array<{
+      dayOfWeek: string;
+      startTime: string;
+      endTime: string;
+      isActive?: boolean;
+    }>;
   };
 
   @Prop({ type: Object })

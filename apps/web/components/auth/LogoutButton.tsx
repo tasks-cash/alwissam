@@ -3,7 +3,15 @@
 import { useRouter } from "next/navigation";
 import { apiPost } from "../../lib/api";
 
-export function LogoutButton() {
+type Props = {
+  label?: string;
+  loginPath?: string;
+};
+
+export function LogoutButton({
+  label = "Log out",
+  loginPath = "/staff/login",
+}: Props) {
   const router = useRouter();
   return (
     <button
@@ -11,11 +19,11 @@ export function LogoutButton() {
       className="btn btn-outline"
       onClick={async () => {
         await apiPost("/api/auth/logout", {});
-        router.push("/staff/login");
+        router.push(loginPath);
         router.refresh();
       }}
     >
-      تسجيل الخروج
+      {label}
     </button>
   );
 }

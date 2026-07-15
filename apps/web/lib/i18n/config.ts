@@ -1,6 +1,7 @@
 export const locales = ["ar", "en", "fr"] as const;
 export type Locale = (typeof locales)[number];
-export const defaultLocale: Locale = "en";
+/** Arabic-first clinic: fallback when cookie and browser language are unsupported. */
+export const defaultLocale: Locale = "ar";
 export const localeCookieName = "alwisam_locale";
 
 export const localeMeta: Record<

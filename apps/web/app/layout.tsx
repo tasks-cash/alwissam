@@ -1,10 +1,33 @@
 import type { ReactNode } from "react";
+import { cookies, headers } from "next/headers";
+import {
+  isLocale,
+  localeCookieName,
+  localeMeta,
+  negotiateLocale,
+  type Locale,
+} from "../lib/i18n/config";
+import { LOCALE_HEADER } from "../lib/i18n/locale-header";
 import "./globals.css";
 
-/** Root shell — lang/dir are applied by the locale layout attributes + client sync. */
-export default function RootLayout({ children }: { children: ReactNode }) {
+/**
+ * Document lang/dir come from the active URL locale (set by middleware),
+ * not from cookie alone — so /en/... is LTR and /ar/... is RTL on first paint.
+ */
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const pathLocale = headerStore.get(LOCALE_HEADER);
+  const cookieLocale = cookieStore.get(localeCookieName)?.value;
+  const locale: Locale = isLocale(pathLocale)
+    ? pathLocale
+    : isLocale(cookieLocale)
+      ? cookieLocale
+      : negotiateLocale(headerStore.get("accept-language"));
+  const meta = localeMeta[locale];
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={meta.htmlLang} dir={meta.dir} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -17,7 +40,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body className={locale === "ar" ? "font-ar" : "font-latin"}>
+        {children}
+      </body>
     </html>
   );
 }

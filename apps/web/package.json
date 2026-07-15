@@ -3,11 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3003",
+    "dev": "next dev --port 3004",
     "build": "next build",
-    "start": "next start --port 3003",
+    "start": "next start --port 3004",
     "typecheck": "tsc --noEmit",
-    "lint": "echo \"lint:web not configured yet\""
+    "lint": "echo \"lint:web not configured yet\"",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@alwisam/shared-validation": "workspace:*",
@@ -17,6 +18,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",

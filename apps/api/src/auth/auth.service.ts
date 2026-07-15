@@ -29,33 +29,9 @@ import {
   normalizePhoneDigits,
   isEmailLike,
 } from "@alwisam/shared-validation";
+import { defaultPermissionsForRole } from "../common/auth/permissions";
 
 const BCRYPT_ROUNDS = 12;
-
-const ADMIN_PERMISSIONS = [
-  "manage_users",
-  "manage_doctors",
-  "manage_secretaries",
-  "manage_roles",
-  "manage_services",
-  "manage_schedules",
-  "manage_settings",
-  "view_audit_logs",
-  "view_all_reports",
-  "manage_appointments",
-  "manage_waiting_room",
-  "manage_patients",
-  "record_payments",
-  "view_payments",
-  "edit_diagnosis",
-  "edit_prescription",
-  "edit_surgery",
-  "edit_orthodontics",
-  "edit_dental_chart",
-  "approve_patient_account",
-  "view_own_medical",
-  "request_appointment_change",
-] as const;
 
 export function roleDashboardPath(role: string, locale = "ar"): string {
   const prefix = `/${locale}`;
@@ -80,14 +56,7 @@ function permissionsForUser(user: User): string[] {
   if (Array.isArray(user.permissions) && user.permissions.length > 0) {
     return user.permissions;
   }
-  if (
-    user.roleCode === "ADMIN" ||
-    user.roleCode === "OWNER" ||
-    user.roleCode === "SUPER_ADMIN"
-  ) {
-    return [...ADMIN_PERMISSIONS];
-  }
-  return [];
+  return defaultPermissionsForRole(user.roleCode);
 }
 
 @Injectable()

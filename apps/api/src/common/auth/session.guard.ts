@@ -17,6 +17,7 @@ export type AuthUser = {
   id: string;
   fullName: string;
   roleCode: string;
+  permissions?: string[];
   doctor?: User["doctor"];
   secretary?: User["secretary"];
 };
@@ -83,6 +84,7 @@ export class JwtAuthGuard implements CanActivate {
       id: String(user._id),
       fullName: user.fullName,
       roleCode: user.roleCode,
+      permissions: Array.isArray(user.permissions) ? user.permissions : [],
       doctor: user.doctor,
       secretary: user.secretary,
     };

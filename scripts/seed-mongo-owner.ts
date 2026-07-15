@@ -43,7 +43,22 @@ function requireEnv(name: string): string {
 }
 
 async function main() {
-  const uri = requireEnv("MONGODB_URI");
+  let uri = requireEnv("MONGODB_URI");
+  try {
+    const u = new URL(uri);
+    if (
+      u.hostname === "mongodb" ||
+      u.port === "27017" ||
+      (!u.port && (u.hostname === "127.0.0.1" || u.hostname === "localhost"))
+    ) {
+      if (!uri.includes("27018")) {
+        uri =
+          "mongodb://alwisam:alwisam_mongo_change_me@127.0.0.1:27018/alwisam?authSource=admin";
+      }
+    }
+  } catch {
+    // keep uri
+  }
   const email = requireEnv("OWNER_EMAIL").trim().toLowerCase();
   const password = requireEnv("OWNER_PASSWORD");
   const phone = process.env.OWNER_PHONE?.trim() || null;

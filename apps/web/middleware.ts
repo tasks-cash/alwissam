@@ -7,6 +7,34 @@ import {
   locales,
   negotiateLocale,
 } from "./lib/i18n/config";
+import { LOCALE_HEADER } from "./lib/i18n/locale-header";
+
+const PROTECTED_SEGMENTS = [
+  "/doctor/",
+  "/secretary/",
+  "/admin/",
+  "/patients/",
+  "/patient/dashboard",
+  "/patient/appointments",
+  "/patient/profile",
+  "/patient/files",
+  "/patient/payments",
+];
+
+function isProtectedPath(pathname: string) {
+  const withoutLocale = pathname.replace(/^\/(ar|en|fr)(?=\/|$)/, "") || "/";
+  return PROTECTED_SEGMENTS.some(
+    (seg) =>
+      withoutLocale === seg.replace(/\/$/, "") ||
+      withoutLocale.startsWith(seg),
+  );
+}
+
+function withLocaleHeader(request: NextRequest, locale: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(LOCALE_HEADER, locale);
+  return requestHeaders;
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -21,7 +49,24 @@ export function middleware(request: NextRequest) {
 
   const pathLocale = pathname.split("/")[1];
   if (isLocale(pathLocale)) {
-    const response = NextResponse.next();
+    if (isProtectedPath(pathname)) {
+      const hasAccess =
+        request.cookies.get("alwisam_access")?.value ||
+        request.cookies.get("alwisam_refresh")?.value;
+      if (!hasAccess) {
+        const isPatient = pathname.includes("/patient/");
+        const login = request.nextUrl.clone();
+        login.pathname = isPatient
+          ? `/${pathLocale}/patient/login`
+          : `/${pathLocale}/staff/login`;
+        login.searchParams.set("next", pathname);
+        return NextResponse.redirect(login);
+      }
+    }
+
+    const response = NextResponse.next({
+      request: { headers: withLocaleHeader(request, pathLocale) },
+    });
     if (request.cookies.get(localeCookieName)?.value !== pathLocale) {
       response.cookies.set(localeCookieName, pathLocale, {
         path: "/",
@@ -56,5 +101,4 @@ export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
 
-// Keep locales referenced for tree analysis / future rewrites.
 void locales;

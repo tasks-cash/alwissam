@@ -2,10 +2,18 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { validateEnv } from "./config/env.validation";
+import { AppointmentsModule } from "./appointments/appointments.module";
 import { AuthModule } from "./auth/auth.module";
+import { AuditModule } from "./common/audit/audit.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { DoctorsModule } from "./doctors/doctors.module";
-import { SecretariesModule } from "./secretaries/secretaries.module";
+import { FinanceModule } from "./finance/finance.module";
 import { HealthModule } from "./health/health.module";
+import { PatientsModule } from "./patients/patients.module";
+import { SecretariesModule } from "./secretaries/secretaries.module";
+import { SecurityModule } from "./security/security.module";
+import { ReviewsModule } from "./reviews/reviews.module";
+import { SettingsModule } from "./settings/settings.module";
 
 @Module({
   imports: [
@@ -21,10 +29,18 @@ import { HealthModule } from "./health/health.module";
         return { uri };
       },
     }),
+    AuditModule,
     HealthModule,
     AuthModule,
     DoctorsModule,
     SecretariesModule,
+    PatientsModule,
+    AppointmentsModule,
+    DashboardModule,
+    FinanceModule,
+    SettingsModule,
+    ReviewsModule,
+    SecurityModule,
   ],
 })
 export class AppModule {}

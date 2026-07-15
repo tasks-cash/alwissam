@@ -20,21 +20,27 @@ for (const line of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\n/))
   env[k] = v;
 }
 
-// Root .env may still hold Compose service hostname `mongodb` — rewrite for host runs.
+env.API_PORT = env.API_PORT || "4001";
+env.NODE_ENV = "development";
+env.WEB_ORIGIN = env.WEB_ORIGIN || "http://localhost:3004";
+env.COOKIE_SECURE = env.COOKIE_SECURE || "false";
+
+// Prefer Al-Wisam target Mongo on host 27018.
 try {
   const u = new URL(env.MONGODB_URI);
-  if (u.hostname === "mongodb") {
-    env.MONGODB_URI =
-      "mongodb://alwisam:alwisam_mongo_change_me@127.0.0.1:27018/alwisam?authSource=admin";
+  if (
+    u.hostname === "mongodb" ||
+    u.port === "27017" ||
+    (!u.port && (u.hostname === "127.0.0.1" || u.hostname === "localhost"))
+  ) {
+    if (!String(env.MONGODB_URI).includes("27018")) {
+      env.MONGODB_URI =
+        "mongodb://alwisam:alwisam_mongo_change_me@127.0.0.1:27018/alwisam?authSource=admin";
+    }
   }
 } catch {
   // keep as-is
 }
-
-env.API_PORT = env.API_PORT || "4001";
-env.NODE_ENV = "development";
-env.WEB_ORIGIN = env.WEB_ORIGIN || "http://localhost:3003";
-env.COOKIE_SECURE = env.COOKIE_SECURE || "false";
 
 const host = new URL(env.MONGODB_URI).hostname;
 console.log(`starting api with mongo host=${host} port=${env.API_PORT}`);

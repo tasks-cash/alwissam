@@ -5,9 +5,10 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import * as bcrypt from "bcryptjs";
 import { Session, User } from "../auth/schemas/auth.schemas";
+import { AuditService } from "../common/audit/audit.service";
 import type { AuthUser } from "../common/auth/session.guard";
 import { ErrorCodes } from "../common/errors/error-codes";
 import {
@@ -23,6 +24,7 @@ export class DoctorsService {
   constructor(
     @InjectModel(User.name) private readonly users: Model<User>,
     @InjectModel(Session.name) private readonly sessions: Model<Session>,
+    private readonly audit: AuditService,
   ) {}
 
   async list() {
@@ -50,6 +52,136 @@ export class DoctorsService {
         isActive: d.doctor?.isActive !== false && d.status === "ACTIVE",
       })),
     };
+  }
+
+  /** Active doctors only — for appointment assignment (all clinical staff). */
+  async listActiveForScheduling() {
+    const doctors = await this.users
+      .find({
+        deletedAt: null,
+        status: "ACTIVE",
+        doctor: { $exists: true },
+        "doctor.isActive": { $ne: false },
+        roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST", "ADMIN"] },
+      })
+      .select("fullName roleCode doctor")
+      .sort({ fullName: 1 })
+      .lean();
+
+    return {
+      ok: true,
+      doctors: doctors.map((d) => ({
+        id: String(d._id),
+        fullName: d.fullName,
+        type: d.doctor?.type,
+        specialtyAr: d.doctor?.specialtyAr,
+      })),
+    };
+  }
+
+  private serializePublic(d: {
+    _id: unknown;
+    fullName: string;
+    locale?: string;
+    doctor?: {
+      type?: string;
+      specialtyAr?: string;
+      specialtyEn?: string;
+      specialtyFr?: string;
+      bioAr?: string;
+      bioEn?: string;
+      bioFr?: string;
+      availabilityNoteAr?: string;
+      availabilityNoteEn?: string;
+      availabilityNoteFr?: string;
+      workingHours?: Array<{
+        dayOfWeek: string;
+        startTime: string;
+        endTime: string;
+        isActive?: boolean;
+      }>;
+    };
+  }) {
+    return {
+      id: String(d._id),
+      fullName: d.fullName,
+      type: d.doctor?.type,
+      specialtyAr: d.doctor?.specialtyAr || "",
+      specialtyEn: d.doctor?.specialtyEn || d.doctor?.specialtyAr || "",
+      specialtyFr: d.doctor?.specialtyFr || d.doctor?.specialtyEn || d.doctor?.specialtyAr || "",
+      bioAr: d.doctor?.bioAr || "",
+      bioEn: d.doctor?.bioEn || d.doctor?.bioAr || "",
+      bioFr: d.doctor?.bioFr || d.doctor?.bioEn || d.doctor?.bioAr || "",
+      availabilityNoteAr: d.doctor?.availabilityNoteAr || "",
+      availabilityNoteEn:
+        d.doctor?.availabilityNoteEn || d.doctor?.availabilityNoteAr || "",
+      availabilityNoteFr:
+        d.doctor?.availabilityNoteFr ||
+        d.doctor?.availabilityNoteEn ||
+        d.doctor?.availabilityNoteAr ||
+        "",
+      workingHours: Array.isArray(d.doctor?.workingHours)
+        ? d.doctor.workingHours.filter((h) => h && h.isActive !== false)
+        : [],
+    };
+  }
+
+  async listPublic(opts?: { q?: string; specialty?: string }) {
+    const filter: Record<string, unknown> = {
+      deletedAt: null,
+      status: "ACTIVE",
+      doctor: { $exists: true },
+      "doctor.isActive": { $ne: false },
+      roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST", "ADMIN"] },
+    };
+    if (opts?.specialty?.trim()) {
+      const s = opts.specialty.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.$or = [
+        { "doctor.specialtyAr": { $regex: s, $options: "i" } },
+        { "doctor.specialtyEn": { $regex: s, $options: "i" } },
+        { "doctor.specialtyFr": { $regex: s, $options: "i" } },
+      ];
+    }
+    if (opts?.q?.trim()) {
+      const q = opts.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.fullName = { $regex: q, $options: "i" };
+    }
+    const doctors = await this.users
+      .find(filter)
+      .select("fullName doctor")
+      .sort({ fullName: 1 })
+      .limit(100)
+      .lean();
+    return {
+      ok: true,
+      doctors: doctors.map((d) => this.serializePublic(d as never)),
+    };
+  }
+
+  async getPublicById(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الطبيب غير موجود",
+      });
+    }
+    const doctor = await this.users
+      .findOne({
+        _id: id,
+        deletedAt: null,
+        status: "ACTIVE",
+        doctor: { $exists: true },
+        "doctor.isActive": { $ne: false },
+      })
+      .select("fullName doctor")
+      .lean();
+    if (!doctor) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الطبيب غير موجود",
+      });
+    }
+    return { ok: true, doctor: this.serializePublic(doctor as never) };
   }
 
   private async assertUniqueEmailPhone(
@@ -120,6 +252,19 @@ export class DoctorsService {
       });
 
       void actor;
+      await this.audit.write({
+        actor,
+        action: "DOCTOR_CREATED",
+        entityType: "User",
+        entityId: String(created._id),
+        newValue: {
+          fullName: created.fullName,
+          email: created.email,
+          roleCode,
+          type: dto.type,
+        },
+      });
+
       return {
         ok: true,
         message: "تم إنشاء حساب الطبيب بنجاح.",
@@ -179,7 +324,17 @@ export class DoctorsService {
     target.failedLoginCount = 0;
     target.lockedUntil = null;
     await target.save({ validateModifiedOnly: true });
-    void actor;
+    await this.audit.write({
+      actor,
+      action: "DOCTOR_UPDATED",
+      entityType: "User",
+      entityId: String(target._id),
+      newValue: {
+        email: target.email,
+        phone: target.phone,
+        passwordChanged: Boolean(dto.newPassword),
+      },
+    });
     return { ok: true, message: "تم حفظ التعديلات بنجاح." };
   }
 
@@ -209,6 +364,12 @@ export class DoctorsService {
       { userId: target._id, revokedAt: null },
       { $set: { revokedAt: new Date() } },
     );
+    await this.audit.write({
+      actor,
+      action: "DOCTOR_DEACTIVATED",
+      entityType: "User",
+      entityId: String(target._id),
+    });
     return { ok: true, message: "تم تعطيل الحساب بنجاح." };
   }
 }

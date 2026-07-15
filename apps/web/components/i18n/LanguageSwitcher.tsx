@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   localeCookieName,
   localeMeta,
@@ -14,16 +14,21 @@ type Props = {
   label: string;
 };
 
+/** Switches locale while preserving the current path and query string. */
 export function LanguageSwitcher({ locale, label }: Props) {
   const pathname = usePathname() || `/${locale}`;
+  const searchParams = useSearchParams();
 
   function hrefFor(next: Locale) {
     const segments = pathname.split("/");
     if (locales.includes(segments[1] as Locale)) {
       segments[1] = next;
-      return segments.join("/") || `/${next}`;
+    } else {
+      return `/${next}${pathname === "/" ? "" : pathname}`;
     }
-    return `/${next}${pathname === "/" ? "" : pathname}`;
+    const base = segments.join("/") || `/${next}`;
+    const qs = searchParams?.toString();
+    return qs ? `${base}?${qs}` : base;
   }
 
   return (
@@ -37,6 +42,7 @@ export function LanguageSwitcher({ locale, label }: Props) {
             hrefLang={localeMeta[code].htmlLang}
             aria-current={active ? "true" : undefined}
             className={active ? "lang-active" : undefined}
+            prefetch={false}
             onClick={() => {
               document.cookie = `${localeCookieName}=${code};path=/;max-age=31536000;samesite=lax`;
               void fetch("/api/auth/locale", {

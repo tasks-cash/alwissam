@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Clinic care">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EEF7F4"/>
+      <stop offset="100%" stop-color="#C8E8DF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#g)"/>
+  <rect x="120" y="140" width="720" height="620" rx="28" fill="#fff" stroke="#D5E5DF" stroke-width="3"/>
+  <rect x="180" y="220" width="280" height="200" rx="16" fill="#0B7A68" opacity="0.12"/>
+  <circle cx="320" cy="300" r="54" fill="#0B7A68" opacity="0.25"/>
+  <path d="M320 250c-18 24-30 42-30 62a30 30 0 0 0 60 0c0-20-12-38-30-62Z" fill="#0B7A68"/>
+  <rect x="500" y="240" width="280" height="18" rx="9" fill="#0B7A68"/>
+  <rect x="500" y="280" width="220" height="12" rx="6" fill="#A7C7BE"/>
+  <rect x="500" y="320" width="260" height="12" rx="6" fill="#A7C7BE"/>
+  <rect x="180" y="460" width="600" height="220" rx="16" fill="#F5F7F6"/>
+  <rect x="220" y="500" width="140" height="140" rx="14" fill="#0B7A68" opacity="0.15"/>
+  <rect x="390" y="500" width="140" height="140" rx="14" fill="#0B7A68" opacity="0.15"/>
+  <rect x="560" y="500" width="180" height="140" rx="14" fill="#0B7A68" opacity="0.15"/>
+  <circle cx="980" cy="220" r="120" fill="#0B7A68" opacity="0.1"/>
+  <circle cx="1040" cy="640" r="90" fill="#086557" opacity="0.08"/>
+</svg>

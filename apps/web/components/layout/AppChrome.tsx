@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LanguageSwitcher } from "./LanguageSwitcher";
+import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
 import type { Dictionary } from "../../lib/i18n/dictionaries";
 import type { Locale } from "../../lib/i18n/config";
 

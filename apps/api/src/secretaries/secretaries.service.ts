@@ -8,6 +8,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import * as bcrypt from "bcryptjs";
 import { Session, User } from "../auth/schemas/auth.schemas";
+import { AuditService } from "../common/audit/audit.service";
 import type { AuthUser } from "../common/auth/session.guard";
 import { ErrorCodes } from "../common/errors/error-codes";
 import {
@@ -23,6 +24,7 @@ export class SecretariesService {
   constructor(
     @InjectModel(User.name) private readonly users: Model<User>,
     @InjectModel(Session.name) private readonly sessions: Model<Session>,
+    private readonly audit: AuditService,
   ) {}
 
   async list() {
@@ -106,6 +108,17 @@ export class SecretariesService {
       },
     });
     void actor;
+    await this.audit.write({
+      actor,
+      action: "SECRETARY_CREATED",
+      entityType: "User",
+      entityId: String(created._id),
+      newValue: {
+        fullName: created.fullName,
+        email: created.email,
+        roleCode: "SECRETARY",
+      },
+    });
     return {
       ok: true,
       message: "تم إنشاء حساب السكرتير بنجاح.",
@@ -157,7 +170,17 @@ export class SecretariesService {
     target.failedLoginCount = 0;
     target.lockedUntil = null;
     await target.save();
-    void actor;
+    await this.audit.write({
+      actor,
+      action: "SECRETARY_UPDATED",
+      entityType: "User",
+      entityId: String(target._id),
+      newValue: {
+        email: target.email,
+        phone: target.phone,
+        passwordChanged: Boolean(dto.newPassword),
+      },
+    });
     return { ok: true, message: "تم حفظ التعديلات بنجاح." };
   }
 
@@ -185,6 +208,12 @@ export class SecretariesService {
       { userId: target._id, revokedAt: null },
       { $set: { revokedAt: new Date() } },
     );
+    await this.audit.write({
+      actor,
+      action: "SECRETARY_DEACTIVATED",
+      entityType: "User",
+      entityId: String(target._id),
+    });
     return { ok: true, message: "تم تعطيل الحساب بنجاح." };
   }
 }

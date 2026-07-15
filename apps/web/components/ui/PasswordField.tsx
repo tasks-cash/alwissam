@@ -56,6 +56,8 @@ export function PasswordField({
           required={required}
           minLength={minLength}
           disabled={disabled}
+          dir="ltr"
+          spellCheck={false}
         />
         <button
           type="button"

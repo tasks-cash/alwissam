@@ -10,6 +10,9 @@ type Props = {
   required?: boolean;
   disabled?: boolean;
   autoComplete?: string;
+  placeholder?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 };
 
 /** Digits-only phone field. Never type=number. */
@@ -21,6 +24,9 @@ export function PhoneField({
   required,
   disabled,
   autoComplete = "tel",
+  placeholder,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: Props) {
   return (
     <input
@@ -37,6 +43,9 @@ export function PhoneField({
       required={required}
       disabled={disabled}
       autoComplete={autoComplete}
+      placeholder={placeholder}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
       dir="ltr"
     />
   );
