@@ -24,6 +24,7 @@ export type SessionUser = {
   status?: string;
   permissions?: string[];
   locale?: string;
+  adminDashboardMode?: "quick" | "full" | "light";
 };
 
 type Options = {

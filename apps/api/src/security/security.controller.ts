@@ -44,13 +44,21 @@ export class SecurityController {
   @RequireRoles("ADMIN", "DOCTOR_SPECIALIST")
   @RequirePermissions(PERMISSIONS.view_audit_logs)
   @UseGuards(ClinicOwnerGuard)
-  async listAudit(@Query("page") page = "1", @Query("pageSize") pageSize = "30") {
+  async listAudit(
+    @Query("page") page = "1",
+    @Query("pageSize") pageSize = "30",
+    @Query("userId") userId?: string,
+  ) {
     const p = Math.max(1, Number(page) || 1);
     const size = Math.min(100, Math.max(1, Number(pageSize) || 30));
+    const filter: Record<string, unknown> = {};
+    if (userId && Types.ObjectId.isValid(userId)) {
+      filter.userId = new Types.ObjectId(userId);
+    }
     const [total, rows] = await Promise.all([
-      this.auditLogs.countDocuments({}),
+      this.auditLogs.countDocuments(filter),
       this.auditLogs
-        .find({})
+        .find(filter)
         .sort({ createdAt: -1 })
         .skip((p - 1) * size)
         .limit(size)
@@ -73,6 +81,7 @@ export class SecurityController {
       total,
       page: p,
       pageSize: size,
+      filterUserId: userId && Types.ObjectId.isValid(userId) ? userId : undefined,
       logs: rows.map((r) => {
         const actor = r.userId ? map.get(String(r.userId)) : undefined;
         return {

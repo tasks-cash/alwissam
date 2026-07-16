@@ -45,6 +45,7 @@ export type Dictionary = {
   navAppointments: string;
   navDoctors: string;
   navSecretaries: string;
+  navSpecialistPatients: string;
   navInvitations: string;
   navPatientDashboard: string;
   navPatientAppointments: string;
@@ -67,6 +68,7 @@ export type Dictionary = {
   navServicesAdmin: string;
   navFaqsAdmin: string;
   navReviewsAdmin: string;
+  navDoctorMessages: string;
   navAssignmentQueue: string;
   assignmentQueueDesc: string;
   assignDoctor: string;
@@ -188,6 +190,7 @@ const ar: Dictionary = {
   navAppointments: "المواعيد",
   navDoctors: "الأطباء",
   navSecretaries: "السكرتارية",
+  navSpecialistPatients: "مرضاي",
   navInvitations: "دعوات الطاقم",
   navPatientDashboard: "نظرة عامة",
   navPatientAppointments: "مواعيدي",
@@ -210,6 +213,7 @@ const ar: Dictionary = {
   navServicesAdmin: "إدارة الخدمات",
   navFaqsAdmin: "إدارة الأسئلة الشائعة",
   navReviewsAdmin: "إدارة التقييمات",
+  navDoctorMessages: "رسائل المرضى",
   navAssignmentQueue: "تعيين الأطباء",
   assignmentQueueDesc: "طلبات المواعيد التي تحتاج تعيين طبيب من الاستقبال.",
   assignDoctor: "تعيين طبيب",
@@ -332,6 +336,7 @@ const en: Dictionary = {
   navAppointments: "Appointments",
   navDoctors: "Doctors",
   navSecretaries: "Secretaries",
+  navSpecialistPatients: "My patients",
   navInvitations: "Staff invitations",
   navPatientDashboard: "Overview",
   navPatientAppointments: "My appointments",
@@ -353,6 +358,7 @@ const en: Dictionary = {
   navServicesAdmin: "Services",
   navFaqsAdmin: "FAQs",
   navReviewsAdmin: "Reviews admin",
+  navDoctorMessages: "Patient messages",
   navAssignmentQueue: "Doctor assignment",
   assignmentQueueDesc: "Appointment requests awaiting reception doctor assignment.",
   assignDoctor: "Assign doctor",
@@ -477,6 +483,7 @@ const fr: Dictionary = {
   navAppointments: "Rendez-vous",
   navDoctors: "Médecins",
   navSecretaries: "Secrétaires",
+  navSpecialistPatients: "Mes patients",
   navInvitations: "Invitations du personnel",
   navPatientDashboard: "Vue d’ensemble",
   navPatientAppointments: "Mes rendez-vous",
@@ -499,6 +506,7 @@ const fr: Dictionary = {
   navServicesAdmin: "Services",
   navFaqsAdmin: "FAQ",
   navReviewsAdmin: "Gestion des avis",
+  navDoctorMessages: "Messages patients",
   navAssignmentQueue: "Attribution médecin",
   assignmentQueueDesc: "Demandes de rendez-vous en attente d’attribution par l’accueil.",
   assignDoctor: "Attribuer un médecin",

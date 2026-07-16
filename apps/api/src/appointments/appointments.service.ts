@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -8,6 +9,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { User } from "../auth/schemas/auth.schemas";
 import { AuditService } from "../common/audit/audit.service";
+import { isOwnerRole } from "../common/auth/roles";
 import type { AuthUser } from "../common/auth/session.guard";
 import { ErrorCodes } from "../common/errors/error-codes";
 import { Patient } from "../patients/schemas/patient.schema";
@@ -35,6 +37,19 @@ const ACTIVE_OVERLAP_STATUSES = [
   "DOCTOR_ASSIGNED",
   "WAITING_DOCTOR_APPROVAL",
 ];
+
+/** General doctors may only access their own appointments/queue (not clinic-wide). */
+function isDoctorScopedRole(roleCode: string): boolean {
+  return roleCode === "DOCTOR_GENERAL" || roleCode === "DOCTOR";
+}
+
+function canAccessAllClinicAppointments(actor: AuthUser): boolean {
+  return (
+    isOwnerRole(actor.roleCode) ||
+    actor.roleCode === "SECRETARY" ||
+    actor.roleCode === "DOCTOR_SPECIALIST"
+  );
+}
 
 @Injectable()
 export class AppointmentsService {
@@ -111,13 +126,18 @@ export class AppointmentsService {
     };
   }
 
-  async list(query: ListAppointmentsQueryDto) {
+  async list(query: ListAppointmentsQueryDto, actor?: AuthUser) {
     const page = Math.max(1, Number(query.page) || 1);
     const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 50));
     const filter: Record<string, unknown> = { deletedAt: null };
 
-    if (query.doctorId && Types.ObjectId.isValid(query.doctorId)) {
-      filter.doctorId = new Types.ObjectId(query.doctorId);
+    let doctorId = query.doctorId;
+    if (actor && isDoctorScopedRole(actor.roleCode)) {
+      doctorId = actor.id;
+    }
+
+    if (doctorId && Types.ObjectId.isValid(doctorId)) {
+      filter.doctorId = new Types.ObjectId(doctorId);
     }
     if (query.patientId && Types.ObjectId.isValid(query.patientId)) {
       filter.patientId = new Types.ObjectId(query.patientId);
@@ -280,6 +300,15 @@ export class AppointmentsService {
     };
   }
 
+  private assertAppointmentAccess(actor: AuthUser, doctorId: Types.ObjectId | string | undefined) {
+    if (canAccessAllClinicAppointments(actor)) return;
+    if (isDoctorScopedRole(actor.roleCode) && String(doctorId) === actor.id) return;
+    throw new ForbiddenException({
+      code: ErrorCodes.FORBIDDEN,
+      message: "غير مسموح بالوصول إلى هذا الموعد.",
+    });
+  }
+
   async updateStatus(dto: UpdateAppointmentStatusDto, actor: AuthUser) {
     const appt = await this.appointments.findOne({
       _id: dto.appointmentId,
@@ -291,6 +320,7 @@ export class AppointmentsService {
         message: "الموعد غير موجود",
       });
     }
+    this.assertAppointmentAccess(actor, appt.doctorId);
 
     const previous = appt.status;
     appt.status = dto.status;
@@ -374,12 +404,16 @@ export class AppointmentsService {
     };
   }
 
-  async listWaiting(doctorId?: string) {
+  async listWaiting(doctorId?: string, actor?: AuthUser) {
     const filter: Record<string, unknown> = {
       status: { $in: ["ARRIVED", "WAITING", "WITH_DOCTOR"] },
     };
-    if (doctorId && Types.ObjectId.isValid(doctorId)) {
-      filter.doctorId = new Types.ObjectId(doctorId);
+    let scopedDoctorId = doctorId;
+    if (actor && isDoctorScopedRole(actor.roleCode)) {
+      scopedDoctorId = actor.id;
+    }
+    if (scopedDoctorId && Types.ObjectId.isValid(scopedDoctorId)) {
+      filter.doctorId = new Types.ObjectId(scopedDoctorId);
     }
     const rows = await this.waiting.find(filter).sort({ arrivedAt: 1 }).lean();
     const patientIds = [...new Set(rows.map((r) => String(r.patientId)))];
@@ -437,6 +471,7 @@ export class AppointmentsService {
         message: "سجل الانتظار غير موجود",
       });
     }
+    this.assertAppointmentAccess(actor, entry.doctorId);
     entry.status = dto.status;
     if (dto.note) entry.note = dto.note;
     if (dto.status === "WAITING" || dto.status === "ARRIVED") {
@@ -476,11 +511,9 @@ export class AppointmentsService {
     return { ok: true, message: "تم تحديث قائمة الانتظار.", status: entry.status };
   }
 
-  async countForDay(date: Date, statuses?: string[]) {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
+  async countForDay(dayStart: Date, statuses?: string[]) {
+    const start = new Date(dayStart);
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
     const filter: Record<string, unknown> = {
       deletedAt: null,
       startAt: { $gte: start, $lte: end },
@@ -492,6 +525,21 @@ export class AppointmentsService {
   async countWaiting() {
     return this.waiting.countDocuments({
       status: { $in: ["ARRIVED", "WAITING", "WITH_DOCTOR"] },
+    });
+  }
+
+  async countPendingRequests() {
+    return this.requests.countDocuments({
+      deletedAt: null,
+      status: {
+        $in: [
+          "NEW_REQUEST",
+          "pending_confirmation",
+          "pending_reception_assignment",
+          "UNDER_SECRETARY_REVIEW",
+          "NEEDS_MORE_INFO",
+        ],
+      },
     });
   }
 

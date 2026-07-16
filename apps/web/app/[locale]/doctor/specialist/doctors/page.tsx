@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
 import {
   PASSWORD_MIN_CREATE,
   createDoctorSchema,
@@ -12,7 +12,7 @@ import {
 import { PasswordField } from "../../../../../components/ui/PasswordField";
 import { PhoneField } from "../../../../../components/ui/PhoneField";
 import { ConfirmDialog } from "../../../../../components/ui/ConfirmDialog";
-import { LogoutButton } from "../../../../../components/auth/LogoutButton";
+import { DashboardShell } from "../../../../../components/layout/DashboardShell";
 import {
   apiDelete,
   apiErrorMessage,
@@ -20,6 +20,7 @@ import {
   apiPost,
   mapFieldErrors,
 } from "../../../../../lib/api";
+import { useDashboardSession } from "../../../../../lib/use-dashboard-session";
 
 type DoctorRow = {
   id: string;
@@ -33,8 +34,10 @@ type DoctorRow = {
 };
 
 export default function DoctorsPage() {
-  const params = useParams();
-  const locale = String(params?.locale || "ar");
+  const { locale, dict, user, loading: sessionLoading, error: sessionError } =
+    useDashboardSession({
+      roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"],
+    });
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -64,11 +67,6 @@ export default function DoctorsPage() {
   const [dialogLoading, setDialogLoading] = useState(false);
 
   const load = useCallback(async () => {
-    const me = await fetch("/api/auth/me", { credentials: "include" });
-    if (!me.ok) {
-      window.location.href = `/${locale}/staff/login`;
-      return;
-    }
     const list = await fetch("/api/admin/doctors", { credentials: "include" });
     if (!list.ok) {
       setError("تعذر تحميل قائمة الأطباء");
@@ -79,8 +77,8 @@ export default function DoctorsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (user) void load();
+  }, [load, user]);
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -182,16 +180,25 @@ export default function DoctorsPage() {
     }
   }
 
-  return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "1.5rem 1rem", display: "grid", gap: "1.25rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center" }}>
-        <h1 style={{ margin: 0, color: "var(--primary-navy)" }}>إدارة الأطباء</h1>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <a className="btn btn-outline" href="/doctor/specialist/secretaries">السكرتارية</a>
-          <LogoutButton label="Log out" loginPath={`/${locale}/staff/login`} />
-        </div>
-      </div>
+  if (sessionLoading || !user) {
+    return <main className="dash-panel">{dict.loading}</main>;
+  }
+  if (sessionError) {
+    return <main className="dash-panel alert-error">{sessionError}</main>;
+  }
 
+  return (
+    <DashboardShell
+      locale={locale}
+      dict={dict}
+      role={user.role}
+      userName={user.fullName}
+      title="إدارة الأطباء"
+      description="إنشاء وتعديل وتعطيل حسابات الأطباء."
+      initialAdminMode={
+        user.adminDashboardMode === "full" ? "full" : "quick"
+      }
+    >
       {error ? <div className="alert-error">{error}</div> : null}
       {success ? <div className="alert-success">{success}</div> : null}
 
@@ -249,6 +256,7 @@ export default function DoctorsPage() {
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <button type="button" className="btn btn-outline" onClick={() => setEdit({ userId: d.id, email: d.email || "", phone: d.phone || "", newPassword: "" })}>تعديل الدخول</button>
+                  <Link className="btn btn-outline" href={`/${locale}/doctor/specialist/staff/${d.id}/activity`}>النشاط</Link>
                   <button type="button" className="btn btn-outline" onClick={() => { setDialogError(""); setDeactivate({ userId: d.id, name: d.fullName }); }}>تعطيل</button>
                 </div>
               </div>
@@ -285,6 +293,6 @@ export default function DoctorsPage() {
         onCancel={() => { if (!dialogLoading) setDeactivate(null); }}
         onConfirm={() => void confirmDeactivate()}
       />
-    </main>
+    </DashboardShell>
   );
 }

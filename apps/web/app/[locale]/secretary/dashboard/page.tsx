@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DashboardShell } from "../../../../components/layout/DashboardShell";
 import { useDashboardSession } from "../../../../lib/use-dashboard-session";
@@ -33,6 +34,7 @@ type Wait = {
 };
 
 export default function SecretaryDashboardPage() {
+  const pathname = usePathname();
   const { locale, dict, user, loading, error } = useDashboardSession({
     roles: ["ADMIN", "SECRETARY"],
   });
@@ -77,6 +79,64 @@ export default function SecretaryDashboardPage() {
       title={`${dict.dashboardWelcome}, ${user.fullName}`}
       description={dict.secretaryDashboardLead}
     >
+      <nav className="reception-hub-tabs" aria-label="مركز الاستقبال">
+        {(
+          [
+            {
+              href: `/${locale}/secretary/dashboard`,
+              label: "نظرة عامة",
+              match: "dashboard",
+            },
+            {
+              href: `/${locale}/secretary/today`,
+              label: "اليوم",
+              match: "today",
+            },
+            {
+              href: `/${locale}/secretary/assignment-queue`,
+              label: "الاستقبال / التعيين",
+              match: "assignment-queue",
+            },
+            {
+              href: `/${locale}/secretary/directed`,
+              label: "الانتظار",
+              match: "directed",
+            },
+            {
+              href: `/${locale}/secretary/payments`,
+              label: "الدفع",
+              match: "payments",
+            },
+            {
+              href: `/${locale}/secretary/patients`,
+              label: dict.navPatients,
+              match: "patients",
+            },
+            {
+              href: `/${locale}/secretary/appointments`,
+              label: dict.navAppointments,
+              match: "appointments",
+            },
+          ] as const
+        ).map((tab) => {
+          const active = pathname.includes(`/secretary/${tab.match}`);
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={
+                active
+                  ? "btn btn-primary reception-hub-tab"
+                  : "btn btn-outline reception-hub-tab"
+              }
+              aria-current={active ? "page" : undefined}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
+
       <section className="stat-grid">
         <article className="stat-card card-surface">
           <span>{dict.appointmentsToday}</span>

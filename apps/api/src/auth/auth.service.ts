@@ -926,6 +926,8 @@ export class AuthService {
         status: user.status,
         emailVerified: !!user.emailVerified,
         locale: user.locale || "ar",
+        adminDashboardMode:
+          user.adminDashboardMode === "full" ? "full" : "quick",
         permissions: permissionsForUser(user),
         patientProfileId,
         doctor: user.doctor

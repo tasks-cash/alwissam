@@ -14,7 +14,7 @@ import {
 } from "../common/auth/permissions.guard";
 import { JwtAuthGuard } from "../common/auth/session.guard";
 import { PatientsModule } from "../patients/patients.module";
-import { DashboardController } from "./dashboard.controller";
+import { DashboardController, AdminPreferencesController } from "./dashboard.controller";
 import { DashboardService } from "./dashboard.service";
 
 @Module({
@@ -27,7 +27,7 @@ import { DashboardService } from "./dashboard.service";
       { name: AuditLog.name, schema: AuditLogSchema },
     ]),
   ],
-  controllers: [DashboardController],
+  controllers: [DashboardController, AdminPreferencesController],
   providers: [DashboardService, JwtAuthGuard, RolesGuard, PermissionsGuard],
 })
 export class DashboardModule {}

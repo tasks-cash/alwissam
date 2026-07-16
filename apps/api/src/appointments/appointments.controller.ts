@@ -42,8 +42,8 @@ export class AppointmentsController {
     "DOCTOR_GENERAL",
   )
   @RequirePermissions(PERMISSIONS.manage_appointments)
-  list(@Query() query: ListAppointmentsQueryDto) {
-    return this.appointmentsService.list(query);
+  list(@Query() query: ListAppointmentsQueryDto, @CurrentUser() user: AuthUser) {
+    return this.appointmentsService.list(query, user);
   }
 
   @Get("appointments/mine")
@@ -92,8 +92,11 @@ export class AppointmentsController {
     "DOCTOR_GENERAL",
   )
   @RequirePermissions(PERMISSIONS.manage_waiting_room)
-  waiting(@Query("doctorId") doctorId?: string) {
-    return this.appointmentsService.listWaiting(doctorId);
+  waiting(
+    @Query("doctorId") doctorId: string | undefined,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.appointmentsService.listWaiting(doctorId, user);
   }
 
   @Get("secretary/assignment-queue")

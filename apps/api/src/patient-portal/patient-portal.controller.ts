@@ -365,6 +365,14 @@ export class DoctorMessagesController {
     return this.portal.doctorListThreads(user);
   }
 
+  @Get(":threadId")
+  getThread(
+    @CurrentUser() user: AuthUser,
+    @Param("threadId") threadId: string,
+  ) {
+    return this.portal.doctorGetThread(user, threadId);
+  }
+
   @Post(":threadId/reply")
   @HttpCode(200)
   reply(

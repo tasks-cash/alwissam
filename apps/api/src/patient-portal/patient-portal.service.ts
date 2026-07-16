@@ -1421,15 +1421,96 @@ export class PatientPortalService {
       .sort({ lastMessageAt: -1 })
       .limit(100)
       .lean();
+    const patientIds = [
+      ...new Set(rows.map((t) => String(t.patientId)).filter(Boolean)),
+    ];
+    const patients = patientIds.length
+      ? await this.patients
+          .find({ _id: { $in: patientIds.map((id) => new Types.ObjectId(id)) } })
+          .select("fullName patientNumber")
+          .lean()
+      : [];
+    const patientMap = new Map(
+      patients.map((p) => [
+        String(p._id),
+        {
+          fullName: p.fullName as string,
+          patientNumber: p.patientNumber as string | undefined,
+        },
+      ]),
+    );
     return {
       ok: true,
-      threads: rows.map((t) => ({
-        id: String(t._id),
-        status: t.status,
-        patientId: String(t.patientId),
-        appointmentId: String(t.appointmentId),
-        doctorUnreadCount: t.doctorUnreadCount,
-        lastMessageAt: t.lastMessageAt,
+      threads: rows.map((t) => {
+        const p = patientMap.get(String(t.patientId));
+        return {
+          id: String(t._id),
+          status: t.status,
+          patientId: String(t.patientId),
+          patientName: p?.fullName || "مريض",
+          patientNumber: p?.patientNumber,
+          appointmentId: String(t.appointmentId),
+          doctorUnreadCount: t.doctorUnreadCount,
+          lastMessageAt: t.lastMessageAt,
+        };
+      }),
+    };
+  }
+
+  async doctorGetThread(actor: AuthUser, threadId: string) {
+    if (!["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"].includes(actor.roleCode)) {
+      throw new ForbiddenException({ code: ErrorCodes.FORBIDDEN, message: "غير مصرح." });
+    }
+    if (!Types.ObjectId.isValid(threadId)) {
+      throw new NotFoundException({ code: ErrorCodes.NOT_FOUND, message: "المحادثة غير موجودة." });
+    }
+    const thread = await this.threads.findOne({
+      _id: threadId,
+      doctorId: actor.id,
+      deletedAt: null,
+    });
+    if (!thread) {
+      throw new NotFoundException({ code: ErrorCodes.NOT_FOUND, message: "المحادثة غير موجودة." });
+    }
+    const msgs = await this.messages
+      .find({ threadId: thread._id, deletedAt: null })
+      .sort({ createdAt: 1 })
+      .lean();
+    await this.messages.updateMany(
+      {
+        threadId: thread._id,
+        senderRole: "PATIENT",
+        isRead: false,
+        deletedAt: null,
+      },
+      { $set: { isRead: true, readAt: new Date() } },
+    );
+    thread.doctorUnreadCount = 0;
+    await thread.save();
+    const patient = await this.patients
+      .findById(thread.patientId)
+      .select("fullName patientNumber phone")
+      .lean();
+    const appt = await this.appointments
+      .findById(thread.appointmentId)
+      .select("appointmentNumber startAt status")
+      .lean();
+    return {
+      ok: true,
+      thread: {
+        id: String(thread._id),
+        status: thread.status,
+        patientId: String(thread.patientId),
+        patientName: patient?.fullName || "مريض",
+        patientNumber: patient?.patientNumber,
+        appointmentReference: appt?.appointmentNumber,
+        appointmentStatus: appt?.status,
+      },
+      messages: msgs.map((m) => ({
+        id: String(m._id),
+        senderRole: m.senderRole,
+        message: m.message,
+        createdAt: (m as { createdAt?: Date }).createdAt,
       })),
     };
   }

@@ -57,6 +57,13 @@ export class User {
   @Prop({ enum: ["ar", "en", "fr"], default: "ar" })
   locale!: string;
 
+  /**
+   * Admin/Owner dashboard density preference.
+   * Canonical: `quick` | `full`. Legacy `light` is accepted and normalized to `quick`.
+   */
+  @Prop({ enum: ["quick", "full", "light"], default: "quick" })
+  adminDashboardMode?: "quick" | "full" | "light";
+
   @Prop({ type: Object })
   doctor?: {
     type: "GENERAL" | "SPECIALIST";
