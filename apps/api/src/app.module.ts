@@ -20,6 +20,7 @@ import { SettingsModule } from "./settings/settings.module";
 import { CatalogModule } from "./catalog/catalog.module";
 import { FaqsModule } from "./faqs/faqs.module";
 import { PatientPortalModule } from "./patient-portal/patient-portal.module";
+import { StaffChatModule } from "./staff-chat/staff-chat.module";
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { PatientPortalModule } from "./patient-portal/patient-portal.module";
     MediaModule,
     SecurityModule,
     PatientPortalModule,
+    StaffChatModule,
   ],
 })
 export class AppModule {}

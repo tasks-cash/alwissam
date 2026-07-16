@@ -18,6 +18,7 @@ const ADMIN_QUICK_HREFS = [
   "/secretary/directed",
   "/secretary/assignment-queue",
   "/secretary/payments",
+  "/secretary/messages",
 ] as const;
 
 const ADMIN_FULL_EXTRA_HREFS = [

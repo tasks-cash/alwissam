@@ -118,6 +118,8 @@ export class User {
     workEndTime?: string;
     workDays?: string;
     employeeCode?: string;
+    /** Optional doctor assignment scope for staff chat / ops. */
+    assignedDoctorIds?: Types.ObjectId[];
   };
 
   /** Bidirectional link to patients collection (_id). */

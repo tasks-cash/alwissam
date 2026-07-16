@@ -301,6 +301,11 @@ export class DashboardService {
         labelKey: "navAssignmentQueue",
       },
       { key: "payments", href: "/secretary/payments", labelKey: "navPayments" },
+      {
+        key: "staffChat",
+        href: "/secretary/messages",
+        labelKey: "navStaffChat",
+      },
     ];
   }
 

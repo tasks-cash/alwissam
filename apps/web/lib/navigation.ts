@@ -36,8 +36,9 @@ export type AdminDashboardMode = "quick" | "full";
 /**
  * الوضع السريع — working features that map to the COMPLETE SPEC live surfaces
  * (admin/owner board, reception ops, doctor exam board, settings).
- * Incomplete spec items (staff chat, dental chart, clinical chart page, etc.)
+ * Incomplete spec items (dental chart, clinical chart depth, QR login, etc.)
  * are intentionally omitted until Nest+Mongo implementations are complete.
+ * Staff chat is included once Nest `/api/staff/chat` + WebSocket are live.
  */
 export const ADMIN_QUICK_HREFS = [
   "/doctor/specialist/dashboard",
@@ -55,6 +56,7 @@ export const ADMIN_QUICK_HREFS = [
   "/secretary/directed",
   "/secretary/assignment-queue",
   "/secretary/payments",
+  "/secretary/messages",
 ] as const;
 
 /**
@@ -145,6 +147,12 @@ export const DASHBOARD_NAV: NavItem[] = [
     "navPayments",
     ["ADMIN", "SECRETARY", "DOCTOR_SPECIALIST"],
     "appointments",
+  ),
+  staffItem(
+    "/secretary/messages",
+    "navStaffChat",
+    ["ADMIN", "SECRETARY", "DOCTOR_SPECIALIST", "DOCTOR_GENERAL"],
+    "comms",
   ),
   staffItem(
     "/doctor/specialist/invitations",

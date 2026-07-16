@@ -11,6 +11,7 @@ import {
 } from "react";
 import { LogoutButton } from "../auth/LogoutButton";
 import { LanguageSwitcher } from "../i18n/LanguageSwitcher";
+import { StaffChatWidget } from "../staff/StaffChatWidget";
 import type { Dictionary } from "../../lib/i18n/dictionaries";
 import type { Locale } from "../../lib/i18n/config";
 import {
@@ -256,6 +257,7 @@ export function DashboardShell({
           onClick={() => setOpen(false)}
         />
       ) : null}
+      {role !== "PATIENT" ? <StaffChatWidget /> : null}
     </div>
   );
 }

@@ -61,6 +61,7 @@ export type Dictionary = {
   navPatientConsents: string;
   navPatientHelp: string;
   navPayments: string;
+  navStaffChat: string;
   navSettings: string;
   navPatientExperiences: string;
   navBeforeAfter: string;
@@ -206,6 +207,7 @@ const ar: Dictionary = {
   navPatientConsents: "الموافقات",
   navPatientHelp: "المساعدة والدعم",
   navPayments: "المدفوعات",
+  navStaffChat: "دردشة الطاقم",
   navSettings: "إعدادات العيادة",
   navPatientExperiences: "تجارب المرضى",
   navBeforeAfter: "قبل وبعد العلاج",
@@ -351,7 +353,9 @@ const en: Dictionary = {
   navPatientPrivacy: "Privacy",
   navPatientConsents: "Consents",
   navPatientHelp: "Help & support",
-  navPayments: "Payments",  navSettings: "Clinic settings",
+  navPayments: "Payments",
+  navStaffChat: "Staff chat",
+  navSettings: "Clinic settings",
   navPatientExperiences: "Patient experiences",
   navBeforeAfter: "Before & after",
   navSpecialtiesAdmin: "Specialties",
@@ -499,6 +503,7 @@ const fr: Dictionary = {
   navPatientConsents: "Consentements",
   navPatientHelp: "Aide et support",
   navPayments: "Paiements",
+  navStaffChat: "Chat d’équipe",
   navSettings: "Paramètres clinique",
   navPatientExperiences: "Expériences patients",
   navBeforeAfter: "Avant / après",
