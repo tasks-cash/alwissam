@@ -41,7 +41,14 @@ export class ReviewsAdminController {
     @Query("limit") limit?: string,
     @Query("status") status?: string,
     @Query("search") search?: string,
-  ) {
+  ): Promise<{
+    ok: true;
+    items: Array<Record<string, unknown>>;
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  }> {
     return this.reviews.listAdmin({
       page: Number(page) || 1,
       limit: Number(limit) || 20,
@@ -54,7 +61,7 @@ export class ReviewsAdminController {
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.reviews_create)
   create(@Body() dto: UpsertReviewDto, @CurrentUser() user: AuthUser) {
-    return this.reviews.createAdmin(dto, user.id);
+    return this.reviews.createAdmin(dto, user);
   }
 
   @Patch(":id")
@@ -65,7 +72,7 @@ export class ReviewsAdminController {
     @Body() dto: UpsertReviewDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.reviews.updateAdmin(id, dto, user.id);
+    return this.reviews.updateAdmin(id, dto, user);
   }
 
   @Post(":id/:action")
@@ -93,6 +100,6 @@ export class ReviewsAdminController {
     if (archiveActions.includes(action)) {
       // same
     }
-    return this.reviews.setStatus(id, action, user.id);
+    return this.reviews.setStatus(id, action, user);
   }
 }

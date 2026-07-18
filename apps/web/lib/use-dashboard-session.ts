@@ -25,6 +25,10 @@ export type SessionUser = {
   permissions?: string[];
   locale?: string;
   adminDashboardMode?: "quick" | "full" | "light";
+  doctor?: {
+    type?: "GENERAL" | "SPECIALIST";
+    isActive?: boolean;
+  };
 };
 
 type Options = {

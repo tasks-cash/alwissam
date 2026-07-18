@@ -49,6 +49,14 @@ export class DoctorsService {
         status: d.status,
         type: d.doctor?.type,
         specialtyAr: d.doctor?.specialtyAr,
+        professionalTitleAr: d.doctor?.professionalTitleAr,
+        bioAr: d.doctor?.bioAr,
+        isPublic: d.doctor?.isPublic !== false,
+        isBookable: d.doctor?.isBookable !== false,
+        isOwner:
+          d.roleCode === "ADMIN" ||
+          d.roleCode === "ADMIN_OWNER" ||
+          d.roleCode === "OWNER",
         isActive: d.doctor?.isActive !== false && d.status === "ACTIVE",
       })),
     };
@@ -435,8 +443,31 @@ export class DoctorsService {
       );
     }
 
-    target.status = "ACTIVE";
-    if (target.doctor) target.doctor.isActive = true;
+    if (!target.doctor) {
+      target.doctor = { type: "GENERAL", isActive: true };
+    }
+    if (dto.specialtyAr !== undefined) {
+      target.doctor.specialtyAr = dto.specialtyAr;
+    }
+    if (dto.professionalTitleAr !== undefined) {
+      target.doctor.professionalTitleAr = dto.professionalTitleAr;
+    }
+    if (dto.bioAr !== undefined) {
+      target.doctor.bioAr = dto.bioAr;
+    }
+    if (dto.isPublic !== undefined) {
+      target.doctor.isPublic = dto.isPublic;
+    }
+    if (dto.isBookable !== undefined) {
+      target.doctor.isBookable = dto.isBookable;
+    }
+    if (dto.status === "INACTIVE") {
+      target.status = "INACTIVE";
+      target.doctor.isActive = false;
+    } else if (dto.status === "ACTIVE" || dto.email || dto.phone || dto.newPassword) {
+      target.status = "ACTIVE";
+      target.doctor.isActive = true;
+    }
     target.failedLoginCount = 0;
     target.lockedUntil = null;
     await target.save({ validateModifiedOnly: true });
@@ -448,6 +479,8 @@ export class DoctorsService {
       newValue: {
         email: target.email,
         phone: target.phone,
+        specialtyAr: target.doctor?.specialtyAr,
+        bioUpdated: dto.bioAr !== undefined,
         passwordChanged: Boolean(dto.newPassword),
       },
     });
@@ -470,6 +503,17 @@ export class DoctorsService {
       throw new NotFoundException({
         code: ErrorCodes.NOT_FOUND,
         message: "الطبيب غير موجود",
+      });
+    }
+    if (
+      target.roleCode === "ADMIN" ||
+      target.roleCode === "ADMIN_OWNER" ||
+      target.roleCode === "OWNER" ||
+      target.roleCode === "SUPER_ADMIN"
+    ) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "لا يمكن تعطيل حساب مالك العيادة الأساسي.",
       });
     }
 

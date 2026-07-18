@@ -16,11 +16,17 @@ import { Patient } from "../patients/schemas/patient.schema";
 import {
   CheckInDto,
   CreateAppointmentDto,
+  ExamActionDto,
   ListAppointmentsQueryDto,
   UpdateAppointmentStatusDto,
   WaitingRoomActionDto,
 } from "./dto/appointment.dto";
 import { CatalogService } from "../catalog/catalog.service";
+import {
+  generateClinicNumber,
+  moneyToFixed2,
+} from "../finance/common/money";
+import { Invoice } from "../finance/schemas/finance.schema";
 import { PublicBookAppointmentDto } from "./dto/public-book.dto";
 import { AppointmentRequest } from "./schemas/appointment-request.schema";
 import {
@@ -62,6 +68,7 @@ export class AppointmentsService {
     private readonly requests: Model<AppointmentRequest>,
     @InjectModel(Patient.name) private readonly patients: Model<Patient>,
     @InjectModel(User.name) private readonly users: Model<User>,
+    @InjectModel(Invoice.name) private readonly invoices: Model<Invoice>,
     private readonly audit: AuditService,
     private readonly catalog: CatalogService,
   ) {}
@@ -422,12 +429,16 @@ export class AppointmentsService {
     const [patients, doctors, appts] = await Promise.all([
       this.patients
         .find({ _id: { $in: patientIds } })
-        .select("fullName phone patientNumber")
+        .select(
+          "fullName phone patientNumber age dateOfBirth city address chronicIllnesses allergies patientType",
+        )
         .lean(),
       this.users.find({ _id: { $in: doctorIds } }).select("fullName").lean(),
       this.appointments
         .find({ _id: { $in: apptIds } })
-        .select("startAt appointmentNumber appointmentType isEmergency")
+        .select(
+          "startAt appointmentNumber appointmentType isEmergency reason notes",
+        )
         .lean(),
     ]);
     const patientMap = new Map(patients.map((p) => [String(p._id), p]));
@@ -447,10 +458,19 @@ export class AppointmentsService {
           appointmentNumber: a?.appointmentNumber,
           appointmentStartAt: a?.startAt,
           appointmentType: a?.appointmentType,
+          visitReason:
+            (a as { reason?: string } | undefined)?.reason ||
+            a?.appointmentType,
           patientId: String(r.patientId),
           patientName: p?.fullName,
           patientPhone: p?.phone,
           patientNumber: p?.patientNumber,
+          patientAge: p?.age,
+          patientCity: p?.city,
+          patientAddress: p?.address,
+          chronicIllnesses: p?.chronicIllnesses,
+          allergies: p?.allergies,
+          patientType: p?.patientType,
           doctorId: String(r.doctorId),
           doctorName: d?.fullName,
           status: r.status,
@@ -509,6 +529,148 @@ export class AppointmentsService {
     });
 
     return { ok: true, message: "تم تحديث قائمة الانتظار.", status: entry.status };
+  }
+
+  async runExam(dto: ExamActionDto, actor: AuthUser) {
+    const entry = await this.waiting.findById(dto.entryId);
+    if (!entry) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "سجل الانتظار غير موجود",
+      });
+    }
+    this.assertAppointmentAccess(actor, entry.doctorId);
+
+    if (dto.action === "start") {
+      if (entry.status === "SESSION_DONE" || entry.status === "LEFT") {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "لا يمكن بدء معاينة لزيارة منتهية.",
+        });
+      }
+      if (entry.status === "WITH_DOCTOR") {
+        return { ok: true, message: "المعاينة جارية بالفعل.", status: entry.status };
+      }
+      if (!["WAITING", "ARRIVED"].includes(entry.status)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "حالة الانتظار لا تسمح ببدء المعاينة.",
+        });
+      }
+      entry.status = "WITH_DOCTOR";
+      entry.calledAt = entry.calledAt || new Date();
+      entry.startedAt = new Date();
+      await entry.save();
+      await this.appointments.updateOne(
+        { _id: entry.appointmentId },
+        { $set: { status: "IN_TREATMENT" } },
+      );
+      await this.audit.write({
+        actor,
+        action: "EXAM_STARTED",
+        entityType: "WaitingRoomEntry",
+        entityId: String(entry._id),
+      });
+      return { ok: true, message: "تم بدء المعاينة.", status: "WITH_DOCTOR" };
+    }
+
+    // complete
+    if (entry.status === "SESSION_DONE" || entry.status === "LEFT") {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "تمت معاينة هذه الزيارة مسبقًا.",
+      });
+    }
+    if (entry.status !== "WITH_DOCTOR" && entry.status !== "WAITING") {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يجب بدء المعاينة قبل إرسال النتيجة للسكرتير.",
+      });
+    }
+
+    const covered = Boolean(dto.covered);
+    const note = String(dto.note || "").trim();
+    let amountStr = "0.00";
+    if (!covered) {
+      try {
+        amountStr = moneyToFixed2(dto.amount ?? 0);
+      } catch {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "المبلغ غير صالح.",
+        });
+      }
+      if (Number(amountStr) <= 0) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "أدخل المبلغ الذي يدفعه المريض للسكرتارية.",
+        });
+      }
+    }
+
+    // Prevent duplicate invoices for the same appointment.
+    const existingInvoice = await this.invoices.findOne({
+      appointmentId: entry.appointmentId,
+      status: { $in: ["ISSUED", "PARTIALLY_PAID", "PAID"] },
+    });
+    if (!covered && existingInvoice) {
+      throw new ConflictException({
+        code: ErrorCodes.CONFLICT,
+        message: "تم إنشاء فاتورة لهذه الزيارة مسبقًا.",
+      });
+    }
+
+    entry.status = "SESSION_DONE";
+    entry.completedAt = new Date();
+    entry.note = covered
+      ? note || "مغطى — بدون دفع فوري"
+      : `مبلغ مطلوب: ${amountStr} دج${note ? ` — ${note}` : ""}`;
+    await entry.save();
+
+    const appt = await this.appointments.findById(entry.appointmentId);
+    if (appt) {
+      const examNote = covered
+        ? `بعد المعاينة: مغطى — ${note || "بدون دفع فوري"}`
+        : `بعد المعاينة: يدفع ${amountStr} دج — ${note || ""}`;
+      appt.status = covered ? "COMPLETED" : "FOLLOW_UP_REQUIRED";
+      appt.notes = [appt.notes, examNote].filter(Boolean).join(" — ");
+      await appt.save();
+    }
+
+    let invoiceId: string | undefined;
+    if (!covered) {
+      const invoice = await this.invoices.create({
+        invoiceNumber: generateClinicNumber("INV"),
+        patientId: entry.patientId,
+        appointmentId: entry.appointmentId,
+        doctorId: entry.doctorId,
+        totalAmount: amountStr,
+        paidAmount: "0.00",
+        remainingAmount: amountStr,
+        discount: "0.00",
+        status: "ISSUED",
+        notes: `مبلغ من الطبيب بعد المعاينة — ${actor.fullName || actor.id}${note ? ` — ${note}` : ""}`,
+        createdById: new Types.ObjectId(actor.id),
+      });
+      invoiceId = String(invoice._id);
+    }
+
+    await this.audit.write({
+      actor,
+      action: "EXAM_COMPLETED_CHARGE",
+      entityType: "WaitingRoomEntry",
+      entityId: String(entry._id),
+      newValue: { amount: covered ? 0 : amountStr, covered, invoiceId, note },
+    });
+
+    return {
+      ok: true,
+      message: covered
+        ? "تم إنهاء المعاينة بدون مبلغ فوري."
+        : "تم إرسال المبلغ للسكرتارية.",
+      invoiceId,
+      status: "SESSION_DONE",
+    };
   }
 
   async countForDay(dayStart: Date, statuses?: string[]) {

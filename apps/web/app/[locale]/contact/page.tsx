@@ -26,16 +26,32 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   if (!isLocale(raw)) return {};
   const locale = raw as Locale;
+  const site = await fetchPublicSite();
+  const seoTitle =
+    locale === "en"
+      ? site.clinic?.contactSeoTitleEn || site.clinic?.contactSeoTitleAr
+      : locale === "fr"
+        ? site.clinic?.contactSeoTitleFr || site.clinic?.contactSeoTitleAr
+        : site.clinic?.contactSeoTitleAr;
+  const seoDescription =
+    locale === "en"
+      ? site.clinic?.contactSeoDescriptionEn ||
+        site.clinic?.contactSeoDescriptionAr
+      : locale === "fr"
+        ? site.clinic?.contactSeoDescriptionFr ||
+          site.clinic?.contactSeoDescriptionAr
+        : site.clinic?.contactSeoDescriptionAr;
   return buildPublicMetadata({
     locale,
     path: "/contact",
-    title: titleSegment(locale, "contact"),
+    title: seoTitle || titleSegment(locale, "contact"),
     description:
-      locale === "en"
+      seoDescription ||
+      (locale === "en"
         ? "Contact Al Wissam Dental Clinic in Emir Abdelkader District, El Oued — send an inquiry or book an appointment with a clinic doctor."
         : locale === "fr"
           ? "Contactez la Clinique Dentaire El Wissam à la cité Emir Abdelkader, El Oued — envoyez une demande ou prenez rendez-vous avec un médecin."
-          : "تواصل مع عيادة الوسام لطب الأسنان في حي الأمير عبد القادر بالوادي، وأرسل استفسارك أو احجز موعدًا مع أحد أطباء العيادة.",
+          : "تواصل مع عيادة الوسام لطب الأسنان في حي الأمير عبد القادر بالوادي، وأرسل استفسارك أو احجز موعدًا مع أحد أطباء العيادة."),
   });
 }
 

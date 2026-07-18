@@ -1,6 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
+import { ErrorCodes } from "../common/errors/error-codes";
 import { AuditService } from "../common/audit/audit.service";
 import type { AuthUser } from "../common/auth/session.guard";
 import {
@@ -361,7 +366,92 @@ const DEFAULT_CLINIC_INFO = {
   workingHoursEn: "Saturday to Thursday\n08:00–17:00\nFriday: Closed",
   workingHoursFr: "Du samedi au jeudi\n08:00–17:00\nVendredi : fermé",
   fridayClosed: true,
+  contactHeroTitleAr: "تواصل معنا واحجز موعدك بكل سهولة",
+  contactHeroTitleEn: "Contact us and book with confidence",
+  contactHeroTitleFr: "Contactez-nous et prenez rendez-vous sereinement",
+  contactHeroDescriptionAr:
+    "أرسل استفسارك أو تواصل مع الاستقبال لمساعدتك في اختيار الطبيب والموعد المناسب.",
+  contactHeroDescriptionEn:
+    "Send an inquiry or contact reception for help choosing the right doctor and time.",
+  contactHeroDescriptionFr:
+    "Envoyez votre demande ou contactez l’accueil pour choisir le médecin et le créneau adaptés.",
+  contactHeroImage: "/images/stock/dental-team-care.jpg",
+  inquirySectionTitleAr: "أرسل استفسارك",
+  inquirySectionDescriptionAr:
+    "أدخل بيانات التواصل وتفاصيل طلبك، وسيرد فريق العيادة بعد حفظ الاستفسار.",
+  locationSectionTitleAr: "موقع العيادة",
+  locationSectionDescriptionAr:
+    "اطّلع على العنوان وساعات العمل وافتح اتجاهات الوصول الآمنة.",
+  contactSeoTitleAr: "تواصل مع عيادة الوسام لطب الأسنان",
+  contactSeoDescriptionAr:
+    "معلومات التواصل والموقع وساعات العمل وإرسال استفسار إلى عيادة الوسام.",
+  contactPublished: true,
 };
+
+const DEFAULT_SPECIALTIES_PAGE = {
+  badgeAr: "رعاية متخصصة",
+  badgeEn: "Specialized care",
+  badgeFr: "Soins spécialisés",
+  titleAr: "تخصصات طب الأسنان في عيادة الوسام",
+  titleEn: "Dental specialties at Al Wissam Clinic",
+  titleFr: "Spécialités dentaires à la Clinique El Wissam",
+  descriptionAr:
+    "تعرّف على التخصصات المتاحة والخدمات والأطباء المرتبطين بها قبل حجز موعدك.",
+  descriptionEn:
+    "Explore available specialties, related services, and doctors before booking.",
+  descriptionFr:
+    "Découvrez les spécialités, services et médecins associés avant de réserver.",
+  image: "/images/hero-clinic.svg",
+  imageAltAr: "تخصصات طب الأسنان في عيادة الوسام",
+  imageAltEn: "Dental specialties at Al Wissam Clinic",
+  imageAltFr: "Spécialités dentaires à la Clinique El Wissam",
+  primaryCtaLabelAr: "استكشف التخصصات",
+  primaryCtaRoute: "#specialty-grid",
+  secondaryCtaLabelAr: "احجز موعدًا",
+  secondaryCtaRoute: "/book-appointment",
+  published: true,
+};
+
+function isSafeMediaReference(value: string): boolean {
+  if (!value) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isSafeInternalRoute(value: string): boolean {
+  return (
+    value.startsWith("#") ||
+    (value.startsWith("/") &&
+      !value.startsWith("//") &&
+      !/[\r\n]/.test(value))
+  );
+}
+
+function isSafeMapUrl(value: string, embed: boolean): boolean {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    const host = url.hostname.toLowerCase();
+    const googleHost =
+      host === "google.com" ||
+      host.endsWith(".google.com") ||
+      host === "maps.app.goo.gl";
+    if (!googleHost) return false;
+    if (!embed) return true;
+    return (
+      url.pathname.includes("/maps/embed") ||
+      url.searchParams.get("output") === "embed"
+    );
+  } catch {
+    return false;
+  }
+}
 
 @Injectable()
 export class SettingsService {
@@ -524,6 +614,14 @@ export class SettingsService {
         merged[key] = fallback;
       }
     }
+
+    // Preserve structured weekly schedule when stored (do not overwrite with defaults).
+    if (stored && Array.isArray(stored.weeklySchedule)) {
+      merged.weeklySchedule = stored.weeklySchedule;
+    } else if (!Array.isArray(merged.weeklySchedule)) {
+      delete merged.weeklySchedule;
+    }
+
     return merged;
   }
 
@@ -542,12 +640,14 @@ export class SettingsService {
       String(clinicInfo.whatsappNumber || phoneInternational || phone),
     );
     const whatsappEnabled = clinicInfo.whatsappEnabled !== false && Boolean(whatsappNumber);
-    const mapsEmbedUrl = String(
+    const mapsEmbedRaw = String(
       clinicInfo.mapsEmbedUrl || clinicInfo.mapUrl || "",
     ).trim();
-    const mapsLink = String(
+    const mapsLinkRaw = String(
       clinicInfo.mapsLink || clinicInfo.directionsUrl || "",
     ).trim();
+    const mapsEmbedUrl = isSafeMapUrl(mapsEmbedRaw, true) ? mapsEmbedRaw : "";
+    const mapsLink = isSafeMapUrl(mapsLinkRaw, false) ? mapsLinkRaw : "";
     const latitude = String(clinicInfo.latitude || "").trim();
     const longitude = String(clinicInfo.longitude || "").trim();
 
@@ -597,6 +697,32 @@ export class SettingsService {
       descriptionAr: String(clinicInfo.descriptionAr || ""),
       descriptionEn: String(clinicInfo.descriptionEn || ""),
       descriptionFr: String(clinicInfo.descriptionFr || ""),
+      contactHeroTitleAr: String(clinicInfo.contactHeroTitleAr || ""),
+      contactHeroTitleEn: String(clinicInfo.contactHeroTitleEn || ""),
+      contactHeroTitleFr: String(clinicInfo.contactHeroTitleFr || ""),
+      contactHeroDescriptionAr: String(
+        clinicInfo.contactHeroDescriptionAr || "",
+      ),
+      contactHeroDescriptionEn: String(
+        clinicInfo.contactHeroDescriptionEn || "",
+      ),
+      contactHeroDescriptionFr: String(
+        clinicInfo.contactHeroDescriptionFr || "",
+      ),
+      contactHeroImage: String(clinicInfo.contactHeroImage || ""),
+      inquirySectionTitleAr: String(clinicInfo.inquirySectionTitleAr || ""),
+      inquirySectionDescriptionAr: String(
+        clinicInfo.inquirySectionDescriptionAr || "",
+      ),
+      locationSectionTitleAr: String(clinicInfo.locationSectionTitleAr || ""),
+      locationSectionDescriptionAr: String(
+        clinicInfo.locationSectionDescriptionAr || "",
+      ),
+      contactSeoTitleAr: String(clinicInfo.contactSeoTitleAr || ""),
+      contactSeoDescriptionAr: String(
+        clinicInfo.contactSeoDescriptionAr || "",
+      ),
+      contactPublished: clinicInfo.contactPublished !== false,
     };
   }
 
@@ -739,16 +865,30 @@ export class SettingsService {
     };
   }
 
+  async getSpecialtiesPage(admin = false) {
+    const stored = await this.getKey("specialties_page");
+    const specialtiesPage = {
+      ...DEFAULT_SPECIALTIES_PAGE,
+      ...(stored || {}),
+    };
+    if (!admin && specialtiesPage.published === false) {
+      return { ok: true, specialtiesPage: null };
+    }
+    return { ok: true, specialtiesPage };
+  }
+
   /** Public unauthenticated payload. */
   async getPublicSite() {
-    const [info, pages] = await Promise.all([
+    const [info, pages, specialtiesPage] = await Promise.all([
       this.getClinicInfo(),
       this.getPublicPages(),
+      this.getSpecialtiesPage(false),
     ]);
     return {
       ok: true,
       clinic: this.toPublicClinic(info.clinicInfo as Record<string, unknown>),
       content: pages.publicPages,
+      specialtiesPage: specialtiesPage.specialtiesPage,
     };
   }
 
@@ -759,6 +899,40 @@ export class SettingsService {
         ...prev,
         ...(dto.clinicInfo || {}),
       });
+      next.mapsLink = String(next.mapsLink || next.directionsUrl || "").trim();
+      next.directionsUrl = String(next.directionsUrl || next.mapsLink || "").trim();
+      next.mapsEmbedUrl = String(next.mapsEmbedUrl || next.mapUrl || "").trim();
+      next.mapUrl = String(next.mapUrl || next.mapsEmbedUrl || "").trim();
+      if (!isSafeMapUrl(String(next.mapsLink || ""), false)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "رابط اتجاهات Google Maps غير صالح.",
+        });
+      }
+      if (!isSafeMapUrl(String(next.directionsUrl || ""), false)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "رابط اتجاهات Google Maps غير صالح.",
+        });
+      }
+      if (!isSafeMapUrl(String(next.mapsEmbedUrl || ""), true)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "رابط تضمين الخريطة غير صالح.",
+        });
+      }
+      if (!isSafeMapUrl(String(next.mapUrl || ""), true)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "رابط تضمين الخريطة غير صالح.",
+        });
+      }
+      if (!isSafeMediaReference(String(next.contactHeroImage || ""))) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "مرجع صورة صفحة التواصل غير صالح.",
+        });
+      }
       // Normalize phones as strings; never persist numeric phone types.
       next.phone = String(next.phone || "");
       next.phoneDisplay = String(
@@ -773,7 +947,7 @@ export class SettingsService {
       );
       next.publicEmail = String(next.email || next.publicEmail || "");
       next.email = next.publicEmail;
-        next.updatedAt = new Date().toISOString();
+      next.updatedAt = new Date().toISOString();
       next.updatedBy = actor.id;
       await this.settings.findOneAndUpdate(
         { key: "clinic_info" },
@@ -788,6 +962,41 @@ export class SettingsService {
         newValue: next as Record<string, unknown>,
       });
       return { ok: true, message: "تم حفظ معلومات العيادة.", clinicInfo: next };
+    }
+
+    if (dto.section === "specialties_page") {
+      const prev = (await this.getKey("specialties_page")) || {};
+      const next = {
+        ...DEFAULT_SPECIALTIES_PAGE,
+        ...prev,
+        ...(dto.specialtiesPage || {}),
+      };
+      if (
+        !isSafeMediaReference(String(next.image || "")) ||
+        !isSafeInternalRoute(String(next.primaryCtaRoute || "")) ||
+        !isSafeInternalRoute(String(next.secondaryCtaRoute || ""))
+      ) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "صورة أو رابط قسم التخصصات غير صالح.",
+        });
+      }
+      await this.settings.findOneAndUpdate(
+        { key: "specialties_page" },
+        { $set: { value: next } },
+        { upsert: true, new: true },
+      );
+      await this.audit.write({
+        actor,
+        action: "SPECIALTIES_PAGE_UPDATED",
+        entityType: "ClinicSetting",
+        entityId: "specialties_page",
+      });
+      return {
+        ok: true,
+        message: "تم حفظ واجهة صفحة التخصصات.",
+        specialtiesPage: next,
+      };
     }
 
     const prev = (await this.getKey("public_pages")) || {};
@@ -814,6 +1023,9 @@ export class SettingsService {
     locale?: string;
     ipAddress?: string;
     sourcePage?: string;
+    doctorId?: string;
+    specialtyId?: string;
+    serviceId?: string;
   }) {
     const windowStart = new Date(Date.now() - 60_000);
 
@@ -856,11 +1068,110 @@ export class SettingsService {
       ipAddress: input.ipAddress,
       sourcePage: input.sourcePage || "contact",
       status: "new",
+      doctorId:
+        input.doctorId && Types.ObjectId.isValid(input.doctorId)
+          ? new Types.ObjectId(input.doctorId)
+          : null,
+      specialtyId:
+        input.specialtyId && Types.ObjectId.isValid(input.specialtyId)
+          ? new Types.ObjectId(input.specialtyId)
+          : null,
+      serviceId:
+        input.serviceId && Types.ObjectId.isValid(input.serviceId)
+          ? new Types.ObjectId(input.serviceId)
+          : null,
     });
     return {
       ok: true,
       message:
         "تم إرسال استفسارك بنجاح. سيتواصل معك فريق عيادة الوسام عبر رقم الهاتف الذي أدخلته.",
     };
+  }
+
+  async listContactMessages(input: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }) {
+    const page = Math.max(1, input.page || 1);
+    const limit = Math.min(100, Math.max(1, input.limit || 20));
+    const filter: Record<string, unknown> = {};
+    if (input.status) filter.status = input.status;
+    if (input.search?.trim()) {
+      const escaped = input.search
+        .trim()
+        .slice(0, 100)
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const rx = new RegExp(escaped, "i");
+      filter.$or = [
+        { fullName: rx },
+        { phone: rx },
+        { subject: rx },
+        { message: rx },
+      ];
+    }
+    const [total, items] = await Promise.all([
+      this.contactMessages.countDocuments(filter),
+      this.contactMessages
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select("-ipAddress")
+        .lean(),
+    ]);
+    return {
+      ok: true,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      items: items.map((item) => ({
+        id: String(item._id),
+        fullName: item.fullName,
+        phone: item.phone,
+        subject: item.subject,
+        message: item.message,
+        locale: item.locale,
+        status: item.status,
+        doctorId: item.doctorId ? String(item.doctorId) : null,
+        specialtyId: item.specialtyId ? String(item.specialtyId) : null,
+        serviceId: item.serviceId ? String(item.serviceId) : null,
+        createdAt: (item as { createdAt?: Date }).createdAt,
+      })),
+    };
+  }
+
+  async updateContactMessageStatus(
+    id: string,
+    status: "new" | "in_review" | "contacted" | "resolved" | "archived",
+    actor: AuthUser,
+  ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف الاستفسار غير صالح.",
+      });
+    }
+    const updated = await this.contactMessages.findByIdAndUpdate(
+      id,
+      { $set: { status } },
+      { new: true },
+    );
+    if (!updated) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الاستفسار غير موجود.",
+      });
+    }
+    await this.audit.write({
+      actor,
+      action: "CONTACT_INQUIRY_STATUS_UPDATED",
+      entityType: "ContactMessage",
+      entityId: id,
+      newValue: { status },
+    });
+    return { ok: true, status };
   }
 }

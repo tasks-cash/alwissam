@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -123,6 +124,33 @@ export class WaitingRoomActionDto {
   @IsOptional()
   @IsString()
   note?: string;
+}
+
+export class ExamActionDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  entryId!: string;
+
+  @ApiProperty({ enum: ["start", "complete"] })
+  @IsIn(["start", "complete"])
+  action!: "start" | "complete";
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  amount?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  covered?: boolean;
 }
 
 export class CheckInDto {

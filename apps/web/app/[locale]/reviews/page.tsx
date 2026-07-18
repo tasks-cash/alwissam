@@ -61,7 +61,7 @@ export default async function ReviewsPage({
     fetchPublicReviews({
       locale,
       page,
-      limit: 12,
+      limit: 30,
       search: sp.q,
       rating: sp.rating ? Number(sp.rating) : undefined,
       verified: sp.verified === "true",

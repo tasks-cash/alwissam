@@ -22,20 +22,17 @@ function heroOverlayLabels(locale: Locale) {
     return {
       primary: "Our team is ready to help you",
       secondary: "Inquiries and booking in one place",
-      alt: "A dental clinic team ready to receive inquiries and book appointments",
     };
   }
   if (locale === "fr") {
     return {
       primary: "Notre équipe est prête à vous aider",
       secondary: "Demande et rendez-vous au même endroit",
-      alt: "Une équipe de clinique dentaire prête à recevoir les demandes et à prendre rendez-vous",
     };
   }
   return {
     primary: "فريقنا جاهز لمساعدتك",
     secondary: "استفسار وحجز من مكان واحد",
-    alt: "فريق عيادة أسنان جاهز لاستقبال الاستفسارات وحجز المواعيد",
   };
 }
 
@@ -51,6 +48,32 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
   const displayHours = contact.hours || hours || "";
   const mapsHref = contact.mapsLink || "";
   const overlays = heroOverlayLabels(locale);
+  const title = pickLocalized(
+    locale,
+    clinic?.contactHeroTitleAr,
+    clinic?.contactHeroTitleEn,
+    clinic?.contactHeroTitleFr,
+    copy.contactHeroTitle,
+  );
+  const lead = pickLocalized(
+    locale,
+    clinic?.contactHeroDescriptionAr,
+    clinic?.contactHeroDescriptionEn,
+    clinic?.contactHeroDescriptionFr,
+    copy.contactHeroLead,
+  );
+  const image = clinic?.contactHeroImage || "/images/stock/dental-team-care.jpg";
+  const alt = pickLocalized(
+    locale,
+    clinic?.contactHeroTitleAr,
+    clinic?.contactHeroTitleEn,
+    clinic?.contactHeroTitleFr,
+    locale === "en"
+      ? "A dental clinic team ready to receive inquiries and book appointments"
+      : locale === "fr"
+        ? "Une équipe de clinique dentaire prête à recevoir les demandes et à prendre rendez-vous"
+        : "فريق عيادة أسنان جاهز لاستقبال الاستفسارات وحجز المواعيد",
+  );
 
   return (
     <section className="pub-band pub-band-mist page-hero contact-premium-hero">
@@ -73,8 +96,8 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
             </ol>
           </nav>
           <p className="contact-hero-clinic">{clinicName}</p>
-          <h1>{copy.contactHeroTitle}</h1>
-          <p className="pub-lead">{copy.contactHeroLead}</p>
+          <h1>{title}</h1>
+          <p className="pub-lead">{lead}</p>
           <div className="cta-row contact-hero-actions">
             <a className="btn btn-primary" href="#contact-booking-heading">
               {copy.heroBookDoctor}
@@ -128,13 +151,14 @@ export function ContactPremiumHero({ locale, copy, clinic, hours }: Props) {
           <div className="contact-hero-frame">
             <FloatingImage className="contact-hero-float">
               <Image
-                src="/images/stock/dental-team-care.jpg"
-                alt={overlays.alt}
+                src={image}
+                alt={alt}
                 width={1200}
                 height={700}
                 className="page-hero-image contact-hero-image"
                 priority
                 sizes="(max-width: 900px) 100vw, 42vw"
+                unoptimized={image.startsWith("/api/media/")}
               />
             </FloatingImage>
             <div className="contact-hero-overlays" aria-hidden={false}>

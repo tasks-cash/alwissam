@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -108,6 +109,49 @@ export class UpdateDoctorDto {
   @ValidateIf((_, v) => v !== undefined)
   @MinLength(PASSWORD_MIN_CREATE)
   newPassword?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  specialtyAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  professionalTitleAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  bioAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === true || value === "true") return true;
+    if (value === false || value === "false") return false;
+    return value;
+  })
+  isPublic?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === true || value === "true") return true;
+    if (value === false || value === "false") return false;
+    return value;
+  })
+  isBookable?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn(["ACTIVE", "INACTIVE"])
+  status?: "ACTIVE" | "INACTIVE";
 }
 
 export class DeleteDoctorDto {

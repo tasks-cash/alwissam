@@ -63,6 +63,9 @@ export class DentalService {
   requiresConsultation!: boolean;
 
   @Prop({ default: true })
+  isBookable!: boolean;
+
+  @Prop({ default: true })
   isActive!: boolean;
 
   @Prop({ default: false })

@@ -6,6 +6,8 @@ import {
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { ErrorCodes } from "../common/errors/error-codes";
+import { AuditService } from "../common/audit/audit.service";
+import type { AuthUser } from "../common/auth/session.guard";
 import { Review, ReviewDocument } from "./schemas/review.schema";
 import {
   ListPublicReviewsQueryDto,
@@ -36,7 +38,9 @@ type LeanReview = {
   rating: number;
   reviewDate?: Date;
   patientImage?: string;
+  avatarType?: string;
   doctorId?: Types.ObjectId;
+  appointmentId?: Types.ObjectId;
   specialtySlug?: string;
   serviceSlug?: string;
   isVerified?: boolean;
@@ -44,6 +48,7 @@ type LeanReview = {
   isFeatured?: boolean;
   isApproved?: boolean;
   isPublished?: boolean;
+  isSample?: boolean;
   displayOrder?: number;
   status?: string;
   source?: string;
@@ -55,16 +60,16 @@ type LeanReview = {
 export class ReviewsService {
   constructor(
     @InjectModel(Review.name) private readonly reviews: Model<ReviewDocument>,
+    private readonly audit: AuditService,
   ) {}
 
   private publicFilter() {
     return {
       deletedAt: null,
       archivedAt: null,
-      $or: [
-        { isPublished: true, isApproved: true },
-        { status: "APPROVED", isPublished: { $ne: false } },
-      ],
+      isPublished: true,
+      isApproved: true,
+      isSample: { $ne: true },
     };
   }
 
@@ -111,10 +116,14 @@ export class ReviewsService {
             ? new Date(row.createdAt).toISOString().slice(0, 10)
             : undefined,
       patientImage: row.patientImage || null,
+      avatarType: row.avatarType || "neutral",
       doctorId: row.doctorId ? String(row.doctorId) : null,
       specialtySlug: row.specialtySlug || null,
       serviceSlug: row.serviceSlug || null,
-      isVerified: Boolean(row.isVerified || row.verified),
+      // Only mark verified when a real completed appointment is linked.
+      isVerified: Boolean(
+        (row.isVerified || row.verified) && row.appointmentId,
+      ),
       isFeatured: Boolean(row.isFeatured),
       isAnonymous: anonymous,
     };
@@ -122,7 +131,7 @@ export class ReviewsService {
 
   async listPublic(query: ListPublicReviewsQueryDto) {
     const page = Math.max(1, query.page ?? 1);
-    const limit = Math.min(48, Math.max(1, query.limit ?? 12));
+    const limit = Math.min(30, Math.max(1, query.limit ?? 30));
     const locale = (query.locale || "ar").slice(0, 5);
     const filter: Record<string, unknown> = {
       ...this.publicFilter(),
@@ -354,11 +363,23 @@ export class ReviewsService {
     limit?: number;
     status?: string;
     search?: string;
-  }) {
+  }): Promise<{
+    ok: true;
+    items: Array<Record<string, unknown>>;
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  }> {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const filter: Record<string, unknown> = { deletedAt: null };
-    if (query.status) filter.status = query.status;
+    if (query.status) {
+      filter.$or = [
+        { status: query.status },
+        { moderationStatus: query.status.toLowerCase() },
+      ];
+    }
     if (query.search?.trim()) {
       const q = query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const rx = new RegExp(q, "i");
@@ -376,11 +397,27 @@ export class ReviewsService {
         .sort({ updatedAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .lean(),
+        .lean()
+        .exec(),
     ]);
     return {
       ok: true,
-      items: rows,
+      items: rows.map((row) => {
+        const plain = { ...(row as Record<string, unknown>) };
+        delete plain._id;
+        return {
+          ...plain,
+          id: String(row._id),
+          patientId: row.patientId ? String(row.patientId) : undefined,
+          appointmentId: row.appointmentId
+            ? String(row.appointmentId)
+            : undefined,
+          doctorId: row.doctorId ? String(row.doctorId) : undefined,
+          specialtyId: row.specialtyId ? String(row.specialtyId) : undefined,
+          serviceId: row.serviceId ? String(row.serviceId) : undefined,
+          approvedBy: row.approvedBy ? String(row.approvedBy) : undefined,
+        };
+      }),
       page,
       limit,
       total,
@@ -388,7 +425,7 @@ export class ReviewsService {
     };
   }
 
-  async createAdmin(dto: UpsertReviewDto, userId?: string) {
+  async createAdmin(dto: UpsertReviewDto, actor: AuthUser) {
     const quote = (dto.quoteAr || "").trim();
     if (!quote) {
       throw new BadRequestException({
@@ -397,22 +434,32 @@ export class ReviewsService {
       });
     }
     const approved = dto.isApproved === true || dto.status === "APPROVED";
-    const published = dto.isPublished === true && approved;
+    const published =
+      dto.isPublished === true && approved && dto.isSample !== true;
     const created = await this.reviews.create({
       ...this.mapUpsert(dto),
-      status: dto.status || (approved ? "APPROVED" : "PENDING"),
+      status: dto.status || (approved ? "APPROVED" : "DRAFT"),
+      moderationStatus: published
+        ? "published"
+        : approved
+          ? "approved"
+          : "draft",
       isApproved: approved,
       isPublished: published,
       publishedAt: published ? new Date() : undefined,
-      createdBy: userId && Types.ObjectId.isValid(userId)
-        ? new Types.ObjectId(userId)
-        : undefined,
+      createdBy: new Types.ObjectId(actor.id),
       source: "admin",
+    });
+    await this.audit.write({
+      actor,
+      action: "review.create",
+      entityType: "review",
+      entityId: String(created._id),
     });
     return { ok: true, id: String(created._id) };
   }
 
-  async updateAdmin(id: string, dto: UpsertReviewDto, userId?: string) {
+  async updateAdmin(id: string, dto: UpsertReviewDto, actor: AuthUser) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException({
         code: ErrorCodes.VALIDATION_ERROR,
@@ -422,18 +469,10 @@ export class ReviewsService {
     const patch = this.mapUpsert(dto);
     if (dto.status) patch.status = dto.status;
     if (dto.isApproved !== undefined) patch.isApproved = dto.isApproved;
-    if (dto.isPublished !== undefined) {
-      patch.isPublished = dto.isPublished;
-      if (dto.isPublished) {
-        patch.isApproved = true;
-        patch.status = "APPROVED";
-        patch.publishedAt = new Date();
-      }
+    if (dto.isPublished === false) {
+      patch.isPublished = false;
     }
-    patch.updatedBy =
-      userId && Types.ObjectId.isValid(userId)
-        ? new Types.ObjectId(userId)
-        : undefined;
+    patch.updatedBy = new Types.ObjectId(actor.id);
 
     const updated = await this.reviews
       .findOneAndUpdate({ _id: id, deletedAt: null }, { $set: patch }, {
@@ -446,6 +485,12 @@ export class ReviewsService {
         message: "التقييم غير موجود.",
       });
     }
+    await this.audit.write({
+      actor,
+      action: "review.update",
+      entityType: "review",
+      entityId: id,
+    });
     return { ok: true, item: updated };
   }
 
@@ -460,7 +505,7 @@ export class ReviewsService {
       | "unfeature"
       | "archive"
       | "restore",
-    userId?: string,
+    actor: AuthUser,
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException({
@@ -468,17 +513,26 @@ export class ReviewsService {
         message: "معرّف غير صالح.",
       });
     }
+    const existing = await this.reviews.findOne({
+      _id: id,
+      deletedAt: null,
+    });
+    if (!existing) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "التقييم غير موجود.",
+      });
+    }
     const patch: Record<string, unknown> = {
-      updatedBy:
-        userId && Types.ObjectId.isValid(userId)
-          ? new Types.ObjectId(userId)
-          : undefined,
+      updatedBy: new Types.ObjectId(actor.id),
     };
     switch (action) {
       case "approve":
         patch.status = "APPROVED";
         patch.isApproved = true;
         patch.moderationStatus = "approved";
+        patch.approvedAt = new Date();
+        patch.approvedBy = new Types.ObjectId(actor.id);
         break;
       case "reject":
         patch.status = "REJECTED";
@@ -487,8 +541,15 @@ export class ReviewsService {
         patch.moderationStatus = "rejected";
         break;
       case "publish":
-        patch.status = "APPROVED";
-        patch.isApproved = true;
+        if (!existing.isApproved || existing.isSample) {
+          throw new BadRequestException({
+            code: ErrorCodes.VALIDATION_ERROR,
+            message: existing.isSample
+              ? "يجب تحويل المسودة التجريبية إلى محتوى حقيقي قبل النشر."
+              : "يجب اعتماد التقييم قبل نشره.",
+          });
+        }
+        patch.status = "PUBLISHED";
         patch.isPublished = true;
         patch.moderationStatus = "published";
         patch.publishedAt = new Date();
@@ -532,10 +593,26 @@ export class ReviewsService {
         message: "التقييم غير موجود.",
       });
     }
+    await this.audit.write({
+      actor,
+      action: `review.${action}`,
+      entityType: "review",
+      entityId: id,
+    });
     return { ok: true, item: updated };
   }
 
   private mapUpsert(dto: UpsertReviewDto): Record<string, unknown> {
+    if (
+      dto.avatarType === "uploaded" &&
+      dto.patientImage &&
+      !dto.patientImage.startsWith("/api/media/")
+    ) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "مرجع صورة التقييم غير معتمد.",
+      });
+    }
     return {
       displayName: dto.displayName?.trim(),
       displayNameAr: dto.displayNameAr?.trim() || dto.displayName?.trim(),
@@ -547,6 +624,9 @@ export class ReviewsService {
       reviewEn: dto.quoteEn?.trim(),
       quoteFr: dto.quoteFr?.trim(),
       reviewFr: dto.quoteFr?.trim(),
+      subjectAr: dto.subjectAr?.trim(),
+      subjectEn: dto.subjectEn?.trim(),
+      subjectFr: dto.subjectFr?.trim(),
       rating: dto.rating ?? 5,
       doctorId:
         dto.doctorId && Types.ObjectId.isValid(dto.doctorId)
@@ -558,8 +638,15 @@ export class ReviewsService {
       isVerified: Boolean(dto.isVerified),
       verified: Boolean(dto.isVerified),
       isFeatured: Boolean(dto.isFeatured),
+      avatarType: dto.avatarType || "neutral",
+      patientImage:
+        dto.avatarType === "uploaded" && dto.patientImage
+          ? dto.patientImage.trim()
+          : undefined,
+      locale: dto.locale || "ar",
       displayOrder: dto.displayOrder ?? 0,
       sourceKey: dto.sourceKey,
+      isSample: dto.isSample === true,
       consentConfirmed: true,
     };
   }

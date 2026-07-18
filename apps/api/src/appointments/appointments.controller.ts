@@ -23,6 +23,7 @@ import { AppointmentsService } from "./appointments.service";
 import {
   CheckInDto,
   CreateAppointmentDto,
+  ExamActionDto,
   ListAppointmentsQueryDto,
   UpdateAppointmentStatusDto,
   WaitingRoomActionDto,
@@ -147,5 +148,13 @@ export class AppointmentsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.appointmentsService.updateWaiting(dto, user);
+  }
+
+  @Post("doctor/exam")
+  @HttpCode(200)
+  @RequireRoles("ADMIN", "DOCTOR_SPECIALIST", "DOCTOR_GENERAL")
+  @RequirePermissions(PERMISSIONS.manage_waiting_room)
+  exam(@Body() dto: ExamActionDto, @CurrentUser() user: AuthUser) {
+    return this.appointmentsService.runExam(dto, user);
   }
 }

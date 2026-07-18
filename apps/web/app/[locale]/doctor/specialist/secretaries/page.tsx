@@ -28,8 +28,23 @@ type SecretaryRow = {
   email?: string;
   phone?: string;
   shiftCode?: string;
+  workStartTime?: string;
+  workEndTime?: string;
+  workDays?: string;
+  isActive?: boolean;
   status?: string;
 };
+
+const SHIFT_LABELS: Record<string, string> = {
+  MORNING: "صباحية",
+  EVENING: "مسائية",
+  CUSTOM: "مخصصة",
+};
+
+function formatShiftTime(start?: string, end?: string) {
+  if (!start && !end) return "—";
+  return `${start || "—"} – ${end || "—"}`;
+}
 
 export default function SecretariesPage() {
   const { locale, dict, user, loading: sessionLoading, error: sessionError } =
@@ -55,6 +70,12 @@ export default function SecretariesPage() {
     email: string;
     phone: string;
     newPassword: string;
+  } | null>(null);
+  const [shiftEdit, setShiftEdit] = useState<{
+    userId: string;
+    shiftCode: "MORNING" | "EVENING" | "CUSTOM";
+    workStartTime: string;
+    workEndTime: string;
   } | null>(null);
   const [deactivate, setDeactivate] = useState<{ userId: string; name: string } | null>(null);
   const [dialogError, setDialogError] = useState("");
@@ -156,6 +177,36 @@ export default function SecretariesPage() {
     }
   }
 
+  async function onSaveShift(e: FormEvent) {
+    e.preventDefault();
+    if (!shiftEdit) return;
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      const { ok, data } = await apiPatch<{ message?: string }>(
+        "/api/admin/secretaries",
+        {
+          userId: shiftEdit.userId,
+          shiftCode: shiftEdit.shiftCode,
+          workStartTime: shiftEdit.workStartTime,
+          workEndTime: shiftEdit.workEndTime,
+        },
+      );
+      if (!ok) {
+        setError(apiErrorMessage(data));
+        return;
+      }
+      setSuccess(data.message || validationMessagesAr.saved);
+      setShiftEdit(null);
+      await load();
+    } catch {
+      setError(validationMessagesAr.backendUnavailable);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function confirmDeactivate() {
     if (!deactivate) return;
     setDialogError("");
@@ -246,14 +297,103 @@ export default function SecretariesPage() {
               <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <strong>{s.fullName}</strong>
-                  <div className="hint">{s.email} · {s.phone} · {s.shiftCode} · {s.status}</div>
+                  <div className="hint">
+                    {s.email} · {s.phone} · {SHIFT_LABELS[s.shiftCode || ""] || s.shiftCode} · {s.status}
+                  </div>
+                  <div className="hint" style={{ marginTop: "0.25rem" }}>
+                    أوقات العمل: {formatShiftTime(s.workStartTime, s.workEndTime)}
+                    {s.workDays ? ` · ${s.workDays}` : ""}
+                    {s.isActive === false ? " · غير نشط" : ""}
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() =>
+                      setShiftEdit({
+                        userId: s.id,
+                        shiftCode: (s.shiftCode as "MORNING" | "EVENING" | "CUSTOM") || "MORNING",
+                        workStartTime: s.workStartTime || "07:00",
+                        workEndTime: s.workEndTime || "14:30",
+                      })
+                    }
+                  >
+                    أوقات العمل
+                  </button>
                   <button type="button" className="btn btn-outline" onClick={() => setEdit({ userId: s.id, email: s.email || "", phone: s.phone || "", newPassword: "" })}>تعديل الدخول</button>
                   <Link className="btn btn-outline" href={`/${locale}/doctor/specialist/staff/${s.id}/activity`}>النشاط</Link>
-                  <button type="button" className="btn btn-outline" onClick={() => { setDialogError(""); setDeactivate({ userId: s.id, name: s.fullName }); }}>تعطيل</button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => { setDialogError(""); setDeactivate({ userId: s.id, name: s.fullName }); }}
+                  >
+                    <span>تعطيل</span>
+                    <span className="hint" style={{ display: "block", fontSize: "0.75rem", marginTop: "0.1rem" }}>
+                      حذف الحساب
+                    </span>
+                  </button>
                 </div>
               </div>
+              {shiftEdit?.userId === s.id ? (
+                <form onSubmit={onSaveShift} style={{ marginTop: "0.75rem", display: "grid", gap: "0.65rem" }}>
+                  <div className="field">
+                    <label>الوردية</label>
+                    <select
+                      className="select"
+                      value={shiftEdit.shiftCode}
+                      onChange={(e) =>
+                        setShiftEdit({
+                          ...shiftEdit,
+                          shiftCode: e.target.value as typeof shiftEdit.shiftCode,
+                        })
+                      }
+                    >
+                      <option value="MORNING">صباحية</option>
+                      <option value="EVENING">مسائية</option>
+                      <option value="CUSTOM">مخصصة</option>
+                    </select>
+                  </div>
+                  <div className="row-2">
+                    <div className="field">
+                      <label>بداية الدوام</label>
+                      <input
+                        className="input"
+                        type="time"
+                        dir="ltr"
+                        value={shiftEdit.workStartTime}
+                        onChange={(e) =>
+                          setShiftEdit({ ...shiftEdit, workStartTime: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="field">
+                      <label>نهاية الدوام</label>
+                      <input
+                        className="input"
+                        type="time"
+                        dir="ltr"
+                        value={shiftEdit.workEndTime}
+                        onChange={(e) =>
+                          setShiftEdit({ ...shiftEdit, workEndTime: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button className="btn btn-primary" type="submit" disabled={loading}>
+                      {loading ? "جارٍ الحفظ..." : "حفظ أوقات العمل"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setShiftEdit(null)}
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </form>
+              ) : null}
               {edit?.userId === s.id ? (
                 <form onSubmit={onUpdate} style={{ marginTop: "0.75rem", display: "grid", gap: "0.65rem" }}>
                   <div className="field">

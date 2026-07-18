@@ -229,6 +229,7 @@ export class StaffChatService {
       _id: Types.ObjectId;
       fullName: string;
       roleCode: string;
+      doctor?: { type?: "GENERAL" | "SPECIALIST" };
     }) => {
       const id = String(u._id);
       if (id === actor.id) return;
@@ -236,7 +237,7 @@ export class StaffChatService {
         id,
         fullName: u.fullName,
         role: u.roleCode,
-        roleLabel: roleLabelAr(u.roleCode),
+        roleLabel: roleLabelAr(u.roleCode, u.doctor?.type),
         group: peerGroupForRole(u.roleCode),
         initials: initialsOf(u.fullName),
       });
@@ -269,7 +270,7 @@ export class StaffChatService {
               ],
             },
           })
-          .select("fullName roleCode")
+          .select("fullName roleCode doctor.type")
           .sort({ fullName: 1 })
           .lean(),
       ]);
@@ -306,7 +307,7 @@ export class StaffChatService {
             ],
           },
         })
-        .select("fullName roleCode")
+        .select("fullName roleCode doctor.type")
         .sort({ fullName: 1 })
         .lean();
       const assigned = (
@@ -390,7 +391,13 @@ export class StaffChatService {
 
   async overview(actor: AuthUser, markRead = false) {
     this.assertStaff(actor);
-    const peers = await this.listPeers(actor);
+    const [peers, meProfile] = await Promise.all([
+      this.listPeers(actor),
+      this.users
+        .findById(actor.id)
+        .select("doctor.type")
+        .lean(),
+    ]);
     const peerIds = peers.map((p) => p.id);
     const peerOids = peerIds
       .filter((id) => Types.ObjectId.isValid(id))
@@ -472,7 +479,16 @@ export class StaffChatService {
         createdAt: (m as { createdAt?: Date }).createdAt,
         mine,
         senderName: mine ? "أنا" : thread.fullName,
-        senderRole: mine ? roleLabelAr(actor.roleCode) : thread.roleLabel,
+        senderRole: mine
+          ? roleLabelAr(
+              actor.roleCode,
+              (
+                meProfile?.doctor as
+                  | { type?: "GENERAL" | "SPECIALIST" }
+                  | undefined
+              )?.type,
+            )
+          : thread.roleLabel,
         deliveredAt: m.deliveredAt || null,
         readAt: m.readAt || null,
         status: deleted
@@ -524,7 +540,14 @@ export class StaffChatService {
         id: actor.id,
         fullName: actor.fullName,
         role: actor.roleCode,
-        roleLabel: roleLabelAr(actor.roleCode),
+        roleLabel: roleLabelAr(
+          actor.roleCode,
+          (
+            meProfile?.doctor as
+              | { type?: "GENERAL" | "SPECIALIST" }
+              | undefined
+          )?.type,
+        ),
       },
       unreadCount: markRead ? 0 : unreadCount,
       peers,

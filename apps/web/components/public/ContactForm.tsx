@@ -19,11 +19,32 @@ const contactSchema = z.object({
     .max(15, "phone"),
   subject: z.string().trim().min(2, "subject").max(160),
   message: z.string().trim().min(5, "message").max(4000),
+  doctorId: z.string().optional(),
+  specialtyId: z.string().optional(),
+  serviceId: z.string().optional(),
 });
 
 type ContactValues = z.infer<typeof contactSchema>;
 
-export function ProfessionalInquiryForm({ locale }: { locale: Locale }) {
+type InquiryOption = { id: string; label: string };
+
+type InquiryFormProps = {
+  locale: Locale;
+  title?: string;
+  lead?: string;
+  doctors?: InquiryOption[];
+  specialties?: InquiryOption[];
+  services?: InquiryOption[];
+};
+
+export function ProfessionalInquiryForm({
+  locale,
+  title,
+  lead,
+  doctors = [],
+  specialties = [],
+  services = [],
+}: InquiryFormProps) {
   const copy = useMemo(() => getPublicCopy(locale), [locale]);
   const dict = useMemo(() => getDictionary(locale), [locale]);
   const [success, setSuccess] = useState(false);
@@ -39,7 +60,15 @@ export function ProfessionalInquiryForm({ locale }: { locale: Locale }) {
     formState: { errors, isSubmitting },
   } = useForm<ContactValues>({
     resolver: zodResolver(contactSchema),
-    defaultValues: { fullName: "", phone: "", subject: "", message: "" },
+    defaultValues: {
+      fullName: "",
+      phone: "",
+      subject: "",
+      message: "",
+      doctorId: "",
+      specialtyId: "",
+      serviceId: "",
+    },
   });
 
   const phone = watch("phone");
@@ -76,14 +105,21 @@ export function ProfessionalInquiryForm({ locale }: { locale: Locale }) {
     setSuccess(false);
     clearErrors("root");
     try {
+      const payload = {
+        fullName: values.fullName,
+        phone: values.phone,
+        subject: values.subject,
+        message: values.message,
+        locale,
+        sourcePage: "contact",
+        ...(values.doctorId ? { doctorId: values.doctorId } : {}),
+        ...(values.specialtyId ? { specialtyId: values.specialtyId } : {}),
+        ...(values.serviceId ? { serviceId: values.serviceId } : {}),
+      };
       const { ok, data } = await apiPost<{
         message?: string;
         ok?: boolean;
-      }>("/api/public/contact", {
-        ...values,
-        locale,
-        sourcePage: "contact",
-      });
+      }>("/api/public/contact", payload);
       if (!ok) {
         const fe = mapFieldErrors(data);
         for (const [key, msg] of Object.entries(fe)) {
@@ -101,7 +137,15 @@ export function ProfessionalInquiryForm({ locale }: { locale: Locale }) {
         });
         return;
       }
-      reset({ fullName: "", phone: "", subject: "", message: "" });
+      reset({
+        fullName: "",
+        phone: "",
+        subject: "",
+        message: "",
+        doctorId: "",
+        specialtyId: "",
+        serviceId: "",
+      });
       setSuccess(true);
     } catch {
       setError("root", { message: dict.connectionError });
@@ -117,8 +161,10 @@ export function ProfessionalInquiryForm({ locale }: { locale: Locale }) {
     >
       <div className="contact-inquiry-form-header">
         <p className="section-kicker">{copy.tabInquiry}</p>
-        <h2 id="contact-inquiry-form-heading">{copy.contactFormTitle}</h2>
-        <p className="pub-lead">{copy.inquiryFormLead}</p>
+        <h2 id="contact-inquiry-form-heading">
+          {title || copy.contactFormTitle}
+        </h2>
+        <p className="pub-lead">{lead || copy.inquiryFormLead}</p>
       </div>
 
       {errors.root?.message ? (
@@ -249,6 +295,84 @@ export function ProfessionalInquiryForm({ locale }: { locale: Locale }) {
           </p>
         ) : null}
       </div>
+
+      {specialties.length > 0 ? (
+        <div className="field">
+          <label htmlFor="specialtyId">
+            {locale === "en"
+              ? "Specialty (optional)"
+              : locale === "fr"
+                ? "Spécialité (optionnel)"
+                : "التخصص (اختياري)"}
+          </label>
+          <select id="specialtyId" className="input" {...register("specialtyId")}>
+            <option value="">
+              {locale === "en"
+                ? "No specialty selected"
+                : locale === "fr"
+                  ? "Aucune spécialité"
+                  : "بدون تخصص"}
+            </option>
+            {specialties.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {services.length > 0 ? (
+        <div className="field">
+          <label htmlFor="serviceId">
+            {locale === "en"
+              ? "Service (optional)"
+              : locale === "fr"
+                ? "Service (optionnel)"
+                : "الخدمة (اختياري)"}
+          </label>
+          <select id="serviceId" className="input" {...register("serviceId")}>
+            <option value="">
+              {locale === "en"
+                ? "No service selected"
+                : locale === "fr"
+                  ? "Aucun service"
+                  : "بدون خدمة"}
+            </option>
+            {services.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {doctors.length > 0 ? (
+        <div className="field">
+          <label htmlFor="doctorId">
+            {locale === "en"
+              ? "Doctor (optional)"
+              : locale === "fr"
+                ? "Médecin (optionnel)"
+                : "الطبيب (اختياري)"}
+          </label>
+          <select id="doctorId" className="input" {...register("doctorId")}>
+            <option value="">
+              {locale === "en"
+                ? "No doctor selected"
+                : locale === "fr"
+                  ? "Aucun médecin"
+                  : "بدون طبيب"}
+            </option>
+            {doctors.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       <button
         className="btn btn-primary contact-inquiry-submit"

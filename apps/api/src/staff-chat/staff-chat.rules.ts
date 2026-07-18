@@ -20,7 +20,10 @@ export function isStaffChatRole(role: string): boolean {
   return STAFF_CHAT_DOCTOR_SIDE.has(role) || role === "SECRETARY";
 }
 
-export function roleLabelAr(code: string): string {
+export function roleLabelAr(
+  code: string,
+  doctorType?: "GENERAL" | "SPECIALIST",
+): string {
   switch (code) {
     case "SECRETARY":
       return "سكرتير/ة";
@@ -33,7 +36,11 @@ export function roleLabelAr(code: string): string {
     case "ADMIN_OWNER":
     case "OWNER":
     case "SUPER_ADMIN":
-      return "إدارة / صاحبة العيادة";
+      return doctorType === "GENERAL"
+        ? "مالك النظام وطبيب عام"
+        : doctorType === "SPECIALIST"
+          ? "مالك النظام وطبيب مختص"
+          : "مالك النظام والطبيب الرئيسي";
     default:
       return code;
   }

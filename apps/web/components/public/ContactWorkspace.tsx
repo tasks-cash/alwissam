@@ -11,6 +11,11 @@ import type {
   PublicService,
   PublicSpecialty,
 } from "../../lib/public-site";
+import {
+  localizedServiceName,
+  localizedSpecialtyName,
+  pickLocalized,
+} from "../../lib/public-site";
 import type { ClinicContact } from "../../lib/clinic-contact";
 
 type Props = {
@@ -31,6 +36,20 @@ export function ContactWorkspace({
   hours,
 }: Props) {
   const copy = getPublicCopy(locale);
+  const inquiryTitle = pickLocalized(
+    locale,
+    clinic?.inquirySectionTitleAr,
+    clinic?.inquirySectionTitleEn,
+    clinic?.inquirySectionTitleFr,
+    copy.contactFormTitle,
+  );
+  const inquiryLead = pickLocalized(
+    locale,
+    clinic?.inquirySectionDescriptionAr,
+    clinic?.inquirySectionDescriptionEn,
+    clinic?.inquirySectionDescriptionFr,
+    copy.inquiryFormLead,
+  );
 
   return (
     <div className="contact-workspace contact-workspace-premium">
@@ -39,7 +58,29 @@ export function ContactWorkspace({
           className="contact-inquiry-block"
           aria-labelledby="contact-inquiry-form-heading"
         >
-          <ProfessionalInquiryForm locale={locale} />
+          <ProfessionalInquiryForm
+            locale={locale}
+            title={inquiryTitle}
+            lead={inquiryLead}
+            doctors={doctors
+              .filter((d) => d.id)
+              .map((d) => ({
+                id: String(d.id),
+                label: d.fullName || String(d.id),
+              }))}
+            specialties={specialties
+              .filter((s) => s.id)
+              .map((s) => ({
+                id: String(s.id),
+                label: localizedSpecialtyName(locale, s),
+              }))}
+            services={services
+              .filter((s) => s.id)
+              .map((s) => ({
+                id: String(s.id),
+                label: localizedServiceName(locale, s),
+              }))}
+          />
           <ClinicAddressCard
             locale={locale}
             copy={copy}

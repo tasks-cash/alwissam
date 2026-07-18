@@ -61,9 +61,12 @@ export default async function SpecialtiesPage({
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const hours = localizedWorkingHours(locale, site.clinic);
   const specialties = catalog.specialties;
-  const floating = specialties.filter((s) => s.isFeatured).slice(0, 3);
+  const featured = specialties.filter((s) => s.isFeatured);
+  const floating = featured.slice(0, 3);
   const floatLabels =
     floating.length > 0 ? floating : specialties.slice(0, 3);
+  const hero =
+    site.specialtiesPage?.published === false ? null : site.specialtiesPage;
 
   return (
     <PublicChrome
@@ -80,6 +83,7 @@ export default async function SpecialtiesPage({
         locale={locale}
         copy={copy}
         floatingLabels={floatLabels}
+        hero={hero}
       />
 
       <PublicSection>

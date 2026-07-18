@@ -52,7 +52,7 @@ describe("ReviewsService public DTO safety", () => {
     );
     expect(unverified.isVerified).toBe(false);
 
-    const verified = service.toPublicDto(
+    const verifiedWithoutAppointment = service.toPublicDto(
       {
         _id: { toString: () => "2" },
         displayName: "Patient",
@@ -63,12 +63,29 @@ describe("ReviewsService public DTO safety", () => {
       },
       "ar",
     );
-    expect(verified.isVerified).toBe(true);
+    expect(verifiedWithoutAppointment.isVerified).toBe(false);
+
+    const verifiedWithAppointment = service.toPublicDto(
+      {
+        _id: { toString: () => "3" },
+        displayName: "Patient",
+        isAnonymous: false,
+        quoteAr: "نص كافٍ للتقييم المنشور.",
+        rating: 5,
+        isVerified: true,
+        appointmentId: { toString: () => "507f1f77bcf86cd799439011" },
+      } as never,
+      "ar",
+    );
+    expect(verifiedWithAppointment.isVerified).toBe(true);
   });
 
-  it("publicFilter requires approved/published path", () => {
+  it("publicFilter requires approved published non-sample reviews", () => {
     const filter = service.publicFilter();
-    expect(filter).toHaveProperty("$or");
+    expect(filter.isApproved).toBe(true);
+    expect(filter.isPublished).toBe(true);
+    expect(filter.isSample).toEqual({ $ne: true });
+    expect(filter.archivedAt).toBeNull();
   });
 });
 

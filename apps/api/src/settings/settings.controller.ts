@@ -5,8 +5,11 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  Param,
+  Patch,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -24,7 +27,11 @@ import {
   ClinicOwnerGuard,
   JwtAuthGuard,
 } from "../common/auth/session.guard";
-import { PublicContactDto } from "./dto/public-contact.dto";
+import {
+  ContactInquiryListDto,
+  ContactInquiryStatusDto,
+  PublicContactDto,
+} from "./dto/public-contact.dto";
 import { UpsertSettingsDto } from "./dto/settings.dto";
 import { SettingsService } from "./settings.service";
 
@@ -63,6 +70,9 @@ export class SettingsController {
       locale: dto.locale,
       sourcePage: dto.sourcePage || "contact",
       ipAddress: ip,
+      doctorId: dto.doctorId,
+      specialtyId: dto.specialtyId,
+      serviceId: dto.serviceId,
     });
     if (!result.ok) {
       throw new HttpException(
@@ -101,6 +111,47 @@ export class SettingsController {
   @UseGuards(JwtAuthGuard, ClinicOwnerGuard)
   getPublicPages() {
     return this.settingsService.getPublicPages();
+  }
+
+  @Get("public/specialties-page")
+  getPublicSpecialtiesPage() {
+    return this.settingsService.getSpecialtiesPage(false);
+  }
+
+  @Get("admin/specialties-page")
+  @UseGuards(JwtAuthGuard, ClinicOwnerGuard)
+  getAdminSpecialtiesPage() {
+    return this.settingsService.getSpecialtiesPage(true);
+  }
+
+  @Get("admin/contact-inquiries")
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, ClinicOwnerGuard)
+  @RequireRoles("ADMIN", "DOCTOR_SPECIALIST")
+  @RequirePermissions(PERMISSIONS.manage_settings)
+  listContactInquiries(@Query() query: ContactInquiryListDto) {
+    return this.settingsService.listContactMessages({
+      page: query.page || 1,
+      limit: query.limit || 20,
+      status: query.status,
+      search: query.search,
+    });
+  }
+
+  @Patch("admin/contact-inquiries/:id/status")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, ClinicOwnerGuard)
+  @RequireRoles("ADMIN", "DOCTOR_SPECIALIST")
+  @RequirePermissions(PERMISSIONS.manage_settings)
+  updateContactInquiryStatus(
+    @Param("id") id: string,
+    @Body() dto: ContactInquiryStatusDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.settingsService.updateContactMessageStatus(
+      id,
+      dto.status,
+      user,
+    );
   }
 
   @Put("admin/clinic-settings")

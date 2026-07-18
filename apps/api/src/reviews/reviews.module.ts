@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { AuthModule } from "../auth/auth.module";
+import { AuditModule } from "../common/audit/audit.module";
 import {
   ClinicOwnerGuard,
   JwtAuthGuard,
@@ -17,6 +18,7 @@ import { Review, ReviewSchema } from "./schemas/review.schema";
 @Module({
   imports: [
     AuthModule,
+    AuditModule,
     MongooseModule.forFeature([{ name: Review.name, schema: ReviewSchema }]),
   ],
   controllers: [ReviewsController, ReviewsAdminController],

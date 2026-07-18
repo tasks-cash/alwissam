@@ -97,7 +97,7 @@ export function ReviewsExplorer({
       const params = new URLSearchParams({
         locale,
         page: String(page),
-        limit: "12",
+        limit: "30",
       });
       if (search) params.set("search", search);
       if (rating) params.set("rating", rating);

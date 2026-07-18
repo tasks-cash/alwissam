@@ -19,11 +19,15 @@ type ServiceRow = {
   shortDescriptionAr?: string;
   specialtyIds: string[];
   icon?: string;
+  image?: string;
+  durationMinutes?: number | null;
+  isBookable?: boolean;
   isActive?: boolean;
   isPublic?: boolean;
   isFeatured?: boolean;
   requiresConsultation?: boolean;
   displayOrder?: number;
+  archivedAt?: string | null;
 };
 
 const empty = {
@@ -37,6 +41,9 @@ const empty = {
   shortDescriptionAr: "",
   specialtyIds: [] as string[],
   icon: "tooth",
+  image: "",
+  durationMinutes: null as number | null,
+  isBookable: true,
   isActive: true,
   isPublic: false,
   isFeatured: false,
@@ -54,11 +61,12 @@ export default function ServicesAdminPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
     const [svc, spec] = await Promise.all([
       apiRequest<{ services?: ServiceRow[] }>(
-        "/api/admin/catalog/services?pageSize=100",
+        `/api/admin/catalog/services?pageSize=100${showArchived ? "&archived=true" : ""}`,
       ),
       apiRequest<{ specialties?: SpecialtyOption[] }>(
         "/api/admin/catalog/specialties?pageSize=100",
@@ -70,7 +78,7 @@ export default function ServicesAdminPage() {
     }
     setRows(svc.data.services || []);
     if (spec.ok) setSpecialties(spec.data.specialties || []);
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     if (!loading && user) void load();
@@ -97,7 +105,7 @@ export default function ServicesAdminPage() {
 
   async function flag(
     id: string,
-    action: "publish" | "activate" | "feature" | "archive",
+    action: "publish" | "activate" | "feature" | "archive" | "restore",
     value?: boolean,
   ) {
     const path =
@@ -107,7 +115,9 @@ export default function ServicesAdminPage() {
           ? "/api/admin/catalog/services/activate"
           : action === "feature"
             ? "/api/admin/catalog/services/feature"
-            : "/api/admin/catalog/services/archive";
+            : action === "restore"
+              ? "/api/admin/catalog/services/restore"
+              : "/api/admin/catalog/services/archive";
     const body =
       action === "publish"
         ? { id, publish: value }
@@ -206,6 +216,38 @@ export default function ServicesAdminPage() {
               }
             />
           </div>
+          <div className="row-2">
+            <div className="field">
+              <label htmlFor="s-image">مسار الصورة</label>
+              <input
+                id="s-image"
+                className="input"
+                dir="ltr"
+                placeholder="/api/media/..."
+                value={form.image}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, image: e.target.value }))
+                }
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="s-duration">المدة بالدقائق</label>
+              <input
+                id="s-duration"
+                className="input"
+                type="number"
+                min={0}
+                value={form.durationMinutes ?? ""}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    durationMinutes:
+                      e.target.value === "" ? null : Number(e.target.value),
+                  }))
+                }
+              />
+            </div>
+          </div>
           <fieldset className="field">
             <legend>التخصصات المرتبطة</legend>
             <div className="cta-row" style={{ flexWrap: "wrap" }}>
@@ -275,11 +317,30 @@ export default function ServicesAdminPage() {
               />
               Consultation
             </label>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={form.isBookable !== false}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, isBookable: e.target.checked }))
+                }
+              />
+              قابل للحجز
+            </label>
           </div>
           <button className="btn btn-primary" type="submit" disabled={saving}>
             {form.id ? "Update" : "Create"}
           </button>
         </form>
+
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
+          عرض الخدمات المؤرشفة
+        </label>
 
         {rows.map((row) => (
           <article key={row.id} className="card-surface">
@@ -290,7 +351,8 @@ export default function ServicesAdminPage() {
             <p>
               {row.isActive ? "active" : "inactive"} ·{" "}
               {row.isPublic ? "public" : "draft"} · specialties:{" "}
-              {row.specialtyIds?.length || 0}
+              {row.specialtyIds?.length || 0} ·{" "}
+              {row.isBookable === false ? "غير قابل للحجز" : "قابل للحجز"}
             </p>
             <div className="cta-row">
               <button
@@ -307,13 +369,23 @@ export default function ServicesAdminPage() {
               >
                 {row.isPublic ? "Unpublish" : "Publish"}
               </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => void flag(row.id, "archive")}
-              >
-                Archive
-              </button>
+              {row.archivedAt ? (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => void flag(row.id, "restore")}
+                >
+                  Restore
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => void flag(row.id, "archive")}
+                >
+                  Archive
+                </button>
+              )}
               <a
                 className="btn btn-outline"
                 href={`/${locale}/services/${row.slug}`}

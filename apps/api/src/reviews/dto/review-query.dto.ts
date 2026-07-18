@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  MaxLength,
   Max,
   Min,
   MinLength,
@@ -12,9 +13,9 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 
 export class ListPublicReviewsQueryDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: ["ar", "en", "fr"] })
   @IsOptional()
-  @IsString()
+  @IsIn(["ar", "en", "fr"])
   locale?: string;
 
   @ApiPropertyOptional()
@@ -29,7 +30,7 @@ export class ListPublicReviewsQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(48)
+  @Max(30)
   limit?: number;
 
   @ApiPropertyOptional()
@@ -104,6 +105,24 @@ export class UpsertReviewDto {
   @IsString()
   displayNameFr?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  subjectAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  subjectEn?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  subjectFr?: string;
+
   @ApiProperty()
   @IsString()
   @MinLength(8)
@@ -142,6 +161,24 @@ export class UpsertReviewDto {
   @IsString()
   serviceSlug?: string;
 
+  @ApiPropertyOptional({
+    enum: ["male", "female", "neutral", "initials", "uploaded"],
+  })
+  @IsOptional()
+  @IsIn(["male", "female", "neutral", "initials", "uploaded"])
+  avatarType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  patientImage?: string;
+
+  @ApiPropertyOptional({ enum: ["ar", "en", "fr"] })
+  @IsOptional()
+  @IsIn(["ar", "en", "fr"])
+  locale?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
@@ -169,7 +206,7 @@ export class UpsertReviewDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsIn(["PENDING", "APPROVED", "REJECTED", "ARCHIVED"])
+  @IsIn(["DRAFT", "PENDING", "APPROVED", "REJECTED", "PUBLISHED", "ARCHIVED"])
   status?: string;
 
   @ApiPropertyOptional()
@@ -182,6 +219,11 @@ export class UpsertReviewDto {
   @IsOptional()
   @IsString()
   sourceKey?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isSample?: boolean;
 }
 
 export class ReviewIdDto {

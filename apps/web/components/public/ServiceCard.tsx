@@ -30,7 +30,8 @@ export function ServiceCard({
     service.shortDescription || localizedServiceDesc(locale, service);
   const parent = service.specialties?.[0];
   const canBook =
-    typeof service.doctorCount !== "number" || service.doctorCount > 0;
+    service.isBookable !== false &&
+    (typeof service.doctorCount !== "number" || service.doctorCount > 0);
   const detailsHref = `/${locale}/services/${service.slug}`;
   const bookParams = new URLSearchParams();
   bookParams.set("service", service.slug);
@@ -44,6 +45,14 @@ export function ServiceCard({
       : locale === "fr"
         ? `Service dentaire ${name}`
         : `خدمة ${name}`;
+  const durationLabel =
+    typeof service.durationMinutes === "number" && service.durationMinutes > 0
+      ? locale === "en"
+        ? `${service.durationMinutes} min`
+        : locale === "fr"
+          ? `${service.durationMinutes} min`
+          : `${service.durationMinutes} دقيقة`
+      : null;
 
   return (
     <article
@@ -55,17 +64,24 @@ export function ServiceCard({
           <Image
             src={service.image}
             alt={alt}
-            width={320}
-            height={240}
+            width={640}
+            height={400}
             className="service-card-photo"
             unoptimized
-            sizes="(max-width: 700px) 92vw, 220px"
+            sizes="(max-width: 768px) 92vw, (max-width: 1100px) 46vw, 32vw"
           />
         ) : (
-          <span className="service-card-icon" aria-hidden>
-            <DentalIcon name={service.icon || "tooth"} />
+          <span className="service-card-fallback" aria-hidden>
+            <span className="service-card-icon">
+              <DentalIcon name={service.icon || "tooth"} />
+            </span>
           </span>
         )}
+        {service.icon && service.image ? (
+          <span className="service-card-icon-badge" aria-hidden>
+            <DentalIcon name={service.icon} />
+          </span>
+        ) : null}
       </div>
 
       <div className="service-card-body">
@@ -78,7 +94,9 @@ export function ServiceCard({
           {parent ? (
             <p className="service-card-parent">
               <span className="muted">{copy.parentSpecialtyLabel}:</span>{" "}
-              <Link href={`/${locale}/specialties/${parent.slug}`}>{parent.name}</Link>
+              <Link href={`/${locale}/specialties/${parent.slug}`}>
+                {parent.name}
+              </Link>
             </p>
           ) : null}
           {typeof service.doctorCount === "number" ? (
@@ -86,10 +104,15 @@ export function ServiceCard({
               <strong>{service.doctorCount}</strong> {copy.doctorCountLabel}
             </p>
           ) : null}
+          {durationLabel ? (
+            <p className="service-meta-chip">{durationLabel}</p>
+          ) : null}
           {service.requiresConsultation ? (
             <p className="service-badge">{copy.consultationRequired}</p>
           ) : (
-            <p className="service-badge service-badge--ok">{copy.serviceAvailableLabel}</p>
+            <p className="service-badge service-badge--ok">
+              {copy.serviceAvailableLabel}
+            </p>
           )}
         </div>
 
@@ -97,15 +120,14 @@ export function ServiceCard({
           <Link className="btn btn-outline" href={detailsHref}>
             {copy.viewServiceDetails}
           </Link>
+          <Link className="btn btn-outline" href={detailsHref}>
+            {copy.serviceInfoAction}
+          </Link>
           {canBook ? (
             <Link className="btn btn-primary" href={bookHref}>
               {copy.relatedCta}
             </Link>
-          ) : (
-            <Link className="btn btn-outline" href={detailsHref}>
-              {copy.serviceInfoAction}
-            </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </article>

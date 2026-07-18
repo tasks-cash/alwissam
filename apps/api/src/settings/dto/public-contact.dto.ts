@@ -1,13 +1,18 @@
 import {
+  IsIn,
+  IsInt,
+  IsMongoId,
   IsOptional,
   IsString,
   Length,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   FULL_NAME_MIN,
   PHONE_MAX_DIGITS,
@@ -63,6 +68,21 @@ export class PublicContactDto {
   )
   locale?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  doctorId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  specialtyId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  serviceId?: string;
+
   @ApiPropertyOptional({ description: "Source page slug, e.g. contact" })
   @IsOptional()
   @IsString()
@@ -71,4 +91,32 @@ export class PublicContactDto {
     typeof value === "string" ? value.trim().slice(0, 80) : value,
   )
   sourcePage?: string;
+}
+
+export class ContactInquiryListDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsIn(["new", "in_review", "contacted", "resolved", "archived"])
+  status?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
+export class ContactInquiryStatusDto {
+  @IsIn(["new", "in_review", "contacted", "resolved", "archived"])
+  status!: "new" | "in_review" | "contacted" | "resolved" | "archived";
 }

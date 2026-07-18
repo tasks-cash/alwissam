@@ -23,6 +23,10 @@ import {
   WaitingRoomEntry,
   WaitingRoomEntrySchema,
 } from "./schemas/appointment.schema";
+import {
+  Invoice,
+  InvoiceSchema,
+} from "../finance/schemas/finance.schema";
 
 @Module({
   imports: [
@@ -35,6 +39,7 @@ import {
       { name: AppointmentRequest.name, schema: AppointmentRequestSchema },
       { name: Patient.name, schema: PatientSchema },
       { name: User.name, schema: UserSchema },
+      { name: Invoice.name, schema: InvoiceSchema },
     ]),
   ],
   controllers: [AppointmentsController, PublicAppointmentsController],

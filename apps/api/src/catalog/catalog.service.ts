@@ -480,9 +480,26 @@ export class CatalogService {
         descriptionAr: r.descriptionAr,
         descriptionEn: r.descriptionEn,
         descriptionFr: r.descriptionFr,
+        shortDescription:
+          localized(
+            query.locale,
+            r.shortDescriptionAr,
+            r.shortDescriptionEn,
+            r.shortDescriptionFr,
+          ) ||
+          localized(
+            query.locale,
+            r.descriptionAr,
+            r.descriptionEn,
+            r.descriptionFr,
+          ).slice(0, 180),
+        shortDescriptionAr: r.shortDescriptionAr,
+        shortDescriptionEn: r.shortDescriptionEn,
+        shortDescriptionFr: r.shortDescriptionFr,
         icon: r.icon,
         image: r.image || null,
         isFeatured: r.isFeatured,
+        isBookable: r.isBookable !== false,
         serviceCount: serviceCountMap.get(String(r._id)) || 0,
         doctorCount: doctorCountMap.get(String(r._id)) || 0,
         servicePreviews: previewMap.get(String(r._id)) || [],
@@ -554,9 +571,26 @@ export class CatalogService {
         descriptionAr: row.descriptionAr,
         descriptionEn: row.descriptionEn,
         descriptionFr: row.descriptionFr,
+        shortDescription:
+          localized(
+            locale,
+            row.shortDescriptionAr,
+            row.shortDescriptionEn,
+            row.shortDescriptionFr,
+          ) ||
+          localized(
+            locale,
+            row.descriptionAr,
+            row.descriptionEn,
+            row.descriptionFr,
+          ).slice(0, 180),
+        shortDescriptionAr: row.shortDescriptionAr,
+        shortDescriptionEn: row.shortDescriptionEn,
+        shortDescriptionFr: row.shortDescriptionFr,
         icon: row.icon,
         image: row.image || null,
         isFeatured: row.isFeatured,
+        isBookable: row.isBookable !== false,
         serviceCount: services.total,
         doctorCount: doctors.length,
       },
@@ -699,6 +733,7 @@ export class CatalogService {
             : null,
         currency: r.priceApproved ? r.currency : null,
         requiresConsultation: r.requiresConsultation === true,
+        isBookable: r.isBookable !== false,
         isFeatured: r.isFeatured,
       });
     }
@@ -769,6 +804,9 @@ export class CatalogService {
           row.descriptionFr,
         ),
         shortDescription: shortDesc(locale, row as DentalServiceDocument),
+        shortDescriptionAr: row.shortDescriptionAr || null,
+        shortDescriptionEn: row.shortDescriptionEn || null,
+        shortDescriptionFr: row.shortDescriptionFr || null,
         descriptionAr: row.descriptionAr,
         descriptionEn: row.descriptionEn,
         descriptionFr: row.descriptionFr,
@@ -787,6 +825,7 @@ export class CatalogService {
             : null,
         currency: row.priceApproved ? row.currency : null,
         requiresConsultation: row.requiresConsultation === true,
+        isBookable: row.isBookable !== false,
         isFeatured: row.isFeatured,
       },
       doctors: doctors.map((d) => this.serializePublicDoctor(d)),
@@ -816,6 +855,13 @@ export class CatalogService {
           fieldErrors: { specialtySlug: ["التخصص غير صالح."] },
         });
       }
+      if (specialty.isBookable === false) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "التخصص غير متاح للحجز حاليًا.",
+          fieldErrors: { specialtySlug: ["التخصص غير قابل للحجز."] },
+        });
+      }
     }
 
     if (input.serviceSlug) {
@@ -828,6 +874,13 @@ export class CatalogService {
           code: ErrorCodes.VALIDATION_ERROR,
           message: "الخدمة غير متاحة.",
           fieldErrors: { serviceSlug: ["الخدمة غير صالحة."] },
+        });
+      }
+      if (service.isBookable === false) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "الخدمة غير متاحة للحجز حاليًا.",
+          fieldErrors: { serviceSlug: ["الخدمة غير قابلة للحجز."] },
         });
       }
       if (specialty) {
@@ -962,11 +1015,15 @@ export class CatalogService {
     descriptionAr?: string;
     descriptionEn?: string;
     descriptionFr?: string;
+    shortDescriptionAr?: string;
+    shortDescriptionEn?: string;
+    shortDescriptionFr?: string;
     icon?: string;
     image?: string;
     isActive?: boolean;
     isPublic?: boolean;
     isFeatured?: boolean;
+    isBookable?: boolean;
     displayOrder?: number;
     doctorIds?: Types.ObjectId[];
     aliases?: string[];
@@ -983,11 +1040,15 @@ export class CatalogService {
       descriptionAr: r.descriptionAr,
       descriptionEn: r.descriptionEn,
       descriptionFr: r.descriptionFr,
+      shortDescriptionAr: r.shortDescriptionAr,
+      shortDescriptionEn: r.shortDescriptionEn,
+      shortDescriptionFr: r.shortDescriptionFr,
       icon: r.icon,
       image: r.image,
       isActive: r.isActive,
       isPublic: r.isPublic,
       isFeatured: r.isFeatured,
+      isBookable: r.isBookable !== false,
       displayOrder: r.displayOrder,
       doctorIds: (r.doctorIds || []).map(String),
       aliases: r.aliases || [],
@@ -1007,11 +1068,15 @@ export class CatalogService {
       descriptionAr?: string;
       descriptionEn?: string;
       descriptionFr?: string;
+      shortDescriptionAr?: string;
+      shortDescriptionEn?: string;
+      shortDescriptionFr?: string;
       icon?: string;
       image?: string;
       isActive?: boolean;
       isPublic?: boolean;
       isFeatured?: boolean;
+      isBookable?: boolean;
       displayOrder?: number;
       doctorIds?: string[];
     },
@@ -1046,6 +1111,9 @@ export class CatalogService {
       descriptionAr: dto.descriptionAr?.trim() || "",
       descriptionEn: dto.descriptionEn?.trim() || "",
       descriptionFr: dto.descriptionFr?.trim() || "",
+      shortDescriptionAr: dto.shortDescriptionAr?.trim() || "",
+      shortDescriptionEn: dto.shortDescriptionEn?.trim() || "",
+      shortDescriptionFr: dto.shortDescriptionFr?.trim() || "",
       icon: dto.icon?.trim() || "tooth",
       ...(dto.image !== undefined
         ? { image: dto.image?.trim() || "" }
@@ -1053,6 +1121,7 @@ export class CatalogService {
       isActive: dto.isActive !== false,
       isPublic: dto.isPublic === true,
       isFeatured: dto.isFeatured === true,
+      isBookable: dto.isBookable !== false,
       displayOrder: dto.displayOrder ?? 100,
       doctorIds,
     };
@@ -1207,6 +1276,7 @@ export class CatalogService {
     currency?: string;
     priceApproved?: boolean;
     requiresConsultation?: boolean;
+    isBookable?: boolean;
     isActive?: boolean;
     isPublic?: boolean;
     isFeatured?: boolean;
@@ -1237,6 +1307,7 @@ export class CatalogService {
       currency: r.currency || "DZD",
       priceApproved: r.priceApproved === true,
       requiresConsultation: r.requiresConsultation === true,
+      isBookable: r.isBookable !== false,
       isActive: r.isActive,
       isPublic: r.isPublic,
       isFeatured: r.isFeatured,
@@ -1270,6 +1341,7 @@ export class CatalogService {
       currency?: string;
       priceApproved?: boolean;
       requiresConsultation?: boolean;
+      isBookable?: boolean;
       isActive?: boolean;
       isPublic?: boolean;
       isFeatured?: boolean;
@@ -1349,6 +1421,7 @@ export class CatalogService {
       currency: dto.currency?.trim() || "DZD",
       priceApproved: dto.priceApproved === true,
       requiresConsultation: dto.requiresConsultation === true,
+      isBookable: dto.isBookable !== false,
       isActive: dto.isActive !== false,
       isPublic: wantPublic,
       isFeatured: dto.isFeatured === true,

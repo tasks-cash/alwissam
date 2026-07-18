@@ -75,8 +75,24 @@ export function ContactPageContent({
         <PublicSection tone="mist" className="contact-hours-section">
           <div className="contact-hours-panel card-surface">
             <p className="section-kicker">{clinicName}</p>
-            <h2>{copy.hoursLabel}</h2>
-            <p className="pub-lead">{copy.locationLead}</p>
+            <h2>
+              {pickLocalized(
+                locale,
+                clinic?.locationSectionTitleAr,
+                clinic?.locationSectionTitleEn,
+                clinic?.locationSectionTitleFr,
+                copy.hoursLabel,
+              )}
+            </h2>
+            <p className="pub-lead">
+              {pickLocalized(
+                locale,
+                clinic?.locationSectionDescriptionAr,
+                clinic?.locationSectionDescriptionEn,
+                clinic?.locationSectionDescriptionFr,
+                copy.locationLead,
+              )}
+            </p>
             <div className="contact-hours-grid">
               {displayHours ? (
                 <div>

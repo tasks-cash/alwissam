@@ -11,6 +11,9 @@ const reviewSchema = z.object({
   quoteAr: z.string().min(8).max(2000),
   quoteEn: z.string().max(2000).optional(),
   quoteFr: z.string().max(2000).optional(),
+  subjectAr: z.string().max(180).optional(),
+  avatarType: z.enum(["male", "female", "neutral", "initials", "uploaded"]),
+  patientImage: z.string().max(500).optional(),
   rating: z.number().min(1).max(5),
   doctorId: z.string().optional(),
   specialtySlug: z.string().max(80).optional(),
@@ -27,6 +30,7 @@ type ReviewRow = z.infer<typeof reviewSchema> & {
   status?: string;
   isApproved?: boolean;
   isPublished?: boolean;
+  isSample?: boolean;
 };
 
 const emptyForm = {
@@ -34,6 +38,14 @@ const emptyForm = {
   quoteAr: "",
   quoteEn: "",
   quoteFr: "",
+  subjectAr: "",
+  avatarType: "neutral" as
+    | "male"
+    | "female"
+    | "neutral"
+    | "initials"
+    | "uploaded",
+  patientImage: "",
   rating: 5,
   doctorId: "",
   specialtySlug: "",
@@ -157,6 +169,9 @@ export default function ReviewsAdminPage() {
       quoteAr: row.quoteAr || "",
       quoteEn: row.quoteEn || "",
       quoteFr: row.quoteFr || "",
+      subjectAr: row.subjectAr || "",
+      avatarType: row.avatarType || "neutral",
+      patientImage: row.patientImage || "",
       rating: row.rating || 5,
       doctorId: row.doctorId || "",
       specialtySlug: row.specialtySlug || "",
@@ -230,7 +245,12 @@ export default function ReviewsAdminPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td>{r.displayName || "—"}</td>
+                  <td>
+                    {r.displayName || "—"}{" "}
+                    {r.isSample ? (
+                      <span className="badge">تجريبي</span>
+                    ) : null}
+                  </td>
                   <td dir="ltr">{r.rating || "—"}</td>
                   <td>{(r.quoteAr || "").slice(0, 80)}…</td>
                   <td>{r.status || (r.isApproved ? "APPROVED" : "PENDING")}</td>
@@ -256,7 +276,17 @@ export default function ReviewsAdminPage() {
                           إلغاء نشر
                         </button>
                       ) : (
-                        <button type="button" className="btn btn-primary" onClick={() => void act(r.id, "publish")}>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={r.isSample === true}
+                          title={
+                            r.isSample
+                              ? "لا يمكن نشر التقييمات التجريبية"
+                              : undefined
+                          }
+                          onClick={() => void act(r.id, "publish")}
+                        >
                           نشر
                         </button>
                       )}
@@ -268,6 +298,13 @@ export default function ReviewsAdminPage() {
                         }
                       >
                         {r.isFeatured ? "إلغاء تمييز" : "تمييز"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => void act(r.id, "archive")}
+                      >
+                        أرشفة
                       </button>
                     </div>
                   </td>
@@ -311,6 +348,17 @@ export default function ReviewsAdminPage() {
             </div>
           </div>
           <div className="field">
+            <label>موضوع التقييم</label>
+            <input
+              className="input"
+              maxLength={180}
+              value={form.subjectAr}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, subjectAr: e.target.value }))
+              }
+            />
+          </div>
+          <div className="field">
             <label>النص AR *</label>
             <textarea
               className="input"
@@ -319,6 +367,47 @@ export default function ReviewsAdminPage() {
               value={form.quoteAr}
               onChange={(e) => setForm((f) => ({ ...f, quoteAr: e.target.value }))}
             />
+          </div>
+          <div className="row-2">
+            <div className="field">
+              <label>نوع الصورة الرمزية</label>
+              <select
+                className="input"
+                value={form.avatarType}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    avatarType: e.target.value as typeof f.avatarType,
+                    patientImage:
+                      e.target.value === "uploaded" ? f.patientImage : "",
+                  }))
+                }
+              >
+                <option value="male">ذكر</option>
+                <option value="female">أنثى</option>
+                <option value="neutral">محايد</option>
+                <option value="initials">الأحرف الأولى</option>
+                <option value="uploaded">صورة مرفوعة</option>
+              </select>
+            </div>
+            {form.avatarType === "uploaded" ? (
+              <div className="field">
+                <label>مسار صورة المريض</label>
+                <input
+                  className="input"
+                  dir="ltr"
+                  required
+                  placeholder="/api/media/..."
+                  value={form.patientImage}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      patientImage: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
           </div>
           <div className="row-2">
             <div className="field">

@@ -25,7 +25,9 @@ describe("staff-chat rules", () => {
 
   it("labels roles in Arabic", () => {
     expect(roleLabelAr("SECRETARY")).toContain("سكرتير");
-    expect(roleLabelAr("ADMIN")).toContain("إدارة");
+    expect(roleLabelAr("ADMIN")).toContain("مالك النظام");
+    expect(roleLabelAr("ADMIN", "GENERAL")).toContain("طبيب عام");
+    expect(roleLabelAr("ADMIN_OWNER", "SPECIALIST")).toContain("طبيب مختص");
   });
 
   it("filters assigned doctors when configured", () => {

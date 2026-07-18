@@ -89,6 +89,21 @@ export class UpsertSpecialtyDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(280)
+  shortDescriptionAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  shortDescriptionEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  shortDescriptionFr?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(40)
   icon?: string;
 
@@ -108,6 +123,10 @@ export class UpsertSpecialtyDto {
   @IsOptional()
   @IsBoolean()
   isFeatured?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isBookable?: boolean;
 
   @IsOptional()
   @Type(() => Number)
@@ -218,6 +237,10 @@ export class UpsertServiceDto {
   @IsOptional()
   @IsBoolean()
   requiresConsultation?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isBookable?: boolean;
 
   @IsOptional()
   @IsBoolean()

@@ -26,6 +26,15 @@ export class Specialty {
   @Prop({ default: "", trim: true })
   descriptionFr!: string;
 
+  @Prop({ default: "", trim: true })
+  shortDescriptionAr!: string;
+
+  @Prop({ default: "", trim: true })
+  shortDescriptionEn!: string;
+
+  @Prop({ default: "", trim: true })
+  shortDescriptionFr!: string;
+
   @Prop({ default: "tooth", trim: true })
   icon!: string;
 
@@ -40,6 +49,9 @@ export class Specialty {
 
   @Prop({ default: false })
   isFeatured!: boolean;
+
+  @Prop({ default: true })
+  isBookable!: boolean;
 
   @Prop({ default: 100 })
   displayOrder!: number;

@@ -53,6 +53,15 @@ export class Review {
   @Prop()
   patientImage?: string;
 
+  @Prop({
+    enum: ["male", "female", "neutral", "initials", "uploaded"],
+    default: "neutral",
+  })
+  avatarType!: string;
+
+  @Prop({ enum: ["ar", "en", "fr"], default: "ar", index: true })
+  locale!: string;
+
   @Prop({ trim: true })
   subjectAr?: string;
 
@@ -106,8 +115,8 @@ export class Review {
   displayOrder!: number;
 
   @Prop({
-    enum: ["PENDING", "APPROVED", "REJECTED", "ARCHIVED"],
-    default: "PENDING",
+    enum: ["DRAFT", "PENDING", "APPROVED", "REJECTED", "PUBLISHED", "ARCHIVED"],
+    default: "DRAFT",
     index: true,
   })
   status!: string;
@@ -116,6 +125,7 @@ export class Review {
   @Prop({
     enum: [
       "pending_review",
+      "draft",
       "approved",
       "rejected",
       "published",
@@ -135,6 +145,15 @@ export class Review {
 
   @Prop({ type: Date, index: true })
   publishedAt?: Date;
+
+  @Prop({ type: Date, default: null })
+  approvedAt?: Date | null;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", default: null })
+  approvedBy?: Types.ObjectId | null;
+
+  @Prop({ default: false, index: true })
+  isSample!: boolean;
 
   @Prop({ type: SchemaTypes.ObjectId })
   createdBy?: Types.ObjectId;

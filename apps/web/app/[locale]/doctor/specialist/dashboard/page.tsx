@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import {
+  DoctorExamPanel,
+  type ExamWaitingEntry,
+} from "../../../../../components/doctor/DoctorExamPanel";
 import { DashboardShell } from "../../../../../components/layout/DashboardShell";
 import { useDashboardSession } from "../../../../../lib/use-dashboard-session";
 import type { AdminDashboardMode } from "../../../../../lib/navigation";
@@ -78,11 +82,29 @@ export default function OwnerDashboardPage() {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [loadError, setLoadError] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(true);
+  const [waiting, setWaiting] = useState<ExamWaitingEntry[]>([]);
+  const [waitingError, setWaitingError] = useState("");
 
   useEffect(() => {
     if (!user) return;
     setMode(normalizeAdminDashboardMode(user.adminDashboardMode));
   }, [user]);
+
+  const loadWaiting = useCallback(async () => {
+    setWaitingError("");
+    try {
+      const res = await fetch("/api/waiting-room", { credentials: "include" });
+      if (!res.ok) {
+        setWaitingError("تعذر تحميل قائمة المعاينة.");
+        setWaiting([]);
+        return;
+      }
+      const data = await res.json();
+      setWaiting(Array.isArray(data.entries) ? data.entries : []);
+    } catch {
+      setWaitingError("تعذر تحميل قائمة المعاينة.");
+    }
+  }, []);
 
   const load = useCallback(async (activeMode: AdminDashboardMode) => {
     setLoadingSummary(true);
@@ -109,8 +131,11 @@ export default function OwnerDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (user) void load(mode);
-  }, [load, user, mode]);
+    if (user) {
+      void load(mode);
+      void loadWaiting();
+    }
+  }, [load, loadWaiting, user, mode]);
 
   if (loading || !user) {
     return <main className="dash-panel">جارٍ تحميل لوحة التحكم...</main>;
@@ -214,6 +239,45 @@ export default function OwnerDashboardPage() {
           </button>
         </div>
       ) : null}
+
+      {waitingError ? (
+        <div className="alert-error admin-dash-error">
+          <span>{waitingError}</span>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => void loadWaiting()}
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      ) : null}
+
+      <section className="card-surface dash-actions" aria-label="المعاينة">
+        <div className="toolbar" style={{ justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0 }}>المعاينة — قائمة الانتظار</h2>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => void loadWaiting()}
+          >
+            تحديث
+          </button>
+        </div>
+        {waiting.length === 0 && !waitingError ? (
+          <p className="muted">لا يوجد مرضى بانتظار المعاينة حاليًا.</p>
+        ) : (
+          <div className="exam-queue-list">
+            {waiting.map((entry) => (
+              <DoctorExamPanel
+                key={entry.id}
+                entry={entry}
+                onDone={() => void loadWaiting()}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       {stats && !loadError ? (
         <section className="stat-grid" aria-label="ملخص يومي">

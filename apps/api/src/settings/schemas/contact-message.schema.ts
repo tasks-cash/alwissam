@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument } from "mongoose";
+import { HydratedDocument, SchemaTypes, Types } from "mongoose";
 
 export type ContactMessageDocument = HydratedDocument<ContactMessage>;
 
@@ -24,10 +24,29 @@ export class ContactMessage {
   @Prop({ enum: ["ar", "en", "fr"] })
   locale?: string;
 
-  /** Public default status is `new` (legacy rows may use NEW/READ/ARCHIVED). */
+  @Prop({ type: SchemaTypes.ObjectId, ref: "User", default: null })
+  doctorId?: Types.ObjectId | null;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: "Specialty", default: null })
+  specialtyId?: Types.ObjectId | null;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: "DentalService", default: null })
+  serviceId?: Types.ObjectId | null;
+
+  /** Legacy uppercase values remain readable; all new writes use lowercase. */
   @Prop({
     default: "new",
-    enum: ["new", "NEW", "READ", "read", "ARCHIVED", "archived"],
+    enum: [
+      "new",
+      "in_review",
+      "contacted",
+      "resolved",
+      "archived",
+      "NEW",
+      "READ",
+      "read",
+      "ARCHIVED",
+    ],
     index: true,
   })
   status!: string;
@@ -41,3 +60,4 @@ export class ContactMessage {
 
 export const ContactMessageSchema = SchemaFactory.createForClass(ContactMessage);
 ContactMessageSchema.index({ createdAt: -1 });
+ContactMessageSchema.index({ status: 1, createdAt: -1 });

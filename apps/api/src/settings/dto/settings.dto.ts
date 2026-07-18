@@ -6,6 +6,7 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  MaxLength,
   MinLength,
   ValidateNested,
 } from "class-validator";
@@ -205,6 +206,175 @@ export class UpsertClinicInfoDto {
   @IsOptional()
   @IsString()
   workingHoursFr?: string;
+
+  @ApiPropertyOptional({
+    description: "Structured weekly schedule (morning/evening per day)",
+    type: "array",
+    items: { type: "object" },
+  })
+  @IsOptional()
+  @IsArray()
+  weeklySchedule?: Array<Record<string, unknown>>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  contactHeroTitleAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  contactHeroTitleEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  contactHeroTitleFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  contactHeroDescriptionAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  contactHeroDescriptionEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  contactHeroDescriptionFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  contactHeroImage?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  inquirySectionTitleAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  inquirySectionDescriptionAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  locationSectionTitleAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  locationSectionDescriptionAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  contactSeoTitleAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  contactSeoDescriptionAr?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  contactPublished?: boolean;
+}
+
+export class UpsertSpecialtiesPageDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badgeAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badgeEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badgeFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  titleAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  titleEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  titleFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  descriptionAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  descriptionEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  descriptionFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  image?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  imageAltAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  imageAltEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  imageAltFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  primaryCtaLabelAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  primaryCtaRoute?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  secondaryCtaLabelAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  secondaryCtaRoute?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
 }
 
 export class UpsertPublicPagesDto {
@@ -239,9 +409,9 @@ export class UpsertPublicPagesDto {
 }
 
 export class UpsertSettingsDto {
-  @ApiProperty({ enum: ["clinic_info", "public_pages"] })
-  @IsIn(["clinic_info", "public_pages"])
-  section!: "clinic_info" | "public_pages";
+  @ApiProperty({ enum: ["clinic_info", "public_pages", "specialties_page"] })
+  @IsIn(["clinic_info", "public_pages", "specialties_page"])
+  section!: "clinic_info" | "public_pages" | "specialties_page";
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -254,4 +424,10 @@ export class UpsertSettingsDto {
   @ValidateNested()
   @Type(() => UpsertPublicPagesDto)
   publicPages?: UpsertPublicPagesDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpsertSpecialtiesPageDto)
+  specialtiesPage?: UpsertSpecialtiesPageDto;
 }

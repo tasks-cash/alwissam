@@ -29,9 +29,106 @@ type DoctorRow = {
   phone?: string;
   type?: string;
   specialtyAr?: string;
+  professionalTitleAr?: string;
+  bioAr?: string;
+  isPublic?: boolean;
+  isBookable?: boolean;
+  isOwner?: boolean;
   isActive?: boolean;
   status?: string;
 };
+
+type PublicProfileForm = {
+  userId: string;
+  specialtyAr: string;
+  professionalTitleAr: string;
+  bioAr: string;
+  isPublic: boolean;
+  isBookable: boolean;
+};
+
+function DoctorBadges({ d }: { d: DoctorRow }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.35rem" }}>
+      {d.specialtyAr ? (
+        <span className="badge">{d.specialtyAr}</span>
+      ) : null}
+      <span className={`badge ${d.isPublic !== false ? "" : "muted"}`}>
+        {d.isPublic !== false ? "عام" : "غير عام"}
+      </span>
+      <span className={`badge ${d.isBookable !== false ? "" : "muted"}`}>
+        {d.isBookable !== false ? "قابل للحجز" : "غير قابل للحجز"}
+      </span>
+      {d.isOwner ? <span className="badge">صاحبة العيادة</span> : null}
+      {d.isActive === false ? (
+        <span className="badge muted">غير نشط</span>
+      ) : null}
+    </div>
+  );
+}
+
+function PublicProfileFields({
+  form,
+  onChange,
+  submitLabel,
+  loading,
+}: {
+  form: PublicProfileForm;
+  onChange: (next: PublicProfileForm) => void;
+  submitLabel: string;
+  loading: boolean;
+}) {
+  return (
+    <>
+      <div className="field">
+        <label>التخصص (عربي)</label>
+        <input
+          className="input"
+          value={form.specialtyAr}
+          onChange={(e) => onChange({ ...form, specialtyAr: e.target.value })}
+        />
+      </div>
+      <div className="field">
+        <label>اللقب المهني (عربي)</label>
+        <input
+          className="input"
+          value={form.professionalTitleAr}
+          onChange={(e) =>
+            onChange({ ...form, professionalTitleAr: e.target.value })
+          }
+        />
+      </div>
+      <div className="field">
+        <label>نبذة / وصف (عربي)</label>
+        <textarea
+          className="input"
+          rows={3}
+          value={form.bioAr}
+          onChange={(e) => onChange({ ...form, bioAr: e.target.value })}
+        />
+      </div>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={form.isPublic}
+          onChange={(e) => onChange({ ...form, isPublic: e.target.checked })}
+        />
+        <span>عرض عام على الموقع</span>
+      </label>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={form.isBookable}
+          onChange={(e) => onChange({ ...form, isBookable: e.target.checked })}
+        />
+        <span>قابل للحجز</span>
+      </label>
+      <button className="btn btn-primary" type="submit" disabled={loading}>
+        {loading ? "جارٍ الحفظ..." : submitLabel}
+      </button>
+    </>
+  );
+}
 
 export default function DoctorsPage() {
   const { locale, dict, user, loading: sessionLoading, error: sessionError } =
@@ -59,6 +156,10 @@ export default function DoctorsPage() {
     phone: string;
     newPassword: string;
   } | null>(null);
+  const [publicEdit, setPublicEdit] = useState<PublicProfileForm | null>(null);
+  const [displayDrafts, setDisplayDrafts] = useState<
+    Record<string, { specialtyAr: string; bioAr: string }>
+  >({});
   const [deactivate, setDeactivate] = useState<{
     userId: string;
     name: string;
@@ -73,12 +174,61 @@ export default function DoctorsPage() {
       return;
     }
     const data = await list.json();
-    setDoctors(data.doctors || []);
+    const rows: DoctorRow[] = data.doctors || [];
+    setDoctors(rows);
+    setDisplayDrafts((prev) => {
+      const next = { ...prev };
+      for (const d of rows) {
+        if (!next[d.id]) {
+          next[d.id] = {
+            specialtyAr: d.specialtyAr || "",
+            bioAr: d.bioAr || "",
+          };
+        }
+      }
+      return next;
+    });
   }, []);
 
   useEffect(() => {
     if (user) void load();
   }, [load, user]);
+
+  async function savePublicProfile(
+    e: FormEvent,
+    payload: PublicProfileForm,
+    onDone?: () => void,
+  ) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      const { ok, data } = await apiPatch<{ message?: string }>(
+        "/api/admin/doctors",
+        {
+          userId: payload.userId,
+          specialtyAr: payload.specialtyAr,
+          professionalTitleAr: payload.professionalTitleAr,
+          bioAr: payload.bioAr,
+          isPublic: payload.isPublic,
+          isBookable: payload.isBookable,
+        },
+      );
+      if (!ok) {
+        setFieldErrors(mapFieldErrors(data));
+        setError(apiErrorMessage(data));
+        return;
+      }
+      setSuccess(data.message || validationMessagesAr.saved);
+      onDone?.();
+      await load();
+    } catch {
+      setError(validationMessagesAr.backendUnavailable);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -253,13 +403,60 @@ export default function DoctorsPage() {
                 <div>
                   <strong>{d.fullName}</strong>
                   <div className="hint">{d.email} · {d.phone} · {d.type} · {d.status}</div>
+                  <DoctorBadges d={d} />
                 </div>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() =>
+                      setPublicEdit({
+                        userId: d.id,
+                        specialtyAr: d.specialtyAr || "",
+                        professionalTitleAr: d.professionalTitleAr || "",
+                        bioAr: d.bioAr || "",
+                        isPublic: d.isPublic !== false,
+                        isBookable: d.isBookable !== false,
+                      })
+                    }
+                  >
+                    عرض عام
+                  </button>
                   <button type="button" className="btn btn-outline" onClick={() => setEdit({ userId: d.id, email: d.email || "", phone: d.phone || "", newPassword: "" })}>تعديل الدخول</button>
                   <Link className="btn btn-outline" href={`/${locale}/doctor/specialist/staff/${d.id}/activity`}>النشاط</Link>
-                  <button type="button" className="btn btn-outline" onClick={() => { setDialogError(""); setDeactivate({ userId: d.id, name: d.fullName }); }}>تعطيل</button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={d.isOwner}
+                    title={d.isOwner ? "لا يمكن تعطيل حساب صاحبة العيادة" : undefined}
+                    onClick={() => { if (!d.isOwner) { setDialogError(""); setDeactivate({ userId: d.id, name: d.fullName }); } }}
+                  >
+                    تعطيل
+                  </button>
                 </div>
               </div>
+              {publicEdit?.userId === d.id ? (
+                <form
+                  onSubmit={(e) =>
+                    void savePublicProfile(e, publicEdit, () => setPublicEdit(null))
+                  }
+                  style={{ marginTop: "0.75rem", display: "grid", gap: "0.65rem" }}
+                >
+                  <PublicProfileFields
+                    form={publicEdit}
+                    onChange={setPublicEdit}
+                    submitLabel="حفظ العرض العام"
+                    loading={loading}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setPublicEdit(null)}
+                  >
+                    إلغاء
+                  </button>
+                </form>
+              ) : null}
               {edit?.userId === d.id ? (
                 <form onSubmit={onUpdate} style={{ marginTop: "0.75rem", display: "grid", gap: "0.65rem" }}>
                   <div className="field">
@@ -279,6 +476,72 @@ export default function DoctorsPage() {
               ) : null}
             </div>
           ))}
+          {doctors.length === 0 ? <p className="hint">لا يوجد أطباء بعد.</p> : null}
+        </div>
+      </section>
+
+      <section id="doctor-display" className="card-surface" style={{ padding: "1.25rem" }}>
+        <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>عرض الأطباء</h2>
+        <p className="hint">تعديل التخصص والوصف الظاهر للمرضى على الموقع.</p>
+        <div style={{ display: "grid", gap: "0.75rem" }}>
+          {doctors.map((d) => {
+            const draft = displayDrafts[d.id] || {
+              specialtyAr: d.specialtyAr || "",
+              bioAr: d.bioAr || "",
+            };
+            return (
+              <div key={`display-${d.id}`} style={{ borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
+                <strong>{d.fullName}</strong>
+                <div style={{ marginTop: "0.65rem", display: "grid", gap: "0.65rem" }}>
+                  <div className="field">
+                    <label>التخصص</label>
+                    <input
+                      className="input"
+                      value={draft.specialtyAr}
+                      onChange={(e) =>
+                        setDisplayDrafts((prev) => ({
+                          ...prev,
+                          [d.id]: { ...draft, specialtyAr: e.target.value },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label>الوصف</label>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      value={draft.bioAr}
+                      onChange={(e) =>
+                        setDisplayDrafts((prev) => ({
+                          ...prev,
+                          [d.id]: { ...draft, bioAr: e.target.value },
+                        }))
+                      }
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={loading}
+                    onClick={() => {
+                      const fakeEvent = { preventDefault: () => {} } as FormEvent;
+                      void savePublicProfile(fakeEvent, {
+                        userId: d.id,
+                        specialtyAr: draft.specialtyAr,
+                        professionalTitleAr: d.professionalTitleAr || "",
+                        bioAr: draft.bioAr,
+                        isPublic: d.isPublic !== false,
+                        isBookable: d.isBookable !== false,
+                      });
+                    }}
+                  >
+                    {loading ? "جارٍ الحفظ..." : "حفظ وصف الطبيب"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
           {doctors.length === 0 ? <p className="hint">لا يوجد أطباء بعد.</p> : null}
         </div>
       </section>

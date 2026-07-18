@@ -23,6 +23,7 @@ export type PublicService = {
   priceFrom?: number | null;
   currency?: string | null;
   requiresConsultation?: boolean;
+  isBookable?: boolean;
   isFeatured?: boolean;
 };
 
@@ -81,6 +82,31 @@ export type PublicFaqsResponse = {
 
 export type PublicPolicies = Record<string, string | undefined>;
 
+export type PublicSpecialtiesPage = {
+  badgeAr?: string;
+  badgeEn?: string;
+  badgeFr?: string;
+  titleAr?: string;
+  titleEn?: string;
+  titleFr?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  image?: string;
+  imageAltAr?: string;
+  imageAltEn?: string;
+  imageAltFr?: string;
+  primaryCtaLabelAr?: string;
+  primaryCtaLabelEn?: string;
+  primaryCtaLabelFr?: string;
+  primaryCtaRoute?: string;
+  secondaryCtaLabelAr?: string;
+  secondaryCtaLabelEn?: string;
+  secondaryCtaLabelFr?: string;
+  secondaryCtaRoute?: string;
+  published?: boolean;
+};
+
 export type PublicSitePayload = {
   ok?: boolean;
   clinic?: {
@@ -128,7 +154,34 @@ export type PublicSitePayload = {
     countryAr?: string;
     countryEn?: string;
     countryFr?: string;
+    contactHeroTitleAr?: string;
+    contactHeroTitleEn?: string;
+    contactHeroTitleFr?: string;
+    contactHeroDescriptionAr?: string;
+    contactHeroDescriptionEn?: string;
+    contactHeroDescriptionFr?: string;
+    contactHeroImage?: string;
+    inquirySectionTitleAr?: string;
+    inquirySectionTitleEn?: string;
+    inquirySectionTitleFr?: string;
+    inquirySectionDescriptionAr?: string;
+    inquirySectionDescriptionEn?: string;
+    inquirySectionDescriptionFr?: string;
+    locationSectionTitleAr?: string;
+    locationSectionTitleEn?: string;
+    locationSectionTitleFr?: string;
+    locationSectionDescriptionAr?: string;
+    locationSectionDescriptionEn?: string;
+    locationSectionDescriptionFr?: string;
+    contactSeoTitleAr?: string;
+    contactSeoTitleEn?: string;
+    contactSeoTitleFr?: string;
+    contactSeoDescriptionAr?: string;
+    contactSeoDescriptionEn?: string;
+    contactSeoDescriptionFr?: string;
+    contactPublished?: boolean;
   };
+  specialtiesPage?: PublicSpecialtiesPage;
   content?: {
     aboutAr?: string;
     aboutEn?: string;
@@ -162,6 +215,10 @@ export type PublicReview = {
   nameAr?: string;
   nameEn?: string;
   nameFr?: string;
+  subject?: string;
+  subjectAr?: string;
+  subjectEn?: string;
+  subjectFr?: string;
   quote?: string;
   quoteAr?: string;
   quoteEn?: string;
@@ -177,6 +234,8 @@ export type PublicReview = {
   specialtySlug?: string | null;
   serviceSlug?: string | null;
   patientImage?: string | null;
+  avatarType?: "male" | "female" | "neutral" | "initials" | "uploaded" | string;
+  locale?: string;
 };
 
 export type PublicReviewsStats = {
@@ -500,7 +559,7 @@ export async function fetchPublicReviews(opts?: {
       featuredCount: 0,
     },
     page: 1,
-    limit: 12,
+    limit: 30,
     total: 0,
     totalPages: 1,
   };
@@ -508,7 +567,7 @@ export async function fetchPublicReviews(opts?: {
     const params = new URLSearchParams({
       locale: opts?.locale || "ar",
       page: String(Math.max(1, opts?.page ?? 1)),
-      limit: String(Math.min(48, Math.max(1, opts?.limit ?? 12))),
+      limit: String(Math.min(30, Math.max(1, opts?.limit ?? 30))),
     });
     if (opts?.rating) params.set("rating", String(opts.rating));
     if (opts?.doctorId) params.set("doctorId", opts.doctorId);

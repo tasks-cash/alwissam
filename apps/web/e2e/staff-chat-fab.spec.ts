@@ -10,11 +10,32 @@ test.describe("Staff Chat floating button", () => {
   const cssPath = join(__dirname, "../app/globals.css");
   const css = readFileSync(cssPath, "utf8");
 
-  test("staff-chat FAB CSS is bottom-start fixed", () => {
+  test("staff-chat FAB CSS is bottom-left fixed (physical left, RTL included)", () => {
     expect(css).toContain(".staff-chat-fab");
     expect(css).toMatch(/\.staff-chat-fab\s*\{[\s\S]*?position:\s*fixed/);
-    expect(css).toMatch(/\.staff-chat-fab\s*\{[\s\S]*?inset-inline-start:/);
+    expect(css).toMatch(/\.staff-chat-fab\s*\{[\s\S]*?left:\s*max\(/);
+    expect(css).toMatch(/\.staff-chat-fab\s*\{[\s\S]*?right:\s*auto/);
     expect(css).toMatch(/\.staff-chat-fab\s*\{[\s\S]*?bottom:/);
+  });
+
+  test("staff-chat panel opens from the left side", () => {
+    expect(css).toMatch(/\.staff-chat-panel\s*\{[\s\S]*?left:\s*1rem/);
+    expect(css).toMatch(/\.staff-chat-panel\s*\{[\s\S]*?right:\s*auto/);
+  });
+
+  test("desktop staff-chat panel uses compact enlarged width", () => {
+    expect(css).toMatch(
+      /\.staff-chat-panel\s*\{[\s\S]*?width:\s*min\(420px/,
+    );
+    expect(css).toMatch(
+      /\.staff-chat-panel\s*\{[\s\S]*?min-height:\s*min\(520px/,
+    );
+    expect(css).toMatch(
+      /\.staff-chat-panel\s*\{[\s\S]*?max-height:\s*min\(76vh/,
+    );
+    expect(css).not.toMatch(
+      /\.staff-chat-panel\s*\{[\s\S]*?width:\s*min\(920px/,
+    );
   });
 
   test("mobile chat panel uses full-screen rules", () => {

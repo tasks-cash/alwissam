@@ -33,30 +33,13 @@ export type NavItem = {
 
 export type AdminDashboardMode = "quick" | "full";
 
-/**
- * الوضع السريع — working features that map to the COMPLETE SPEC live surfaces
- * (admin/owner board, reception ops, doctor exam board, settings).
- * Incomplete spec items (dental chart, clinical chart depth, QR login, etc.)
- * are intentionally omitted until Nest+Mongo implementations are complete.
- * Staff chat is included once Nest `/api/staff/chat` + WebSocket are live.
- */
+/** Quick Mode has exactly four primary entries plus the settings group. */
 export const ADMIN_QUICK_HREFS = [
   "/doctor/specialist/dashboard",
+  "/doctor/specialist/patients",
   "/doctor/specialist/doctors",
   "/doctor/specialist/secretaries",
-  "/doctor/specialist/patients",
-  "/doctor/specialist/invitations",
   "/doctor/specialist/settings",
-  "/doctor/specialist/audit-logs",
-  "/doctor/general/dashboard",
-  "/secretary/dashboard",
-  "/secretary/patients",
-  "/secretary/appointments",
-  "/secretary/today",
-  "/secretary/directed",
-  "/secretary/assignment-queue",
-  "/secretary/payments",
-  "/secretary/messages",
 ] as const;
 
 /**

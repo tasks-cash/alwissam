@@ -14,11 +14,15 @@ type Specialty = {
   descriptionAr?: string;
   descriptionEn?: string;
   descriptionFr?: string;
+  shortDescriptionAr?: string;
+  shortDescriptionEn?: string;
+  shortDescriptionFr?: string;
   icon?: string;
   image?: string;
   isActive?: boolean;
   isPublic?: boolean;
   isFeatured?: boolean;
+  isBookable?: boolean;
   displayOrder?: number;
 };
 
@@ -30,11 +34,15 @@ const empty: Omit<Specialty, "id"> = {
   descriptionAr: "",
   descriptionEn: "",
   descriptionFr: "",
+  shortDescriptionAr: "",
+  shortDescriptionEn: "",
+  shortDescriptionFr: "",
   icon: "tooth",
   image: "",
   isActive: true,
   isPublic: false,
   isFeatured: false,
+  isBookable: true,
   displayOrder: 100,
 };
 
@@ -230,6 +238,53 @@ export default function SpecialtiesAdminPage() {
             />
           </div>
           <div className="row-2">
+            <div className="field">
+              <label htmlFor="shortDescriptionAr">وصف مختصر (AR)</label>
+              <textarea
+                id="shortDescriptionAr"
+                className="input"
+                rows={2}
+                value={form.shortDescriptionAr}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    shortDescriptionAr: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="shortDescriptionEn">وصف مختصر (EN)</label>
+              <textarea
+                id="shortDescriptionEn"
+                className="input"
+                rows={2}
+                value={form.shortDescriptionEn}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    shortDescriptionEn: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="shortDescriptionFr">وصف مختصر (FR)</label>
+            <textarea
+              id="shortDescriptionFr"
+              className="input"
+              rows={2}
+              value={form.shortDescriptionFr}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  shortDescriptionFr: e.target.value,
+                }))
+              }
+            />
+          </div>
+          <div className="row-2">
             <label className="check-row">
               <input
                 type="checkbox"
@@ -258,7 +313,17 @@ export default function SpecialtiesAdminPage() {
                   setForm((f) => ({ ...f, isFeatured: e.target.checked }))
                 }
               />
-              Featured
+              إظهار ضمن تخصصات مميزة
+            </label>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={form.isBookable !== false}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, isBookable: e.target.checked }))
+                }
+              />
+              قابل للحجز
             </label>
           </div>
           <button className="btn btn-primary" type="submit" disabled={saving}>

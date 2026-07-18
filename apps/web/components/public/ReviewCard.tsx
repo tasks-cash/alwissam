@@ -6,6 +6,7 @@ import type { PublicReview } from "../../lib/public-site";
 import {
   localizedReviewName,
   localizedReviewQuote,
+  pickLocalized,
 } from "../../lib/public-site";
 
 type Props = {
@@ -59,11 +60,56 @@ function Stars({
   );
 }
 
+function ReviewAvatar({
+  review,
+  name,
+}: {
+  review: PublicReview;
+  name: string;
+}) {
+  const type = String(review.avatarType || "neutral").toLowerCase();
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2);
+
+  if (type === "uploaded" && review.patientImage?.startsWith("/api/media/")) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        className="review-card-avatar review-card-avatar--image"
+        src={review.patientImage}
+        alt=""
+        width={48}
+        height={48}
+      />
+    );
+  }
+
+  const tone =
+    type === "male"
+      ? "review-card-avatar--male"
+      : type === "female"
+        ? "review-card-avatar--female"
+        : type === "initials"
+          ? "review-card-avatar--initials"
+          : "review-card-avatar--neutral";
+
+  return (
+    <span className={`review-card-avatar ${tone}`} aria-hidden>
+      {type === "initials" || !type ? initials || "ز" : initials || "ز"}
+    </span>
+  );
+}
+
 export function ReviewCard({
   locale,
   review,
   anonymousLabel,
-  verifiedLabel,
+  verifiedLabel: _verifiedLabel,
   readMoreLabel,
   readLessLabel,
   maxChars = 220,
@@ -73,13 +119,25 @@ export function ReviewCard({
   const name = review.isAnonymous
     ? anonymousLabel
     : localizedReviewName(locale, review);
+  const subject = pickLocalized(
+    locale,
+    review.subjectAr || review.subject,
+    review.subjectEn,
+    review.subjectFr,
+    review.subject || "",
+  );
   const date = formatReviewDate(locale, review.reviewDate || review.createdAt);
-  const isVerified = Boolean(review.isVerified ?? review.verified);
+  // Integrity: never show a fake "verified visit" badge on public cards.
+  void _verifiedLabel;
   const needsTruncate = quote.length > maxChars;
   const shownQuote = useMemo(() => {
     if (!needsTruncate || expanded) return quote;
     return `${quote.slice(0, maxChars).trim()}…`;
   }, [expanded, maxChars, needsTruncate, quote]);
+  const relation =
+    review.serviceSlug || review.specialtySlug
+      ? [review.serviceSlug, review.specialtySlug].filter(Boolean).join(" · ")
+      : "";
 
   return (
     <article className="review-card">
@@ -102,6 +160,7 @@ export function ReviewCard({
       {review.rating ? (
         <Stars rating={review.rating} locale={locale} />
       ) : null}
+      {subject ? <h3 className="review-card-subject">{subject}</h3> : null}
       <blockquote className="review-card-quote">
         <p>{shownQuote}</p>
       </blockquote>
@@ -117,13 +176,19 @@ export function ReviewCard({
       ) : null}
       <footer className="review-card-footer">
         <div className="review-card-meta">
-          <strong>{name}</strong>
-          {isVerified ? (
-            <span className="review-card-verified">{verifiedLabel}</span>
-          ) : null}
+          <ReviewAvatar review={review} name={name} />
+          <div>
+            <strong>{name}</strong>
+            {relation ? (
+              <p className="review-card-relation muted">{relation}</p>
+            ) : null}
+          </div>
         </div>
         {date ? (
-          <time className="review-card-date" dateTime={review.reviewDate || review.createdAt}>
+          <time
+            className="review-card-date"
+            dateTime={review.reviewDate || review.createdAt}
+          >
             {date}
           </time>
         ) : null}
