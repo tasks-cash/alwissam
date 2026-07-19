@@ -39,6 +39,10 @@ type Props = {
   onAdminModeChange?: (mode: AdminDashboardMode) => void;
   /** Doctor profile type for Owner display (from /api/auth/me). */
   doctorType?: "GENERAL" | "SPECIALIST";
+  /** Optional page-scoped language/direction; other dashboards keep inherited values. */
+  pageLanguage?: Locale;
+  pageDirection?: "rtl" | "ltr";
+  pageClassName?: string;
 };
 
 const MODE_STORAGE_KEY = "alwisam_admin_dashboard_mode";
@@ -47,7 +51,16 @@ function SidebarIcon({
   name,
   ...props
 }: SVGProps<SVGSVGElement> & {
-  name: "dashboard" | "patients" | "doctors" | "secretaries" | "settings" | "logout";
+  name:
+    | "dashboard"
+    | "patients"
+    | "doctors"
+    | "secretaries"
+    | "reviews"
+    | "cases"
+    | "contact"
+    | "settings"
+    | "logout";
 }) {
   const paths = {
     dashboard: (
@@ -77,6 +90,23 @@ function SidebarIcon({
       <>
         <rect x="4" y="5" width="16" height="16" rx="2" />
         <path d="M9 5V3h6v2M8 10h8M8 14h5M8 18h4" />
+      </>
+    ),
+    reviews: (
+      <>
+        <path d="M5 4h14v12H9l-4 4V4Z" />
+        <path d="m9 10 1.7 1.2-.7 2 2-1.2 2 1.2-.7-2L15 10h-2.1L12 8l-.9 2H9Z" />
+      </>
+    ),
+    cases: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M12 5v14M7 12h2M15 12h2" />
+      </>
+    ),
+    contact: (
+      <>
+        <path d="M7 3H4.8A1.8 1.8 0 0 0 3 4.9C3.5 13.4 10.6 20.5 19.1 21a1.8 1.8 0 0 0 1.9-1.8V17l-4.2-1-1.4 2.1a15.5 15.5 0 0 1-9.5-9.5L8 7.2 7 3Z" />
       </>
     ),
     settings: (
@@ -131,6 +161,9 @@ export function DashboardShell({
   initialAdminMode,
   onAdminModeChange,
   doctorType,
+  pageLanguage,
+  pageDirection,
+  pageClassName,
 }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -327,22 +360,37 @@ export function DashboardShell({
       label: "السكرتارية",
       icon: "secretaries" as const,
     },
+    {
+      href: `${quickBase}/public-content/reviews`,
+      label: "تجارب المرضى",
+      icon: "reviews" as const,
+    },
+    {
+      href: `${quickBase}/public-content/before-after`,
+      label: "الحالات السابقة",
+      icon: "cases" as const,
+    },
+    {
+      href: `${quickBase}/public-content/contact-channels`,
+      label: "وسائل التواصل",
+      icon: "contact" as const,
+    },
   ];
   const quickSettingsItems = [
     {
-      href: `${quickBase}/settings#contact`,
+      href: `${quickBase}/clinic-settings#contact`,
       label: "تواصل معنا",
       hash: "#contact",
     },
     {
-      href: `${quickBase}/settings#hours`,
+      href: `${quickBase}/clinic-settings#hours`,
       label: "مواعيد العمل",
       hash: "#hours",
     },
     {
-      href: `${quickBase}/settings#pages`,
+      href: `${quickBase}/public-content/homepage`,
       label: "صفحات الموقع",
-      hash: "#pages",
+      hash: "#homepage",
     },
     {
       href: `${quickBase}/doctors#doctor-display`,
@@ -351,18 +399,49 @@ export function DashboardShell({
     },
   ];
   const quickSettingsActive =
-    pathname.startsWith(`${quickBase}/settings`) ||
+    pathname.startsWith(`${quickBase}/clinic-settings`) ||
+    pathname.startsWith(`${quickBase}/public-content/homepage`) ||
     (pathname === `${quickBase}/doctors` && activeHash === "#doctor-display");
+  const groupOrder = [
+    "daily",
+    "people",
+    "appointments",
+    "medical",
+    "content",
+    "comms",
+    "system",
+  ] as const;
+  const groupLabels: Record<string, Record<Locale, string>> = {
+    daily: { ar: "نظرة عامة", en: "Overview", fr: "Vue d’ensemble" },
+    people: { ar: "إدارة العيادة", en: "Clinic management", fr: "Gestion de la clinique" },
+    appointments: { ar: "المواعيد والمالية", en: "Appointments & finance", fr: "Rendez-vous et finances" },
+    medical: { ar: "السجل الطبي", en: "Clinical records", fr: "Dossiers cliniques" },
+    content: { ar: "محتوى الموقع", en: "Website content", fr: "Contenu du site" },
+    comms: { ar: "التواصل", en: "Communication", fr: "Communication" },
+    system: { ar: "النظام والإعدادات", en: "System & settings", fr: "Système et paramètres" },
+  };
+  const groupedItems = groupOrder
+    .map((group) => ({
+      group,
+      items: items.filter((item) => (item.group || "system") === group),
+    }))
+    .filter((entry) => entry.items.length > 0);
 
   return (
     <div
-      className={`dash-shell${showModeSwitch ? ` dash-shell--${adminMode}` : ""}`}
+      className={`dash-shell${showModeSwitch ? ` dash-shell--${adminMode}` : ""}${pageClassName ? ` ${pageClassName}` : ""}`}
       data-admin-mode={showModeSwitch ? adminMode : undefined}
+      lang={pageLanguage}
+      dir={pageDirection}
     >
       <aside
         className={`dash-sidebar ${open ? "open" : ""}`}
         id="dash-sidebar"
-        dir={showModeSwitch && adminMode === "quick" ? "rtl" : undefined}
+        dir={
+          showModeSwitch && adminMode === "quick"
+            ? pageDirection || "rtl"
+            : undefined
+        }
       >
         {showModeSwitch && adminMode === "quick" ? (
           <>
@@ -432,9 +511,13 @@ export function DashboardShell({
                         item.hash === "#doctor-display"
                           ? pathname === `${quickBase}/doctors` &&
                             activeHash === item.hash
-                          : pathname === `${quickBase}/settings` &&
-                            (activeHash === item.hash ||
-                              (!activeHash && item.hash === "#contact"));
+                          : item.hash === "#homepage"
+                            ? pathname.startsWith(
+                                `${quickBase}/public-content/homepage`,
+                              )
+                            : pathname === `${quickBase}/clinic-settings` &&
+                              (activeHash === item.hash ||
+                                (!activeHash && item.hash === "#contact"));
                       return (
                         <Link
                           key={item.hash}
@@ -490,23 +573,29 @@ export function DashboardShell({
               ) : null}
             </div>
             <nav className="dash-nav" aria-label="Dashboard">
-              {items.map((item) => {
-                const active =
-                  pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={
-                      active ? "dash-nav-link active" : "dash-nav-link"
-                    }
-                    onClick={() => setOpen(false)}
-                  >
-                    {label(item.labelKey)}
-                  </Link>
-                );
-              })}
+              {groupedItems.map((entry) => (
+                <section className="dash-nav-group" key={entry.group}>
+                  <h2>{groupLabels[entry.group]?.[locale] || entry.group}</h2>
+                  {entry.items.map((item) => {
+                    const active =
+                      pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={
+                          active ? "dash-nav-link active" : "dash-nav-link"
+                        }
+                        aria-current={active ? "page" : undefined}
+                        onClick={() => setOpen(false)}
+                      >
+                        {label(item.labelKey)}
+                      </Link>
+                    );
+                  })}
+                </section>
+              ))}
             </nav>
             {showModeSwitch ? (
               <div className="dash-sidebar-mode">

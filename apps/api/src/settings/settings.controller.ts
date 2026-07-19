@@ -124,6 +124,17 @@ export class SettingsController {
     return this.settingsService.getSpecialtiesPage(true);
   }
 
+  @Get("admin/homepage-sections")
+  @UseGuards(JwtAuthGuard, ClinicOwnerGuard)
+  getAdminHomepageSections() {
+    return this.settingsService.getHomepageSections(true);
+  }
+
+  @Get("public/homepage-sections")
+  getPublicHomepageSections() {
+    return this.settingsService.getHomepageSections(false);
+  }
+
   @Get("admin/contact-inquiries")
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard, ClinicOwnerGuard)
   @RequireRoles("ADMIN", "DOCTOR_SPECIALIST")

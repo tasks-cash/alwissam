@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsMongoId,
   IsNumber,
@@ -77,6 +78,25 @@ export class UpsertPatientExperienceDto {
   @IsString()
   @MaxLength(500)
   patientImageUrl?: string;
+
+  @IsOptional()
+  @IsIn(["male", "female", "neutral", "initials", "uploaded"])
+  avatarType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  subjectAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  subjectEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  subjectFr?: string;
 
   @IsOptional()
   @ValidateIf((_, v) => v !== "" && v != null)

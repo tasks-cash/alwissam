@@ -4,7 +4,7 @@
  * workStartTime / workEndTime as HH:mm.
  */
 
-const DAY_CODES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+type DayCode = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
 
 function algiersParts(now = new Date()) {
   const fmt = new Intl.DateTimeFormat("en-GB", {
@@ -18,7 +18,7 @@ function algiersParts(now = new Date()) {
   const weekday = parts.find((p) => p.type === "weekday")?.value || "Sun";
   const hour = parts.find((p) => p.type === "hour")?.value || "00";
   const minute = parts.find((p) => p.type === "minute")?.value || "00";
-  const map: Record<string, (typeof DAY_CODES)[number]> = {
+  const map: Record<string, DayCode> = {
     Sun: "SUN",
     Mon: "MON",
     Tue: "TUE",

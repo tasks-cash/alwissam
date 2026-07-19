@@ -22,7 +22,7 @@ test.describe("Homepage experiences and before/after", () => {
             : "Patient Experiences";
       const beforeAfterTitle =
         locale === "ar"
-          ? "نتائج قبل وبعد العلاج"
+          ? "حالات علاجية سابقة"
           : locale === "fr"
             ? "Avant et après le traitement"
             : "Before and After Treatment";
@@ -50,19 +50,25 @@ test.describe("Homepage experiences and before/after", () => {
           )
           .first(),
       ).toBeVisible();
+
+      if (locale === "ar") {
+        const float = page.locator(".contact-float").first();
+        await expect(float).toBeVisible();
+        await expect(float).toContainText(/واتساب|اتصل/);
+      }
     });
   }
 
-  test("experiences API never exceeds 10 and hides private fields", async ({
+  test("experiences API never exceeds 30 and hides private fields", async ({
     request,
   }) => {
     const res = await request.get(
-      "/api/public/patient-experiences?limit=10&locale=ar",
+      "/api/public/patient-experiences?limit=30&locale=ar",
     );
     expect(res.ok()).toBeTruthy();
     const data = await res.json();
     expect(Array.isArray(data.experiences)).toBeTruthy();
-    expect(data.experiences.length).toBeLessThanOrEqual(10);
+    expect(data.experiences.length).toBeLessThanOrEqual(30);
     for (const row of data.experiences) {
       expect(row).not.toHaveProperty("consentDocumentReference");
       expect(row).not.toHaveProperty("createdById");
@@ -73,16 +79,16 @@ test.describe("Homepage experiences and before/after", () => {
     }
   });
 
-  test("before-after API never exceeds 10 and hides private fields", async ({
+  test("before-after API never exceeds 30 and hides private fields", async ({
     request,
   }) => {
     const res = await request.get(
-      "/api/public/before-after?featured=true&limit=10&locale=en",
+      "/api/public/before-after?featured=true&limit=30&locale=en",
     );
     expect(res.ok()).toBeTruthy();
     const data = await res.json();
     expect(Array.isArray(data.cases)).toBeTruthy();
-    expect(data.cases.length).toBeLessThanOrEqual(10);
+    expect(data.cases.length).toBeLessThanOrEqual(30);
     for (const row of data.cases) {
       expect(row).not.toHaveProperty("consentDocumentReference");
       expect(row).not.toHaveProperty("createdById");
@@ -90,6 +96,23 @@ test.describe("Homepage experiences and before/after", () => {
       expect(row).toHaveProperty("beforeImageUrl");
       expect(row).toHaveProperty("afterImageUrl");
       expect(row).toHaveProperty("title");
+    }
+  });
+
+  test("public contact channels expose only safe display fields", async ({
+    request,
+  }) => {
+    const res = await request.get(
+      "/api/public/contact-channels?placement=global_floating",
+    );
+    expect(res.ok()).toBeTruthy();
+    const data = await res.json();
+    expect(Array.isArray(data.channels)).toBeTruthy();
+    for (const row of data.channels) {
+      expect(row).not.toHaveProperty("createdBy");
+      expect(row).not.toHaveProperty("updatedBy");
+      expect(row).not.toHaveProperty("archivedAt");
+      expect(row.publicUrl).not.toMatch(/^(javascript|data|file):/i);
     }
   });
 });

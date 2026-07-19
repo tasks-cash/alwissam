@@ -53,12 +53,14 @@ import {
 } from "./schemas/portal.schemas";
 import { ReviewsModule } from "../reviews/reviews.module";
 import { PatientExperiencesModule } from "../patient-experiences/patient-experiences.module";
+import { SettingsModule } from "../settings/settings.module";
 
 @Module({
   imports: [
     AuthModule,
     ReviewsModule,
     PatientExperiencesModule,
+    SettingsModule,
     MongooseModule.forFeature([
       { name: Patient.name, schema: PatientSchema },
       { name: User.name, schema: UserSchema },

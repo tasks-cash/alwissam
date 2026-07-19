@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900" role="img" aria-label="Dental services">
+  <defs>
+    <linearGradient id="svBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F2F8F6"/>
+      <stop offset="100%" stop-color="#DCEEE9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="900" fill="url(#svBg)"/>
+  <circle cx="220" cy="160" r="140" fill="#0F9A9A" opacity="0.08"/>
+  <circle cx="1220" cy="740" r="150" fill="#0B7A68" opacity="0.1"/>
+  <rect x="160" y="140" width="1080" height="620" rx="36" fill="#fff" stroke="#CDE3DC" stroke-width="2"/>
+  <g transform="translate(240 240)">
+    <rect width="280" height="400" rx="24" fill="#F5FAF8" stroke="#D5E8E2"/>
+    <rect x="24" y="24" width="232" height="160" rx="16" fill="#0B7A68" opacity="0.14"/>
+    <path d="M140 70c24-40 72-40 96 0 12 20 12 48 0 68l-48 72-48-72c-12-20-12-48 0-68Z" fill="#0B7A68" opacity="0.55"/>
+    <rect x="40" y="220" width="160" height="16" rx="8" fill="#0B5F4F"/>
+    <rect x="40" y="256" width="200" height="12" rx="6" fill="#A7C7BE"/>
+    <rect x="40" y="288" width="180" height="12" rx="6" fill="#A7C7BE"/>
+    <rect x="40" y="340" width="110" height="36" rx="12" fill="#0F9A9A" opacity="0.85"/>
+  </g>
+  <g transform="translate(560 240)">
+    <rect width="280" height="400" rx="24" fill="#F5FAF8" stroke="#D5E8E2"/>
+    <rect x="24" y="24" width="232" height="160" rx="16" fill="#0F9A9A" opacity="0.14"/>
+    <circle cx="140" cy="104" r="42" fill="#0F9A9A" opacity="0.35"/>
+    <rect x="40" y="220" width="160" height="16" rx="8" fill="#0B5F4F"/>
+    <rect x="40" y="256" width="200" height="12" rx="6" fill="#A7C7BE"/>
+    <rect x="40" y="288" width="180" height="12" rx="6" fill="#A7C7BE"/>
+    <rect x="40" y="340" width="110" height="36" rx="12" fill="#0B7A68" opacity="0.85"/>
+  </g>
+  <g transform="translate(880 240)">
+    <rect width="280" height="400" rx="24" fill="#F5FAF8" stroke="#D5E8E2"/>
+    <rect x="24" y="24" width="232" height="160" rx="16" fill="#086557" opacity="0.14"/>
+    <rect x="96" y="68" width="88" height="72" rx="14" fill="#0B7A68" opacity="0.4"/>
+    <rect x="40" y="220" width="160" height="16" rx="8" fill="#0B5F4F"/>
+    <rect x="40" y="256" width="200" height="12" rx="6" fill="#A7C7BE"/>
+    <rect x="40" y="288" width="180" height="12" rx="6" fill="#A7C7BE"/>
+    <rect x="40" y="340" width="110" height="36" rx="12" fill="#0B5F4F" opacity="0.85"/>
+  </g>
+</svg>

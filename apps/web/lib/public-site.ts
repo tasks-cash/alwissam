@@ -107,6 +107,37 @@ export type PublicSpecialtiesPage = {
   published?: boolean;
 };
 
+export type PublicHomepageSection = {
+  badgeAr?: string;
+  badgeEn?: string;
+  badgeFr?: string;
+  titleAr?: string;
+  titleEn?: string;
+  titleFr?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  image?: string;
+  mediaAssetId?: string;
+  imageAltAr?: string;
+  imageAltEn?: string;
+  imageAltFr?: string;
+  ctaLabelAr?: string;
+  ctaLabelEn?: string;
+  ctaLabelFr?: string;
+  ctaRoute?: string;
+  backgroundStyle?: string;
+  published?: boolean;
+  displayOrder?: number;
+};
+
+export type PublicHomepageSections = {
+  specialties?: PublicHomepageSection | null;
+  services?: PublicHomepageSection | null;
+  doctors?: PublicHomepageSection | null;
+  reviews?: PublicHomepageSection | null;
+};
+
 export type PublicSitePayload = {
   ok?: boolean;
   clinic?: {
@@ -182,6 +213,7 @@ export type PublicSitePayload = {
     contactPublished?: boolean;
   };
   specialtiesPage?: PublicSpecialtiesPage;
+  homepageSections?: PublicHomepageSections;
   content?: {
     aboutAr?: string;
     aboutEn?: string;
@@ -231,9 +263,11 @@ export type PublicReview = {
   reviewDate?: string;
   createdAt?: string;
   doctorId?: string | null;
+  doctorName?: string | null;
   specialtySlug?: string | null;
   serviceSlug?: string | null;
   patientImage?: string | null;
+  avatarMediaId?: string | null;
   avatarType?: "male" | "female" | "neutral" | "initials" | "uploaded" | string;
   locale?: string;
 };
@@ -639,7 +673,7 @@ export async function fetchPublicPatientExperiences(opts?: {
   limit?: number;
 }): Promise<PublicPatientExperience[]> {
   try {
-    const limit = Math.min(10, Math.max(1, opts?.limit ?? 10));
+    const limit = Math.min(30, Math.max(1, opts?.limit ?? 30));
     const qs = new URLSearchParams({
       limit: String(limit),
       locale: opts?.locale || "ar",
@@ -663,7 +697,7 @@ export async function fetchPublicBeforeAfter(opts?: {
   limit?: number;
 }): Promise<PublicBeforeAfterCase[]> {
   try {
-    const limit = Math.min(10, Math.max(1, opts?.limit ?? 10));
+    const limit = Math.min(30, Math.max(1, opts?.limit ?? 30));
     const qs = new URLSearchParams({
       limit: String(limit),
       locale: opts?.locale || "ar",

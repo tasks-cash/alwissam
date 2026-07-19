@@ -71,7 +71,6 @@ async function bootstrap() {
 
   const port = config.get<number>("API_PORT") ?? 4001;
   await app.listen(port);
-  // eslint-disable-next-line no-console
   console.log(`alwisam-api listening on http://localhost:${port}`);
 }
 

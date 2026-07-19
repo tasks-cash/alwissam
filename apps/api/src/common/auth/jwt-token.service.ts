@@ -6,6 +6,7 @@ export type AccessTokenPayload = {
   sub: string;
   roleCode: string;
   fullName: string;
+  sessionJti?: string;
 };
 
 @Injectable()
@@ -39,6 +40,7 @@ export class JwtTokenService {
     return new SignJWT({
       roleCode: payload.roleCode,
       fullName: payload.fullName,
+      sessionJti: payload.sessionJti,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setSubject(payload.sub)
@@ -63,6 +65,10 @@ export class JwtTokenService {
       sub: String(payload.sub || ""),
       roleCode: String(payload.roleCode || ""),
       fullName: String(payload.fullName || ""),
+      sessionJti:
+        typeof payload.sessionJti === "string"
+          ? payload.sessionJti
+          : undefined,
     };
   }
 

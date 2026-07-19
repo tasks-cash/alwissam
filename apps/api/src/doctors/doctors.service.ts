@@ -12,8 +12,10 @@ import { AuditService } from "../common/audit/audit.service";
 import type { AuthUser } from "../common/auth/session.guard";
 import { ErrorCodes } from "../common/errors/error-codes";
 import {
+  ChangeDoctorPasswordDto,
   CreateDoctorDto,
   DeleteDoctorDto,
+  ListDoctorsQueryDto,
   UpdateDoctorDto,
 } from "./dto/doctor.dto";
 
@@ -27,16 +29,67 @@ export class DoctorsService {
     private readonly audit: AuditService,
   ) {}
 
-  async list() {
-    const doctors = await this.users
-      .find({
-        deletedAt: null,
-        roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST", "ADMIN"] },
-        doctor: { $exists: true },
-      })
-      .select("fullName email phone roleCode status doctor createdAt")
-      .sort({ createdAt: -1 })
-      .lean();
+  async list(query: ListDoctorsQueryDto = new ListDoctorsQueryDto()) {
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const filter: Record<string, unknown> = {
+      deletedAt: null,
+      roleCode: {
+        $in: [
+          "DOCTOR_GENERAL",
+          "DOCTOR_SPECIALIST",
+          "ADMIN",
+          "ADMIN_OWNER",
+          "OWNER",
+        ],
+      },
+      doctor: { $exists: true },
+    };
+    if (query.search?.trim()) {
+      const search = query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { "doctor.specialtyAr": { $regex: search, $options: "i" } },
+      ];
+    }
+    if (query.type) filter["doctor.type"] = query.type;
+    if (query.status === "ARCHIVED") {
+      filter["doctor.archivedAt"] = { $ne: null };
+    } else {
+      filter["doctor.archivedAt"] = null;
+      if (query.status) filter.status = query.status;
+    }
+    if (query.public !== undefined) {
+      filter["doctor.isPublic"] =
+        query.public === "true" ? { $ne: false } : false;
+    }
+
+    const sortField =
+      query.sort === "createdAt"
+        ? "createdAt"
+        : query.sort === "specialty"
+          ? "doctor.specialtyAr"
+          : query.sort === "status"
+            ? "status"
+            : "fullName";
+    const sort = { [sortField]: query.order === "desc" ? -1 : 1 } as Record<
+      string,
+      1 | -1
+    >;
+    const [doctors, total] = await Promise.all([
+      this.users
+        .find(filter)
+        .select(
+          "fullName email phone roleCode status doctor createdAt updatedAt lastLoginAt",
+        )
+        .sort(sort)
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean(),
+      this.users.countDocuments(filter),
+    ]);
 
     return {
       ok: true,
@@ -58,7 +111,19 @@ export class DoctorsService {
           d.roleCode === "ADMIN_OWNER" ||
           d.roleCode === "OWNER",
         isActive: d.doctor?.isActive !== false && d.status === "ACTIVE",
+        profileImage: d.doctor?.profileImage,
+        specialtyIds: d.doctor?.specialtyIds || [],
+        serviceIds: d.doctor?.serviceIds || [],
+        weeklySchedule: d.doctor?.weeklySchedule || [],
+        archivedAt: d.doctor?.archivedAt || null,
+        createdAt: (d as { createdAt?: Date }).createdAt,
+        updatedAt: (d as { updatedAt?: Date }).updatedAt,
+        lastLoginAt: (d as { lastLoginAt?: Date }).lastLoginAt,
       })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
   }
 
@@ -347,8 +412,46 @@ export class DoctorsService {
     }
   }
 
+  private assertValidSchedule(
+    schedule?: Array<{
+      dayOfWeek: string;
+      startTime: string;
+      endTime: string;
+      isActive?: boolean;
+    }>,
+  ) {
+    if (!schedule) return;
+    const byDay = new Map<string, Array<{ start: number; end: number }>>();
+    for (const entry of schedule.filter((item) => item.isActive !== false)) {
+      const toMinutes = (value: string) => {
+        const [hours, minutes] = value.split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+      const start = toMinutes(entry.startTime);
+      const end = toMinutes(entry.endTime);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "وقت نهاية الدوام يجب أن يكون بعد وقت البداية.",
+          fieldErrors: { weeklySchedule: ["تحقق من أوقات بداية ونهاية الدوام."] },
+        });
+      }
+      const periods = byDay.get(entry.dayOfWeek) || [];
+      if (periods.some((period) => start < period.end && end > period.start)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "لا يمكن حفظ ورديات متداخلة في اليوم نفسه.",
+          fieldErrors: { weeklySchedule: ["توجد ورديات متداخلة."] },
+        });
+      }
+      periods.push({ start, end });
+      byDay.set(entry.dayOfWeek, periods);
+    }
+  }
+
   async create(dto: CreateDoctorDto, actor: AuthUser) {
     await this.assertUniqueEmailPhone(dto.email, dto.phone);
+    this.assertValidSchedule(dto.weeklySchedule);
 
     const roleCode =
       dto.type === "SPECIALIST" ? "DOCTOR_SPECIALIST" : "DOCTOR_GENERAL";
@@ -370,8 +473,16 @@ export class DoctorsService {
         doctor: {
           type: dto.type,
           specialtyAr,
+          professionalTitleAr: dto.professionalTitleAr,
+          bioAr: dto.bioAr,
+          profileImage: dto.profileImage,
+          specialtyIds: dto.specialtyIds || [],
+          serviceIds: dto.serviceIds || [],
+          weeklySchedule: dto.weeklySchedule || [],
           colorCode: dto.type === "SPECIALIST" ? "#0F9A9A" : "#176B87",
           isActive: true,
+          isPublic: dto.isPublic === true,
+          isBookable: dto.isBookable !== false,
         },
       });
 
@@ -398,6 +509,7 @@ export class DoctorsService {
           email: created.email,
           phone: created.phone,
           type: dto.type,
+          doctor: created.doctor,
         },
       };
     } catch (err) {
@@ -433,18 +545,37 @@ export class DoctorsService {
       String(target._id),
     );
 
+    const oldValue = {
+      fullName: target.fullName,
+      email: target.email,
+      phone: target.phone,
+      roleCode: target.roleCode,
+      status: target.status,
+      doctor: target.doctor ? { ...target.doctor } : undefined,
+    };
+
+    if (dto.newPassword) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "إعادة تعيين كلمة المرور إجراء مستقل ومحمي.",
+        fieldErrors: {
+          newPassword: ["استخدم إجراء إعادة تعيين كلمة المرور."],
+        },
+      });
+    }
+    this.assertValidSchedule(dto.weeklySchedule);
+
+    if (dto.fullName) target.fullName = dto.fullName;
     if (dto.email) target.email = dto.email;
     if (dto.phone) target.phone = dto.phone;
-    if (dto.newPassword) {
-      target.passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
-      await this.sessions.updateMany(
-        { userId: target._id, revokedAt: null },
-        { $set: { revokedAt: new Date() } },
-      );
-    }
 
     if (!target.doctor) {
       target.doctor = { type: "GENERAL", isActive: true };
+    }
+    if (dto.type !== undefined) {
+      target.doctor.type = dto.type;
+      target.roleCode =
+        dto.type === "SPECIALIST" ? "DOCTOR_SPECIALIST" : "DOCTOR_GENERAL";
     }
     if (dto.specialtyAr !== undefined) {
       target.doctor.specialtyAr = dto.specialtyAr;
@@ -461,10 +592,27 @@ export class DoctorsService {
     if (dto.isBookable !== undefined) {
       target.doctor.isBookable = dto.isBookable;
     }
+    if (dto.profileImage !== undefined) {
+      target.doctor.profileImage = dto.profileImage;
+    }
+    if (dto.specialtyIds !== undefined) {
+      target.doctor.specialtyIds = dto.specialtyIds;
+    }
+    if (dto.serviceIds !== undefined) {
+      target.doctor.serviceIds = dto.serviceIds;
+    }
+    if (dto.weeklySchedule !== undefined) {
+      target.doctor.weeklySchedule = dto.weeklySchedule;
+      target.doctor.workingHours = dto.weeklySchedule;
+    }
     if (dto.status === "INACTIVE") {
       target.status = "INACTIVE";
       target.doctor.isActive = false;
-    } else if (dto.status === "ACTIVE" || dto.email || dto.phone || dto.newPassword) {
+      await this.sessions.updateMany(
+        { userId: target._id, revokedAt: null },
+        { $set: { revokedAt: new Date() } },
+      );
+    } else if (dto.status === "ACTIVE") {
       target.status = "ACTIVE";
       target.doctor.isActive = true;
     }
@@ -476,15 +624,103 @@ export class DoctorsService {
       action: "DOCTOR_UPDATED",
       entityType: "User",
       entityId: String(target._id),
+      oldValue,
       newValue: {
+        fullName: target.fullName,
         email: target.email,
         phone: target.phone,
+        roleCode: target.roleCode,
+        status: target.status,
         specialtyAr: target.doctor?.specialtyAr,
         bioUpdated: dto.bioAr !== undefined,
-        passwordChanged: Boolean(dto.newPassword),
+        scheduleChanged: dto.weeklySchedule !== undefined,
       },
     });
-    return { ok: true, message: "تم حفظ التعديلات بنجاح." };
+    return {
+      ok: true,
+      message: "تم حفظ التعديلات بنجاح.",
+      doctor: {
+        id: String(target._id),
+        fullName: target.fullName,
+        email: target.email,
+        phone: target.phone,
+        roleCode: target.roleCode,
+        status: target.status,
+        ...target.doctor,
+      },
+    };
+  }
+
+  async resetPassword(dto: ChangeDoctorPasswordDto, actor: AuthUser) {
+    if (!Types.ObjectId.isValid(dto.userId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف الطبيب غير صالح.",
+      });
+    }
+    const target = await this.users.findOne({
+      _id: dto.userId,
+      deletedAt: null,
+      doctor: { $exists: true },
+    });
+    if (!target) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الطبيب غير موجود",
+      });
+    }
+    target.passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    target.failedLoginCount = 0;
+    target.lockedUntil = null;
+    await target.save({ validateModifiedOnly: true });
+    await this.sessions.updateMany(
+      { userId: target._id, revokedAt: null },
+      { $set: { revokedAt: new Date() } },
+    );
+    await this.audit.write({
+      actor,
+      action: "DOCTOR_PASSWORD_RESET",
+      entityType: "User",
+      entityId: String(target._id),
+      newValue: { sessionsRevoked: true },
+    });
+    return {
+      ok: true,
+      message: "تم تعيين كلمة مرور مؤقتة وإنهاء الجلسات السابقة.",
+    };
+  }
+
+  async restore(dto: DeleteDoctorDto, actor: AuthUser) {
+    if (!Types.ObjectId.isValid(dto.userId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف الطبيب غير صالح.",
+      });
+    }
+    const target = await this.users.findOne({
+      _id: dto.userId,
+      deletedAt: null,
+      doctor: { $exists: true },
+    });
+    if (!target) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الطبيب غير موجود",
+      });
+    }
+    if (!target.doctor) target.doctor = { type: "GENERAL" };
+    target.doctor.archivedAt = null;
+    target.doctor.isActive = true;
+    target.status = "ACTIVE";
+    await target.save({ validateModifiedOnly: true });
+    await this.audit.write({
+      actor,
+      action: "DOCTOR_RESTORED",
+      entityType: "User",
+      entityId: String(target._id),
+      newValue: { status: "ACTIVE", archivedAt: null },
+    });
+    return { ok: true, message: "تمت استعادة الطبيب بنجاح." };
   }
 
   async remove(dto: DeleteDoctorDto, actor: AuthUser) {
@@ -518,7 +754,12 @@ export class DoctorsService {
     }
 
     target.status = "INACTIVE";
-    if (target.doctor) target.doctor.isActive = false;
+    if (target.doctor) {
+      target.doctor.isActive = false;
+      target.doctor.isPublic = false;
+      target.doctor.isBookable = false;
+      target.doctor.archivedAt = new Date();
+    }
     await target.save();
     await this.sessions.updateMany(
       { userId: target._id, revokedAt: null },
@@ -526,10 +767,20 @@ export class DoctorsService {
     );
     await this.audit.write({
       actor,
-      action: "DOCTOR_DEACTIVATED",
+      action: "DOCTOR_ARCHIVED",
       entityType: "User",
       entityId: String(target._id),
+      newValue: {
+        status: "INACTIVE",
+        public: false,
+        bookable: false,
+        archivedAt: target.doctor?.archivedAt,
+      },
     });
-    return { ok: true, message: "تم تعطيل الحساب بنجاح." };
+    return {
+      ok: true,
+      message:
+        "تمت أرشفة الطبيب. حُفظت المواعيد والسجلات السابقة، وعُطّل تسجيل الدخول والظهور العام.",
+    };
   }
 }

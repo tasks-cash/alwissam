@@ -6,12 +6,18 @@ import type {
   PublicBeforeAfterCase,
   PublicDoctor,
   PublicFaq,
+  PublicHomepageSections,
   PublicPatientExperience,
+  PublicReview,
   PublicService,
   PublicSpecialty,
   PublicSitePayload,
 } from "../../../lib/public-site";
-import { localizedFaqA, localizedFaqQ } from "../../../lib/public-site";
+import {
+  localizedFaqA,
+  localizedFaqQ,
+  pickLocalized,
+} from "../../../lib/public-site";
 import { BeforeAfterSlider } from "../BeforeAfterSlider";
 import { BookingConvenience } from "../BookingConvenience";
 import { PatientAccountMotivation } from "../PatientAccountMotivation";
@@ -28,6 +34,7 @@ import { DentalServicesSection } from "../DentalServicesSection";
 import { SpecialtiesSection } from "../SpecialtiesSection";
 import { WhyChooseClinic } from "../WhyChooseClinic";
 import { SectionReveal } from "../motion/SectionReveal";
+import { ReviewsSlider } from "../ReviewsSlider";
 
 export type HomePageContentProps = {
   locale: Locale;
@@ -43,6 +50,8 @@ export type HomePageContentProps = {
   faqs: PublicFaq[];
   experiences: PublicPatientExperience[];
   beforeAfterCases: PublicBeforeAfterCase[];
+  reviews: PublicReview[];
+  homepageSections?: PublicHomepageSections | null;
 };
 
 export function HomePageContent({
@@ -59,9 +68,35 @@ export function HomePageContent({
   faqs,
   experiences,
   beforeAfterCases,
+  reviews,
+  homepageSections,
 }: HomePageContentProps) {
-  const heroLead =
-    locale === "ar" ? dict.homeLead : about || dict.homeLead;
+  const heroLead = locale === "ar" ? dict.homeLead : about || dict.homeLead;
+  const specialtiesSection = homepageSections?.specialties;
+  const servicesSection = homepageSections?.services;
+  const doctorsSection = homepageSections?.doctors;
+  const reviewsSection = homepageSections?.reviews;
+  const doctorsTitle =
+    pickLocalized(
+      locale,
+      doctorsSection?.titleAr,
+      doctorsSection?.titleEn,
+      doctorsSection?.titleFr,
+    ) || copy.sectionDoctors;
+  const reviewsTitle =
+    pickLocalized(
+      locale,
+      reviewsSection?.titleAr,
+      reviewsSection?.titleEn,
+      reviewsSection?.titleFr,
+    ) || copy.navReviews;
+  const reviewsLead =
+    pickLocalized(
+      locale,
+      reviewsSection?.descriptionAr,
+      reviewsSection?.descriptionEn,
+      reviewsSection?.descriptionFr,
+    ) || copy.reviewsLead;
 
   return (
     <>
@@ -127,41 +162,103 @@ export function HomePageContent({
         </PublicSection>
       </SectionReveal>
 
-      <SectionReveal from="up">
-        <PublicSection tone="mist">
-          <SpecialtiesSection
-            locale={locale}
-            copy={copy}
-            specialties={specialties.slice(0, 6)}
-          />
-        </PublicSection>
-      </SectionReveal>
+      {specialtiesSection !== null ? (
+        <SectionReveal from="up">
+          <PublicSection tone="mist">
+            <SpecialtiesSection
+              locale={locale}
+              copy={copy}
+              specialties={specialties}
+              section={specialtiesSection}
+            />
+          </PublicSection>
+        </SectionReveal>
+      ) : null}
 
-      <SectionReveal from="up">
-        <PublicSection tone="soft" className="dental-services-section">
-          <DentalServicesSection
-            locale={locale}
-            copy={copy}
-            services={services.slice(0, 8)}
-          />
-        </PublicSection>
-      </SectionReveal>
+      {servicesSection !== null ? (
+        <SectionReveal from="up">
+          <PublicSection tone="soft" className="dental-services-section">
+            <DentalServicesSection
+              locale={locale}
+              copy={copy}
+              services={services}
+              section={servicesSection}
+            />
+          </PublicSection>
+        </SectionReveal>
+      ) : null}
 
       <SectionReveal from="end">
         <BookingConvenience locale={locale} copy={copy} />
       </SectionReveal>
 
-      <SectionReveal from="up">
-        <PublicSection className="home-doctors-section">
-          <DoctorsSection
-            locale={locale}
-            copy={copy}
-            doctors={doctors}
-            limit={3}
-            homeVariant
-          />
-        </PublicSection>
-      </SectionReveal>
+      {doctorsSection !== null ? (
+        <SectionReveal from="up">
+          <PublicSection className="home-doctors-section">
+            <DoctorsSection
+              locale={locale}
+              copy={{
+                ...copy,
+                sectionDoctors: doctorsTitle,
+                homeDoctorsLead:
+                  pickLocalized(
+                    locale,
+                    doctorsSection?.descriptionAr,
+                    doctorsSection?.descriptionEn,
+                    doctorsSection?.descriptionFr,
+                  ) || copy.homeDoctorsLead,
+              }}
+              doctors={doctors}
+              limit={3}
+              homeVariant
+            />
+          </PublicSection>
+        </SectionReveal>
+      ) : null}
+
+      {reviewsSection !== null ? (
+        <SectionReveal from="up">
+          <PublicSection tone="mist" className="home-reviews-section">
+            <div className="section-head">
+              <div>
+                <p className="section-kicker">
+                  {pickLocalized(
+                    locale,
+                    reviewsSection?.badgeAr,
+                    reviewsSection?.badgeEn,
+                    reviewsSection?.badgeFr,
+                  ) || copy.navReviews}
+                </p>
+                <h2>{reviewsTitle}</h2>
+                <p className="pub-lead pe-lead">{reviewsLead}</p>
+              </div>
+              <Link href={`/${locale}/reviews`}>
+                {pickLocalized(
+                  locale,
+                  reviewsSection?.ctaLabelAr,
+                  reviewsSection?.ctaLabelEn,
+                  reviewsSection?.ctaLabelFr,
+                ) || copy.navReviews}
+              </Link>
+            </div>
+            <ReviewsSlider
+              locale={locale}
+              reviews={reviews}
+              anonymousLabel={copy.reviewsAnonymous}
+              verifiedLabel={copy.reviewsVerifiedBadge}
+              readMoreLabel={copy.reviewsReadMore}
+              readLessLabel={copy.reviewsReadLess}
+              emptyLabel={
+                locale === "en"
+                  ? "No published reviews are available right now."
+                  : locale === "fr"
+                    ? "Aucun avis publié pour le moment."
+                    : "لا توجد تقييمات منشورة حاليًا."
+              }
+            />
+          </PublicSection>
+        </SectionReveal>
+      ) : null}
 
       <SectionReveal from="up">
         <PublicSection tone="soft">

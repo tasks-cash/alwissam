@@ -17,6 +17,7 @@ import {
   PatientExperience,
   PatientExperienceDocument,
 } from "./schemas/patient-experience.schema";
+import { MediaService } from "../media/media.service";
 
 function esc(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -29,7 +30,20 @@ export class PatientExperiencesService {
     private readonly experiences: Model<PatientExperienceDocument>,
     @InjectModel(User.name) private readonly users: Model<User>,
     private readonly audit: AuditService,
+    private readonly media: MediaService,
   ) {}
+
+  private assertManagedImage(reference?: string) {
+    if (
+      reference &&
+      !/^\/api\/admin\/media\/[a-f\d]{24}$/i.test(reference)
+    ) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يجب استخدام صورة مرفوعة من نظام الوسائط المعتمد.",
+      });
+    }
+  }
 
   private assertCanPublish(doc: {
     consentConfirmed?: boolean;
@@ -87,6 +101,10 @@ export class PatientExperiencesService {
       reviewFr: r.reviewFr || "",
       rating: r.rating,
       patientImageUrl: r.patientImageUrl || "",
+      avatarType: r.avatarType || "neutral",
+      subjectAr: r.subjectAr || "",
+      subjectEn: r.subjectEn || "",
+      subjectFr: r.subjectFr || "",
       doctorId: r.doctorId ? String(r.doctorId) : "",
       doctorName: doctorName || "",
       serviceSlug: r.serviceSlug || "",
@@ -231,7 +249,7 @@ export class PatientExperiencesService {
         input.doctorId && Types.ObjectId.isValid(input.doctorId)
           ? new Types.ObjectId(input.doctorId)
           : undefined,
-      patientImageUrl: input.avatarImage || undefined,
+      // Patient account avatars are private and are never copied automatically.
       moderationStatus: "pending_review",
       isApproved: false,
       isPublished: false,
@@ -360,6 +378,7 @@ export class PatientExperiencesService {
         message: "نص التجربة بالعربية مطلوب.",
       });
     }
+    this.assertManagedImage(dto.patientImageUrl?.trim());
     const created = await this.experiences.create({
       displayNameAr: dto.displayNameAr?.trim(),
       displayNameEn: dto.displayNameEn?.trim(),
@@ -373,15 +392,19 @@ export class PatientExperiencesService {
       reviewFr: dto.reviewFr?.trim(),
       rating: dto.rating,
       patientImageUrl: dto.patientImageUrl?.trim() || undefined,
+      avatarType: dto.avatarType || "neutral",
+      subjectAr: dto.subjectAr?.trim() || dto.treatmentTitleAr?.trim(),
+      subjectEn: dto.subjectEn?.trim() || dto.treatmentTitleEn?.trim(),
+      subjectFr: dto.subjectFr?.trim() || dto.treatmentTitleFr?.trim(),
       doctorId:
         dto.doctorId && Types.ObjectId.isValid(dto.doctorId)
           ? new Types.ObjectId(dto.doctorId)
           : undefined,
       serviceSlug: dto.serviceSlug?.trim(),
       specialtySlug: dto.specialtySlug?.trim(),
-      treatmentTitleAr: dto.treatmentTitleAr?.trim(),
-      treatmentTitleEn: dto.treatmentTitleEn?.trim(),
-      treatmentTitleFr: dto.treatmentTitleFr?.trim(),
+      treatmentTitleAr: dto.treatmentTitleAr?.trim() || dto.subjectAr?.trim(),
+      treatmentTitleEn: dto.treatmentTitleEn?.trim() || dto.subjectEn?.trim(),
+      treatmentTitleFr: dto.treatmentTitleFr?.trim() || dto.subjectFr?.trim(),
       reviewDate: dto.reviewDate ? new Date(dto.reviewDate) : undefined,
       isVerifiedPatient: dto.isVerifiedPatient === true,
       isFeatured: dto.isFeatured === true,
@@ -425,7 +448,9 @@ export class PatientExperiencesService {
       });
     }
 
+    const previousImage = existing.patientImageUrl;
     const nextImage = dto.patientImageUrl?.trim();
+    this.assertManagedImage(nextImage);
     existing.displayNameAr = dto.displayNameAr?.trim();
     existing.displayNameEn = dto.displayNameEn?.trim();
     existing.displayNameFr = dto.displayNameFr?.trim();
@@ -440,15 +465,25 @@ export class PatientExperiencesService {
     if (nextImage !== undefined) {
       existing.patientImageUrl = nextImage || undefined;
     }
+    if (dto.avatarType) existing.avatarType = dto.avatarType;
+    existing.subjectAr =
+      dto.subjectAr?.trim() || dto.treatmentTitleAr?.trim() || existing.subjectAr;
+    existing.subjectEn =
+      dto.subjectEn?.trim() || dto.treatmentTitleEn?.trim() || existing.subjectEn;
+    existing.subjectFr =
+      dto.subjectFr?.trim() || dto.treatmentTitleFr?.trim() || existing.subjectFr;
     existing.doctorId =
       dto.doctorId && Types.ObjectId.isValid(dto.doctorId)
         ? new Types.ObjectId(dto.doctorId)
         : undefined;
     existing.serviceSlug = dto.serviceSlug?.trim();
     existing.specialtySlug = dto.specialtySlug?.trim();
-    existing.treatmentTitleAr = dto.treatmentTitleAr?.trim();
-    existing.treatmentTitleEn = dto.treatmentTitleEn?.trim();
-    existing.treatmentTitleFr = dto.treatmentTitleFr?.trim();
+    existing.treatmentTitleAr =
+      dto.treatmentTitleAr?.trim() || dto.subjectAr?.trim();
+    existing.treatmentTitleEn =
+      dto.treatmentTitleEn?.trim() || dto.subjectEn?.trim();
+    existing.treatmentTitleFr =
+      dto.treatmentTitleFr?.trim() || dto.subjectFr?.trim();
     existing.reviewDate = dto.reviewDate ? new Date(dto.reviewDate) : undefined;
     existing.isVerifiedPatient = dto.isVerifiedPatient === true;
     existing.isFeatured = dto.isFeatured === true;
@@ -459,6 +494,10 @@ export class PatientExperiencesService {
 
     if (existing.isPublished) {
       this.assertCanPublish(existing);
+      await this.media.setPublicFromReferences([existing.patientImageUrl], true);
+      if (previousImage !== existing.patientImageUrl) {
+        await this.media.setPublicFromReferences([previousImage], false);
+      }
     }
 
     await existing.save();
@@ -503,6 +542,7 @@ export class PatientExperiencesService {
     if (!approved && row.isPublished) {
       row.isPublished = false;
       row.publishedAt = undefined;
+      await this.media.setPublicFromReferences([row.patientImageUrl], false);
     }
     row.updatedById = new Types.ObjectId(actor.id);
     await row.save();
@@ -536,6 +576,7 @@ export class PatientExperiencesService {
       });
     }
     this.assertCanPublish(row);
+    await this.media.setPublicFromReferences([row.patientImageUrl], true);
     row.isPublished = true;
     row.publishedAt = new Date();
     row.updatedById = new Types.ObjectId(actor.id);
@@ -568,6 +609,7 @@ export class PatientExperiencesService {
       });
     }
     row.isPublished = false;
+    await this.media.setPublicFromReferences([row.patientImageUrl], false);
     row.updatedById = new Types.ObjectId(actor.id);
     await row.save();
     await this.audit.write({
@@ -599,6 +641,7 @@ export class PatientExperiencesService {
     }
     row.archivedAt = new Date();
     row.isPublished = false;
+    await this.media.setPublicFromReferences([row.patientImageUrl], false);
     row.updatedById = new Types.ObjectId(actor.id);
     await row.save();
     await this.audit.write({
@@ -692,7 +735,7 @@ export class PatientExperiencesService {
   }) {
     const locale = opts.locale || "ar";
     const page = Math.max(1, opts.page || 1);
-    const limit = Math.min(10, Math.max(1, opts.limit || 10));
+    const limit = Math.min(30, Math.max(1, opts.limit || 30));
     const filter: Record<string, unknown> = {
       isPublished: true,
       isApproved: true,
@@ -736,14 +779,22 @@ export class PatientExperiencesService {
         displayName: this.publicDisplayName(locale, r as never),
         review: this.publicReview(locale, r as never),
         rating: r.rating,
-        patientImageUrl: r.patientImageUrl || null,
+        avatarType: r.avatarType || "neutral",
+        patientImageUrl:
+          r.avatarType === "uploaded" && r.patientImageUrl
+            ? this.media.toPublicReference(r.patientImageUrl)
+            : null,
+        subject: this.publicTreatment(locale, r as never) || null,
         treatmentTitle: this.publicTreatment(locale, r as never) || null,
         doctorName: r.doctorId
           ? nameById.get(String(r.doctorId)) || null
           : null,
         serviceSlug: r.serviceSlug || null,
+        specialtySlug: r.specialtySlug || null,
+        isFeatured: r.isFeatured === true,
         isVerifiedPatient: r.isVerifiedPatient === true,
         reviewDate: r.reviewDate || null,
+        publishedAt: r.publishedAt || null,
       })),
     };
   }

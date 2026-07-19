@@ -39,12 +39,15 @@ test.describe("Admin Quick Mode sidebar", () => {
     await expect(sidebar.getByText("لطب الأسنان", { exact: true })).toBeVisible();
 
     const primary = sidebar.locator(".quick-sidebar-nav > .quick-sidebar-link");
-    await expect(primary).toHaveCount(4);
+    await expect(primary).toHaveCount(7);
     await expect(primary).toHaveText([
       "المعاينة",
       "مرضاي",
       "الأطباء",
       "السكرتارية",
+      "تجارب المرضى",
+      "الحالات السابقة",
+      "وسائل التواصل",
     ]);
 
     await sidebar.getByRole("button", { name: "الإعدادات" }).click();
@@ -76,7 +79,7 @@ test.describe("Admin Quick Mode sidebar", () => {
       await sidebar.getByRole("button", { name: "الإعدادات" }).click();
     }
     await sidebar.getByRole("link", { name: "صفحات الموقع" }).click();
-    await page.waitForURL(/\/doctor\/specialist\/settings#pages$/);
+    await page.waitForURL(/\/doctor\/specialist\/public-content\/homepage/);
 
     await page.locator(".dash-menu-btn").click();
     await expect(

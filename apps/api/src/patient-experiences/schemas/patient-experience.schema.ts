@@ -72,6 +72,13 @@ export class PatientExperience {
   @Prop()
   patientImageUrl?: string;
 
+  /** Public avatar fallback — never auto-filled from Patient account photos. */
+  @Prop({
+    enum: ["male", "female", "neutral", "initials", "uploaded"],
+    default: "neutral",
+  })
+  avatarType!: string;
+
   @Prop({ type: SchemaTypes.ObjectId, ref: "User", index: true })
   doctorId?: Types.ObjectId;
 

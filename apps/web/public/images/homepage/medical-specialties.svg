@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900" role="img" aria-label="Medical dental specialties">
+  <defs>
+    <linearGradient id="spBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8F6F3"/>
+      <stop offset="100%" stop-color="#D2EBE5"/>
+    </linearGradient>
+    <linearGradient id="spAccent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F9A9A"/>
+      <stop offset="100%" stop-color="#0B5F4F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="900" fill="url(#spBg)"/>
+  <circle cx="1180" cy="140" r="160" fill="#0B7A68" opacity="0.08"/>
+  <circle cx="180" cy="760" r="120" fill="#0F9A9A" opacity="0.1"/>
+  <rect x="120" y="120" width="760" height="660" rx="32" fill="#fff" stroke="#C9DED7" stroke-width="2"/>
+  <path d="M280 280c40-70 120-70 160 0 20 36 20 84 0 120l-80 120-80-120c-20-36-20-84 0-120Z" fill="url(#spAccent)" opacity="0.9"/>
+  <rect x="520" y="250" width="280" height="22" rx="11" fill="#0B5F4F"/>
+  <rect x="520" y="300" width="240" height="14" rx="7" fill="#9EC4BA"/>
+  <rect x="520" y="340" width="260" height="14" rx="7" fill="#9EC4BA"/>
+  <g transform="translate(180 480)">
+    <rect width="180" height="200" rx="20" fill="#F3F8F6" stroke="#D5E8E2"/>
+    <circle cx="90" cy="70" r="34" fill="#0F9A9A" opacity="0.2"/>
+    <rect x="40" y="130" width="100" height="12" rx="6" fill="#0B7A68"/>
+    <rect x="50" y="156" width="80" height="10" rx="5" fill="#A9C9C1"/>
+  </g>
+  <g transform="translate(400 480)">
+    <rect width="180" height="200" rx="20" fill="#F3F8F6" stroke="#D5E8E2"/>
+    <circle cx="90" cy="70" r="34" fill="#0B7A68" opacity="0.2"/>
+    <rect x="40" y="130" width="100" height="12" rx="6" fill="#0B7A68"/>
+    <rect x="50" y="156" width="80" height="10" rx="5" fill="#A9C9C1"/>
+  </g>
+  <g transform="translate(620 480)">
+    <rect width="180" height="200" rx="20" fill="#F3F8F6" stroke="#D5E8E2"/>
+    <circle cx="90" cy="70" r="34" fill="#086557" opacity="0.2"/>
+    <rect x="40" y="130" width="100" height="12" rx="6" fill="#0B7A68"/>
+    <rect x="50" y="156" width="80" height="10" rx="5" fill="#A9C9C1"/>
+  </g>
+  <rect x="980" y="220" width="300" height="460" rx="28" fill="#0B2C3D"/>
+  <rect x="1020" y="280" width="220" height="18" rx="9" fill="#38C7BD"/>
+  <rect x="1020" y="320" width="180" height="12" rx="6" fill="#6AA8A0"/>
+  <rect x="1020" y="360" width="200" height="12" rx="6" fill="#6AA8A0"/>
+  <rect x="1020" y="420" width="220" height="160" rx="18" fill="#123A4D"/>
+</svg>

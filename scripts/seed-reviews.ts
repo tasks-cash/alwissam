@@ -1,11 +1,10 @@
 /**
- * Idempotent review capacity seed.
- * - Preserves existing approved/published reviews
- * - Does NOT publish fabricated patient reviews in production
- * - Fills up to 30 total records using unpublished admin drafts when needed
+ * Idempotent review draft seed (up to 30 sample drafts).
+ * - isSample: true, status: draft, never auto-published
+ * - Dry-run: SEED_DRY_RUN=true
+ * - Preserves Admin-edited rows (skips existing sourceKey)
  *
  * Usage: pnpm exec tsx scripts/seed-reviews.ts
- * Optional: SEED_REVIEW_PUBLISH_FIXTURES=true (non-production only) publishes marked fixtures
  */
 import "dotenv/config";
 import mongoose from "mongoose";
@@ -32,27 +31,86 @@ function resolveMongoUri(): string {
   return uri;
 }
 
-const isProd =
-  process.env.NODE_ENV === "production" ||
-  process.env.APP_ENV === "production";
-const publishFixtures =
-  !isProd && process.env.SEED_REVIEW_PUBLISH_FIXTURES === "true";
+const dryRun = process.env.SEED_DRY_RUN === "true";
 
-/** Clinic-approved tone templates — stored as drafts unless fixtures publishing enabled. */
-const DRAFT_TEMPLATES: Array<{
+const NAMES = [
+  "محمد",
+  "فاطمة",
+  "عبد الرحمن",
+  "خديجة",
+  "يوسف",
+  "أمينة",
+  "إبراهيم",
+  "مريم",
+  "عمر",
+  "سارة",
+  "حسن",
+  "نورة",
+  "علي",
+  "هدى",
+  "رياض",
+  "سمية",
+  "كمال",
+  "ليلى",
+  "ناصر",
+  "إيمان",
+  "سليم",
+  "رقية",
+  "بلال",
+  "حنان",
+  "وليد",
+  "أسماء",
+  "طارق",
+  "زينب",
+  "أمين",
+  "دعاء",
+];
+
+const SUBJECTS = [
+  "تجربة الحجز",
+  "استقبال العيادة",
+  "نظافة المكان",
+  "شرح العلاج",
+  "متابعة بعد الزيارة",
+  "سهولة الموعد",
+  "تعامل الطاقم",
+  "وضوح التعليمات",
+];
+
+const QUOTES = [
+  "الحجز كان واضح والحمد لله الاستقبال منظم، حسّيت بالراحة من أول ما دخلت.",
+  "الدكتور شرح لي الخطوة بهدوء وفهمت وش راح يصير قبل ما نبداو.",
+  "العيادة نظيفة والتنظيم مليح، ما طوّلتش برّا بزاف.",
+  "السكيرتيرة كانت متعاونة وساعدتني نفهم المواعيد كيما لازم.",
+  "ما نقدرش نحكم على نتيجة علاجية من زيارة وحدة، لكن المعاملة كانت محترمة.",
+  "جاوني للمواعيد بالتوقيت تقريبًا، وهذا سهّل عليّا اليوم.",
+  "اللغة واضحة والتعليمات بعد الزيارة مكتوبة بشكل مفهوم.",
+  "المكان مرتب والطاقم يحترم خصوصية المريض.",
+  "كنت متردد في البداية، لكن الاستقبال طمّنني وخفّف عليّا التوتر.",
+  "خدمة الحجز عبر الموقع سهلة وما احتجتش ندور برّا على معلومة.",
+];
+
+type Draft = {
   key: string;
+  displayName: string;
+  subjectAr: string;
   quoteAr: string;
-  quoteEn: string;
-  quoteFr: string;
   rating: number;
-}> = Array.from({ length: 30 }, (_, i) => {
+  avatarType: "male" | "female" | "neutral";
+};
+
+const DRAFTS: Draft[] = Array.from({ length: 30 }, (_, i) => {
   const n = String(i + 1).padStart(2, "0");
+  const name = NAMES[i % NAMES.length];
+  const avatarType: Draft["avatarType"] =
+    i % 3 === 0 ? "male" : i % 3 === 1 ? "female" : "neutral";
   return {
     key: `seed:review:draft:${n}`,
-    quoteAr: `مسودة تقييم إدارية رقم ${n} — محتوى جاهز للمراجعة والاعتماد قبل أي نشر علني. لا يُعرض للزوار إلا بعد موافقة العيادة.`,
-    quoteEn: `Admin draft review ${n} — content ready for clinic approval before any public publication.`,
-    quoteFr: `Brouillon d’avis admin ${n} — contenu prêt pour validation clinique avant toute publication.`,
-    rating: ((i % 5) + 1) as number,
+    displayName: `${name}`,
+    subjectAr: SUBJECTS[i % SUBJECTS.length],
+    quoteAr: QUOTES[i % QUOTES.length],
+    rating: ([5, 5, 4, 5, 4, 3, 5, 4, 5, 4] as const)[i % 10],
+    avatarType,
   };
 });
 
@@ -63,51 +121,67 @@ async function main() {
 
   await reviews.createIndex({ sourceKey: 1 }, { unique: true, sparse: true });
   await reviews.createIndex({ isPublished: 1, isApproved: 1, displayOrder: 1 });
-  await reviews.createIndex({ status: 1, createdAt: -1 });
-  await reviews.createIndex({ isFeatured: 1, rating: -1 });
-  await reviews.createIndex({ doctorId: 1 });
-  await reviews.createIndex({ publishedAt: -1 });
-
-  const existing = await reviews.countDocuments({ deletedAt: null });
-  const published = await reviews.countDocuments({
-    deletedAt: null,
-    archivedAt: null,
-    $or: [
-      { isPublished: true, isApproved: true },
-      { status: "APPROVED", isPublished: { $ne: false } },
-    ],
-  });
+  await reviews.createIndex({ isSample: 1, status: 1 });
 
   let created = 0;
   let skipped = 0;
+  let repairedSafetyFlags = 0;
 
-  for (const [i, t] of DRAFT_TEMPLATES.entries()) {
+  for (const [i, t] of DRAFTS.entries()) {
     const found = await reviews.findOne({ sourceKey: t.key });
     if (found) {
+      if (
+        found.isSample !== true ||
+        found.isPublished === true ||
+        found.isApproved === true
+      ) {
+        repairedSafetyFlags += 1;
+        if (!dryRun) {
+          await reviews.updateOne(
+            { _id: found._id },
+            {
+              $set: {
+                isSample: true,
+                isApproved: false,
+                isPublished: false,
+                isVerified: false,
+                verified: false,
+                status: "DRAFT",
+                moderationStatus: "draft",
+                publishedAt: null,
+                updatedAt: new Date(),
+              },
+            },
+          );
+        }
+      }
       skipped += 1;
       continue;
     }
-    const totalNow = await reviews.countDocuments({ deletedAt: null });
-    if (totalNow >= 30 && !publishFixtures) {
-      break;
+    if (dryRun) {
+      created += 1;
+      continue;
     }
-    // Demo samples stay unpublished and marked isSample — never auto-publish as genuine reviews.
     await reviews.insertOne({
-      displayName: `زائر تجريبي ${String(i + 1).padStart(2, "0")}`,
-      displayNameAr: `زائر تجريبي ${String(i + 1).padStart(2, "0")}`,
+      displayName: t.displayName,
+      displayNameAr: t.displayName,
       displayNameEn: `Sample visitor ${String(i + 1).padStart(2, "0")}`,
       displayNameFr: `Visiteur exemple ${String(i + 1).padStart(2, "0")}`,
       isAnonymous: true,
       quoteAr: t.quoteAr,
-      quoteEn: t.quoteEn,
-      quoteFr: t.quoteFr,
+      quoteEn:
+        "Admin sample draft — not a verified patient testimonial. Requires clinic approval before any public display.",
+      quoteFr:
+        "Brouillon d’exemple admin — pas un avis patient vérifié. Validation clinique requise avant publication.",
       reviewAr: t.quoteAr,
-      reviewEn: t.quoteEn,
-      reviewFr: t.quoteFr,
-      subjectAr: "مسودة تقييم إدارية",
+      subjectAr: t.subjectAr,
+      subjectEn: "Admin sample draft",
+      subjectFr: "Brouillon d’exemple",
       rating: t.rating,
       reviewDate: new Date(),
-      avatarType: i % 2 === 0 ? "male" : "female",
+      avatarType: t.avatarType,
+      avatarMediaId: `/images/avatars/${t.avatarType}.svg`,
+      patientImage: `/images/avatars/${t.avatarType}.svg`,
       locale: "ar",
       isVerified: false,
       verified: false,
@@ -130,31 +204,30 @@ async function main() {
     created += 1;
   }
 
-  const afterTotal = await reviews.countDocuments({ deletedAt: null });
-  const afterPublished = await reviews.countDocuments({
+  const sampleDrafts = await reviews.countDocuments({
+    deletedAt: null,
+    isSample: true,
+    isPublished: { $ne: true },
+  });
+  const published = await reviews.countDocuments({
     deletedAt: null,
     archivedAt: null,
-    $or: [
-      { isPublished: true, isApproved: true },
-      { status: "APPROVED", isPublished: { $ne: false } },
-    ],
+    isPublished: true,
+    isApproved: true,
+    isSample: { $ne: true },
   });
 
   console.log(
     JSON.stringify(
       {
         ok: true,
-        isProd,
-        publishFixtures,
-        before: { existing, published },
+        dryRun,
         created,
         skipped,
-        after: { total: afterTotal, published: afterPublished },
-        note: isProd
-          ? "Production: drafts only — fabricated reviews were not published."
-          : publishFixtures
-            ? "Dev fixtures published (SEED_REVIEW_PUBLISH_FIXTURES=true)."
-            : "Draft capacity seeded; approve/publish from admin before public display.",
+        repairedSafetyFlags,
+        sampleDrafts,
+        publishedGenuine: published,
+        note: "Sample drafts stay unpublished. Admin must explicitly approve/publish.",
       },
       null,
       2,

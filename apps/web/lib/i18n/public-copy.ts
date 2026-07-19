@@ -722,7 +722,7 @@ const ar: PublicCopy = {
   experiencesTitle: "تجارب مرضانا",
   experiencesLead:
     "آراء وتجارب منشورة بعد مراجعتها واعتمادها من عيادة الوسام.",
-  experiencesEmpty: "لا توجد تجارب مرضى منشورة حاليًا.",
+  experiencesEmpty: "لا توجد تجارب منشورة حاليًا.",
   experiencesError: "تعذر تحميل تجارب المرضى. يرجى المحاولة مرة أخرى.",
   experiencesVerified: "مريض موثّق",
   experiencesRating: "التقييم",
@@ -731,15 +731,15 @@ const ar: PublicCopy = {
   experiencesPause: "إيقاف التشغيل التلقائي",
   experiencesReadMore: "عرض المزيد",
   experiencesReadLess: "عرض أقل",
-  beforeAfterTitle: "نتائج قبل وبعد العلاج",
+  beforeAfterTitle: "حالات علاجية سابقة",
   beforeAfterLead:
-    "حالات علاجية منشورة بعد مراجعتها والحصول على الموافقات المطلوبة.",
+    "نماذج من حالات علاج الأسنان المنشورة بموافقة أصحابها.",
   beforeAfterDisclaimer:
     "تختلف النتائج من حالة إلى أخرى، وتحدد الخطة العلاجية بعد الفحص والتقييم من طرف الطبيب.",
   beforeAfterPublicationNote:
     "الصور منشورة بعد الحصول على الموافقات المطلوبة، ولا تمثل ضمانًا للحصول على النتيجة نفسها.",
-  beforeAfterEmpty: "لا توجد حالات قبل وبعد منشورة حاليًا.",
-  beforeAfterError: "تعذر تحميل نتائج قبل وبعد. يرجى المحاولة مرة أخرى.",
+  beforeAfterEmpty: "لا توجد حالات علاجية منشورة حاليًا.",
+  beforeAfterError: "تعذر تحميل الحالات العلاجية حاليًا. حاول مرة أخرى.",
   beforeLabel: "قبل العلاج",
   afterLabel: "بعد العلاج",
   beforeAfterPrev: "الحالة السابقة",

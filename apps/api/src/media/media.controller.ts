@@ -1,19 +1,19 @@
-import { randomUUID } from "crypto";
-import { existsSync, mkdirSync } from "fs";
-import { extname, join } from "path";
 import {
-  BadRequestException,
   Controller,
+  Get,
   HttpCode,
+  Param,
   Post,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from "@nestjs/swagger";
-import { diskStorage } from "multer";
-import type { Express } from "express";
+import { memoryStorage } from "multer";
+import type { Express, Response } from "express";
+import { CurrentUser } from "../common/auth/current-user.decorator";
 import {
   PermissionsGuard,
   RequirePermissions,
@@ -21,27 +21,25 @@ import {
   RolesGuard,
 } from "../common/auth/permissions.guard";
 import { PERMISSIONS } from "../common/auth/permissions";
-import { JwtAuthGuard } from "../common/auth/session.guard";
-import { ErrorCodes } from "../common/errors/error-codes";
-
-const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_BYTES = 5 * 1024 * 1024;
-
-function uploadRoot() {
-  const root = process.env.UPLOAD_DIR || join(process.cwd(), "uploads");
-  const dir = join(root, "public-content");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return dir;
-}
+import type { AuthUser } from "../common/auth/session.guard";
+import { ClinicOwnerGuard, JwtAuthGuard } from "../common/auth/session.guard";
+import { MediaService } from "./media.service";
 
 @ApiTags("media")
 @ApiBearerAuth()
 @Controller("api/admin/media")
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(
+  JwtAuthGuard,
+  ClinicOwnerGuard,
+  RolesGuard,
+  PermissionsGuard,
+)
 export class MediaController {
+  constructor(private readonly media: MediaService) {}
+
   @Post("upload")
   @HttpCode(200)
-  @RequireRoles("ADMIN", "DOCTOR_SPECIALIST")
+  @RequireRoles("ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST", "OWNER", "SUPER_ADMIN")
   @RequirePermissions(PERMISSIONS.manage_settings)
   @ApiConsumes("multipart/form-data")
   @ApiBody({
@@ -52,47 +50,39 @@ export class MediaController {
   })
   @UseInterceptors(
     FileInterceptor("file", {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => cb(null, uploadRoot()),
-        filename: (_req, file, cb) => {
-          const ext = extname(file.originalname || "").toLowerCase();
-          const safe =
-            ext === ".jpg" || ext === ".jpeg" || ext === ".png" || ext === ".webp"
-              ? ext === ".jpeg"
-                ? ".jpg"
-                : ext
-              : ".bin";
-          cb(null, `${randomUUID()}${safe}`);
-        },
-      }),
-      limits: { fileSize: MAX_BYTES },
-      fileFilter: (_req, file, cb) => {
-        if (!ALLOWED.has(file.mimetype)) {
-          cb(
-            new BadRequestException({
-              code: ErrorCodes.VALIDATION_ERROR,
-              message: "يُسمح فقط بصور JPEG أو PNG أو WebP.",
-            }) as unknown as Error,
-            false,
-          );
-          return;
-        }
-        cb(null, true);
-      },
+      storage: memoryStorage(),
+      limits: { fileSize: 8 * 1024 * 1024, files: 1 },
     }),
   )
-  upload(@UploadedFile() file?: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException({
-        code: ErrorCodes.VALIDATION_ERROR,
-        message: "الملف مطلوب.",
-      });
-    }
-    return {
-      ok: true,
-      url: `/uploads/public-content/${file.filename}`,
-      mimeType: file.mimetype,
-      sizeBytes: file.size,
-    };
+  upload(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.media.upload(file, actor);
+  }
+
+  @Get(":id")
+  @RequireRoles("ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST", "OWNER", "SUPER_ADMIN")
+  @RequirePermissions(PERMISSIONS.manage_settings)
+  async adminFile(@Param("id") id: string, @Res() response: Response) {
+    const file = await this.media.getForAdmin(id);
+    response.type(file.mimeType);
+    response.setHeader("Cache-Control", "private, no-store");
+    return response.sendFile(file.path);
+  }
+}
+
+@ApiTags("media-public")
+@Controller("api/public/media")
+export class PublicMediaController {
+  constructor(private readonly media: MediaService) {}
+
+  @Get(":id")
+  async publicFile(@Param("id") id: string, @Res() response: Response) {
+    const file = await this.media.getForPublic(id);
+    response.type(file.mimeType);
+    response.setHeader("Cache-Control", "public, max-age=3600");
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    return response.sendFile(file.path);
   }
 }

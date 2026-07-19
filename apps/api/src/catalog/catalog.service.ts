@@ -948,6 +948,9 @@ export class CatalogService {
     page?: number;
     pageSize?: number;
     archived?: string;
+    active?: string;
+    public?: string;
+    featured?: string;
   }) {
     const page = Math.max(1, Number(query.page) || 1);
     const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 50));
@@ -966,6 +969,15 @@ export class CatalogService {
         { nameFr: re },
         { slug: re },
       ];
+    }
+    if (query.active === "true" || query.active === "false") {
+      filter.isActive = query.active === "true";
+    }
+    if (query.public === "true" || query.public === "false") {
+      filter.isPublic = query.public === "true";
+    }
+    if (query.featured === "true" || query.featured === "false") {
+      filter.isFeatured = query.featured === "true";
     }
     const [total, rows] = await Promise.all([
       this.specialties.countDocuments(filter),
@@ -992,6 +1004,13 @@ export class CatalogService {
       .find({ specialtyIds: row._id, archivedAt: null })
       .select({ slug: 1, nameAr: 1, nameEn: 1, isActive: 1, isPublic: 1 })
       .lean();
+    const linkedDoctors = await this.users
+      .find({
+        "doctor.specialtyIds": { $in: [String(row._id), row._id] },
+        deletedAt: null,
+      })
+      .select({ fullName: 1, status: 1 })
+      .lean();
     return {
       ok: true,
       specialty: this.toAdminSpecialty(row),
@@ -1002,6 +1021,11 @@ export class CatalogService {
         nameEn: s.nameEn,
         isActive: s.isActive,
         isPublic: s.isPublic,
+      })),
+      doctors: linkedDoctors.map((doctor) => ({
+        id: String(doctor._id),
+        fullName: doctor.fullName,
+        status: doctor.status,
       })),
     };
   }
@@ -1165,7 +1189,87 @@ export class CatalogService {
     return { ok: true, specialty: this.toAdminSpecialty(updated.toObject()) };
   }
 
-  async archiveSpecialty(id: string, user: AuthUser, restore = false) {
+  async archiveSpecialty(
+    id: string,
+    user: AuthUser,
+    restore = false,
+    replacementId?: string,
+  ) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف التخصص غير صالح.",
+      });
+    }
+    const specialtyObjectId = new Types.ObjectId(id);
+    const [linkedServiceCount, linkedDoctorCount] = await Promise.all([
+      this.services.countDocuments({
+        specialtyIds: specialtyObjectId,
+        archivedAt: null,
+      }),
+      this.users.countDocuments({
+        "doctor.specialtyIds": { $in: [id, specialtyObjectId] },
+        deletedAt: null,
+      }),
+    ]);
+    if (
+      !restore &&
+      (linkedServiceCount > 0 || linkedDoctorCount > 0) &&
+      !replacementId
+    ) {
+      throw new ConflictException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message:
+          "هذا التخصص مرتبط بخدمات أو أطباء. اختر تخصصًا بديلًا قبل الأرشفة.",
+        fieldErrors: {
+          replacementId: [
+            `${linkedDoctorCount} أطباء و${linkedServiceCount} خدمات مرتبطة.`,
+          ],
+        },
+      });
+    }
+    if (!restore && replacementId) {
+      if (replacementId === id || !Types.ObjectId.isValid(replacementId)) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "اختر تخصصًا بديلًا صالحًا ومختلفًا.",
+        });
+      }
+      const replacement = await this.specialties.exists({
+        _id: replacementId,
+        archivedAt: null,
+        isActive: true,
+      });
+      if (!replacement) {
+        throw new BadRequestException({
+          code: ErrorCodes.VALIDATION_ERROR,
+          message: "التخصص البديل غير متاح.",
+        });
+      }
+      const replacementObjectId = new Types.ObjectId(replacementId);
+      const [linkedServiceIds, linkedUserIds] = await Promise.all([
+        this.services.distinct("_id", { specialtyIds: specialtyObjectId }),
+        this.users.distinct("_id", {
+          "doctor.specialtyIds": { $in: [id, specialtyObjectId] },
+        }),
+      ]);
+      await this.services.updateMany(
+        { _id: { $in: linkedServiceIds } },
+        { $pull: { specialtyIds: specialtyObjectId } },
+      );
+      await this.services.updateMany(
+        { _id: { $in: linkedServiceIds } },
+        { $addToSet: { specialtyIds: replacementObjectId } },
+      );
+      await this.users.updateMany(
+        { _id: { $in: linkedUserIds } },
+        { $pull: { "doctor.specialtyIds": { $in: [id, specialtyObjectId] } } },
+      );
+      await this.users.updateMany(
+        { _id: { $in: linkedUserIds } },
+        { $addToSet: { "doctor.specialtyIds": replacementId } },
+      );
+    }
     const updated = await this.specialties.findByIdAndUpdate(
       id,
       {
@@ -1181,6 +1285,11 @@ export class CatalogService {
       
       entityType: "specialty",
       entityId: id,
+      newValue: {
+        replacementId: replacementId || null,
+        linkedDoctorCount,
+        linkedServiceCount,
+      },
     });
     return { ok: true };
   }
@@ -1209,6 +1318,9 @@ export class CatalogService {
     page?: number;
     pageSize?: number;
     archived?: string;
+    active?: string;
+    public?: string;
+    featured?: string;
   }) {
     const page = Math.max(1, Number(query.page) || 1);
     const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 50));
@@ -1230,6 +1342,15 @@ export class CatalogService {
         { nameFr: re },
         { slug: re },
       ];
+    }
+    if (query.active === "true" || query.active === "false") {
+      filter.isActive = query.active === "true";
+    }
+    if (query.public === "true" || query.public === "false") {
+      filter.isPublic = query.public === "true";
+    }
+    if (query.featured === "true" || query.featured === "false") {
+      filter.isFeatured = query.featured === "true";
     }
     const [total, rows] = await Promise.all([
       this.services.countDocuments(filter),

@@ -14,6 +14,7 @@ import {
 import { apiPost } from "../../../../lib/api";
 import { getPublicCopy } from "../../../../lib/i18n/public-copy";
 import type { Locale } from "../../../../lib/i18n/config";
+import { DoctorAvatar as SharedDoctorAvatar } from "../../../../components/public/DoctorAvatar";
 
 type HelpSummary = {
   ok: boolean;
@@ -57,23 +58,14 @@ function DoctorAvatar({
   name: string;
   imageUrl?: string | null;
 }) {
-  if (imageUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        className="patient-help-avatar"
-        src={imageUrl}
-        alt=""
-        width={56}
-        height={56}
-      />
-    );
-  }
-  const initial = (name || "ط").trim().charAt(0);
   return (
-    <span className="patient-help-avatar patient-help-avatar--fallback" aria-hidden>
-      {initial}
-    </span>
+    <SharedDoctorAvatar
+      name={name}
+      imageUrl={imageUrl}
+      size="lg"
+      className="patient-help-avatar"
+      decorative
+    />
   );
 }
 

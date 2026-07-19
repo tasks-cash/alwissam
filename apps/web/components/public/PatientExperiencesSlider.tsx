@@ -161,6 +161,16 @@ export function PatientExperiencesSlider({
     <div
       className="pe-slider"
       dir={isRtl ? "rtl" : "ltr"}
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          go(isRtl ? 1 : -1);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          go(isRtl ? -1 : 1);
+        }
+      }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}

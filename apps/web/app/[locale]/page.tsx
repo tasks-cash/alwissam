@@ -9,6 +9,7 @@ import {
   fetchPublicBeforeAfter,
   fetchPublicDoctors,
   fetchPublicPatientExperiences,
+  fetchPublicReviews,
   fetchPublicServicesCatalog,
   fetchPublicSite,
   fetchPublicSpecialties,
@@ -62,7 +63,7 @@ export default async function HomePage({
   const locale = raw as Locale;
   const dict = getDictionary(locale);
   const copy = getPublicCopy(locale);
-  const [site, doctors, experiences, beforeAfterCases, specialtyRes, serviceRes] =
+  const [site, doctors, experiences, beforeAfterCases, specialtyRes, serviceRes, reviewsRes] =
     await Promise.all([
       fetchPublicSite(),
       fetchPublicDoctors({
@@ -71,10 +72,11 @@ export default async function HomePage({
         publicOnly: true,
         limit: 3,
       }),
-      fetchPublicPatientExperiences({ locale, limit: 10 }),
-      fetchPublicBeforeAfter({ locale, featured: true, limit: 10 }),
+      fetchPublicPatientExperiences({ locale, limit: 30 }),
+      fetchPublicBeforeAfter({ locale, limit: 30 }),
       fetchPublicSpecialties({ locale, featured: true, limit: 6 }),
       fetchPublicServicesCatalog({ locale, featured: true, limit: 8 }),
+      fetchPublicReviews({ locale, limit: 30 }),
     ]);
   const name = localizedClinicName(locale, site.clinic) || dict.brand;
   const about = localizedAbout(locale, site.content) || dict.homeLead;
@@ -114,6 +116,8 @@ export default async function HomePage({
         faqs={faqs}
         experiences={experiences}
         beforeAfterCases={beforeAfterCases}
+        reviews={reviewsRes.items}
+        homepageSections={site.homepageSections}
       />
     </PublicChrome>
   );

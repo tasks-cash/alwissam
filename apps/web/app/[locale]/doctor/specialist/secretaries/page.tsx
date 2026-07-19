@@ -1,25 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AdminPagination, AdminRowActions, AdminTableToolbar } from "../../../../../components/admin/AdminDataTable";
+import { AdminDialog } from "../../../../../components/admin/AdminDialog";
 import {
-  PASSWORD_MIN_CREATE,
-  createSecretarySchema,
-  omitConfirmPassword,
-  updateSecretaryLoginSchema,
-  validationMessagesAr,
-} from "@alwisam/shared-validation";
-import { PasswordField } from "../../../../../components/ui/PasswordField";
-import { PhoneField } from "../../../../../components/ui/PhoneField";
-import { ConfirmDialog } from "../../../../../components/ui/ConfirmDialog";
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingSkeleton,
+  AdminStatusBadge,
+  AdminToast,
+  type AdminToastState,
+} from "../../../../../components/admin/AdminFeedback";
+import {
+  AdminField,
+  AdminFormSection,
+  AdminInput,
+  AdminSelect,
+  AdminSwitch,
+} from "../../../../../components/admin/AdminForm";
+import { AdminPageHeader } from "../../../../../components/admin/AdminPageHeader";
 import { DashboardShell } from "../../../../../components/layout/DashboardShell";
-import {
-  apiDelete,
-  apiErrorMessage,
-  apiPatch,
-  apiPost,
-  mapFieldErrors,
-} from "../../../../../lib/api";
+import { ConfirmDialog } from "../../../../../components/ui/ConfirmDialog";
+import { apiDelete, apiErrorMessage, apiRequest } from "../../../../../lib/api";
 import { useDashboardSession } from "../../../../../lib/use-dashboard-session";
 
 type SecretaryRow = {
@@ -27,215 +29,239 @@ type SecretaryRow = {
   fullName: string;
   email?: string;
   phone?: string;
-  shiftCode?: string;
+  status?: string;
+  shiftCode?: "MORNING" | "EVENING" | "CUSTOM";
   workStartTime?: string;
   workEndTime?: string;
   workDays?: string;
-  isActive?: boolean;
-  status?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
 };
 
-const SHIFT_LABELS: Record<string, string> = {
+type SecretaryDraft = {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+  shiftCode: "MORNING" | "EVENING" | "CUSTOM";
+  workStartTime: string;
+  workEndTime: string;
+  workDays: string;
+  status: "ACTIVE" | "INACTIVE";
+};
+
+const EMPTY: SecretaryDraft = {
+  fullName: "",
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+  shiftCode: "MORNING",
+  workStartTime: "07:00",
+  workEndTime: "14:30",
+  workDays: "SUN,MON,TUE,WED,THU,SAT",
+  status: "ACTIVE",
+};
+
+const SHIFT_LABELS = {
   MORNING: "صباحية",
   EVENING: "مسائية",
   CUSTOM: "مخصصة",
 };
 
-function formatShiftTime(start?: string, end?: string) {
-  if (!start && !end) return "—";
-  return `${start || "—"} – ${end || "—"}`;
+function validate(draft: SecretaryDraft, creating: boolean) {
+  if (draft.fullName.trim().length < 2) return "أدخل الاسم الكامل.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) return "أدخل بريدًا إلكترونيًا صالحًا.";
+  if (!/^\d{8,15}$/.test(draft.phone)) return "رقم الهاتف يجب أن يحتوي على 8 إلى 15 رقمًا.";
+  if (draft.workEndTime <= draft.workStartTime) return "وقت نهاية الوردية يجب أن يكون بعد البداية.";
+  if (creating && draft.password.length < 10) return "كلمة المرور المؤقتة يجب ألا تقل عن 10 أحرف.";
+  if (creating && draft.password !== draft.confirmPassword) return "تأكيد كلمة المرور غير مطابق.";
+  return "";
 }
 
 export default function SecretariesPage() {
   const { locale, dict, user, loading: sessionLoading, error: sessionError } =
-    useDashboardSession({
-      roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"],
-    });
+    useDashboardSession({ roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"] });
   const [rows, setRows] = useState<SecretaryRow[]>([]);
-  const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-    shiftCode: "MORNING" as "MORNING" | "EVENING" | "CUSTOM",
-  });
-  const [edit, setEdit] = useState<{
-    userId: string;
-    email: string;
-    phone: string;
-    newPassword: string;
-  } | null>(null);
-  const [shiftEdit, setShiftEdit] = useState<{
-    userId: string;
-    shiftCode: "MORNING" | "EVENING" | "CUSTOM";
-    workStartTime: string;
-    workEndTime: string;
-  } | null>(null);
-  const [deactivate, setDeactivate] = useState<{ userId: string; name: string } | null>(null);
-  const [dialogError, setDialogError] = useState("");
-  const [dialogLoading, setDialogLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [shift, setShift] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [dialog, setDialog] = useState<"create" | "edit" | null>(null);
+  const [editing, setEditing] = useState<SecretaryRow | null>(null);
+  const [draft, setDraft] = useState<SecretaryDraft>(EMPTY);
+  const [dirty, setDirty] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(0);
+  const [deactivate, setDeactivate] = useState<SecretaryRow | null>(null);
+  const [resetTarget, setResetTarget] = useState<SecretaryRow | null>(null);
+  const [resetValue, setResetValue] = useState("");
+  const [toast, setToast] = useState<AdminToastState>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const query = useMemo(() => {
+    const params = new URLSearchParams({ page: String(page), pageSize: "20" });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (status) params.set("status", status);
+    if (shift) params.set("shiftCode", shift);
+    return params.toString();
+  }, [debouncedSearch, page, shift, status]);
 
   const load = useCallback(async () => {
-    const list = await fetch("/api/admin/secretaries", { credentials: "include" });
-    if (!list.ok) {
-      setError("تعذر تحميل قائمة السكرتارية");
+    setLoading(true);
+    setLoadError("");
+    const response = await apiRequest<{
+      secretaries?: SecretaryRow[];
+      total?: number;
+      totalPages?: number;
+    }>(`/api/admin/secretaries?${query}`);
+    setLoading(false);
+    if (!response.ok) {
+      setLoadError("تعذر تحميل قائمة السكرتارية حاليًا.");
       return;
     }
-    const data = await list.json();
-    setRows(data.secretaries || []);
-  }, []);
+    setRows(response.data.secretaries || []);
+    setTotal(response.data.total ?? response.data.secretaries?.length ?? 0);
+    setTotalPages(response.data.totalPages || 1);
+  }, [query]);
 
   useEffect(() => {
     if (user) void load();
   }, [load, user]);
 
-  async function onCreate(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setFieldErrors({});
-    const parsed = createSecretarySchema.safeParse(form);
-    if (!parsed.success) {
-      const next: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const key = String(issue.path[0] || "_form");
-        if (!next[key]) next[key] = issue.message;
-      }
-      setFieldErrors(next);
-      setError(parsed.error.issues[0]?.message || validationMessagesAr.validationFailed);
-      return;
-    }
-    setLoading(true);
-    try {
-      const body = omitConfirmPassword(parsed.data);
-      const { ok, data } = await apiPost<{ message?: string }>(
-        "/api/admin/secretaries",
-        body,
-      );
-      if (!ok) {
-        const fields = mapFieldErrors(data);
-        setFieldErrors(fields);
-        setError(apiErrorMessage(data));
-        if (fields.email) emailRef.current?.focus();
-        return;
-      }
-      setSuccess(data.message || validationMessagesAr.secretaryCreated);
-      setForm({
-        fullName: "",
-        email: "",
-        phone: "",
-        password: "",
-        confirmPassword: "",
-        shiftCode: "MORNING",
-      });
-      await load();
-    } catch {
-      setError(validationMessagesAr.backendUnavailable);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const patch = (value: Partial<SecretaryDraft>) => {
+    setDraft((current) => ({ ...current, ...value }));
+    setDirty(true);
+  };
 
-  async function onUpdate(e: FormEvent) {
-    e.preventDefault();
-    if (!edit) return;
-    setError("");
-    setSuccess("");
-    const parsed = updateSecretaryLoginSchema.safeParse({
-      section: "login",
-      ...edit,
+  const openCreate = () => {
+    setDraft(EMPTY);
+    setEditing(null);
+    setFormError("");
+    setDirty(false);
+    setStep(0);
+    setDialog("create");
+  };
+
+  const openEdit = (row: SecretaryRow) => {
+    setEditing(row);
+    setDraft({
+      ...EMPTY,
+      fullName: row.fullName,
+      email: row.email || "",
+      phone: row.phone || "",
+      shiftCode: row.shiftCode || "MORNING",
+      workStartTime: row.workStartTime || "07:00",
+      workEndTime: row.workEndTime || "14:30",
+      workDays: row.workDays || "SUN,MON,TUE,WED,THU,SAT",
+      status: row.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
     });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message || "بيانات غير صالحة");
+    setFormError("");
+    setDirty(false);
+    setDialog("edit");
+  };
+
+  const save = async (close = true) => {
+    const message = validate(draft, dialog === "create");
+    if (message) {
+      setFormError(message);
       return;
     }
-    setLoading(true);
-    try {
-      const { section: _s, ...payload } = parsed.data;
-      const { ok, data } = await apiPatch<{ message?: string }>(
-        "/api/admin/secretaries",
-        payload,
-      );
-      if (!ok) {
-        setFieldErrors(mapFieldErrors(data));
-        setError(apiErrorMessage(data));
-        return;
-      }
-      setSuccess(data.message || validationMessagesAr.saved);
-      setEdit(null);
-      await load();
-    } catch {
-      setError(validationMessagesAr.backendUnavailable);
-    } finally {
-      setLoading(false);
+    setSaving(true);
+    setFormError("");
+    const response = await apiRequest<{ message?: string }>("/api/admin/secretaries", {
+      method: dialog === "create" ? "POST" : "PATCH",
+      body: JSON.stringify(
+        dialog === "create"
+          ? {
+              fullName: draft.fullName,
+              email: draft.email,
+              phone: draft.phone,
+              password: draft.password,
+              shiftCode: draft.shiftCode,
+              workStartTime: draft.workStartTime,
+              workEndTime: draft.workEndTime,
+              workDays: draft.workDays,
+            }
+          : {
+              userId: editing?.id,
+              fullName: draft.fullName,
+              email: draft.email,
+              phone: draft.phone,
+              shiftCode: draft.shiftCode,
+              workStartTime: draft.workStartTime,
+              workEndTime: draft.workEndTime,
+              workDays: draft.workDays,
+              status: draft.status,
+            },
+      ),
+    });
+    setSaving(false);
+    if (!response.ok) {
+      setFormError(apiErrorMessage(response.data));
+      return;
     }
-  }
+    setDirty(false);
+    setToast({
+      type: "success",
+      message:
+        dialog === "create"
+          ? `تمت إضافة ${draft.fullName} إلى فريق السكرتارية.`
+          : `تم حفظ تعديلات ${draft.fullName}.`,
+    });
+    await load();
+    if (close) setDialog(null);
+  };
 
-  async function onSaveShift(e: FormEvent) {
-    e.preventDefault();
-    if (!shiftEdit) return;
-    setError("");
-    setSuccess("");
-    setLoading(true);
-    try {
-      const { ok, data } = await apiPatch<{ message?: string }>(
-        "/api/admin/secretaries",
-        {
-          userId: shiftEdit.userId,
-          shiftCode: shiftEdit.shiftCode,
-          workStartTime: shiftEdit.workStartTime,
-          workEndTime: shiftEdit.workEndTime,
-        },
-      );
-      if (!ok) {
-        setError(apiErrorMessage(data));
-        return;
-      }
-      setSuccess(data.message || validationMessagesAr.saved);
-      setShiftEdit(null);
-      await load();
-    } catch {
-      setError(validationMessagesAr.backendUnavailable);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function confirmDeactivate() {
+  const confirmDeactivate = async () => {
     if (!deactivate) return;
-    setDialogError("");
-    setDialogLoading(true);
-    try {
-      const { ok, data } = await apiDelete<{ message?: string }>(
-        "/api/admin/secretaries",
-        { userId: deactivate.userId },
-      );
-      if (!ok) {
-        setDialogError(apiErrorMessage(data));
-        return;
-      }
-      setDeactivate(null);
-      setSuccess(data.message || "تم تعطيل الحساب بنجاح.");
-      await load();
-    } catch {
-      setDialogError(validationMessagesAr.backendUnavailable);
-    } finally {
-      setDialogLoading(false);
+    setSaving(true);
+    const response = await apiDelete<{ message?: string }>("/api/admin/secretaries", {
+      userId: deactivate.id,
+    });
+    setSaving(false);
+    if (!response.ok) {
+      setToast({ type: "error", message: apiErrorMessage(response.data) });
+      return;
     }
-  }
+    setDeactivate(null);
+    setToast({ type: "success", message: "تم تعطيل الحساب وإنهاء جلساته." });
+    await load();
+  };
 
-  if (sessionLoading || !user) {
-    return <main className="dash-panel">{dict.loading}</main>;
-  }
-  if (sessionError) {
-    return <main className="dash-panel alert-error">{sessionError}</main>;
-  }
+  const submitReset = async () => {
+    if (!resetTarget || resetValue.length < 10) return;
+    setSaving(true);
+    const response = await apiRequest(`/api/admin/secretaries/${resetTarget.id}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ newPassword: resetValue }),
+    });
+    setSaving(false);
+    if (!response.ok) {
+      setToast({ type: "error", message: apiErrorMessage(response.data) });
+      return;
+    }
+    setResetTarget(null);
+    setResetValue("");
+    setToast({ type: "success", message: "تم تعيين كلمة مرور مؤقتة وإنهاء الجلسات السابقة." });
+  };
+
+  if (sessionLoading || !user) return <main className="dash-panel">{dict.loading}</main>;
+  if (sessionError) return <main className="dash-panel alert-error">{sessionError}</main>;
 
   return (
     <DashboardShell
@@ -243,190 +269,211 @@ export default function SecretariesPage() {
       dict={dict}
       role={user.role}
       userName={user.fullName}
-      title="إدارة السكرتارية"
-      description="إنشاء وتعديل وتعطيل حسابات السكرتارية ومواعيد الورديات."
-      initialAdminMode={
-        user.adminDashboardMode === "full" ? "full" : "quick"
-      }
+      initialAdminMode={user.adminDashboardMode === "full" ? "full" : "quick"}
     >
-      {error ? <div className="alert-error">{error}</div> : null}
-      {success ? <div className="alert-success">{success}</div> : null}
-
-      <form onSubmit={onCreate} className="card-surface" style={{ padding: "1.25rem", display: "grid", gap: "0.85rem" }}>
-        <h2 style={{ margin: 0, fontSize: "1.1rem" }}>إنشاء سكرتير/ة</h2>
-        <div className="field">
-          <label htmlFor="fullName">الاسم الكامل <span className="required">*</span></label>
-          <input id="fullName" className="input" required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-          {fieldErrors.fullName ? <div className="error">{fieldErrors.fullName}</div> : null}
-        </div>
-        <div className="field">
-          <label htmlFor="email">البريد <span className="required">*</span></label>
-          <input ref={emailRef} id="email" className="input" type="email" autoComplete="email" required dir="ltr" spellCheck={false} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          {fieldErrors.email ? <div className="error">{fieldErrors.email}</div> : null}
-        </div>
-        <div className="field">
-          <label htmlFor="phone">الهاتف <span className="required">*</span></label>
-          <PhoneField id="phone" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} required />
-          {fieldErrors.phone ? <div className="error">{fieldErrors.phone}</div> : null}
-        </div>
-        <div className="field">
-          <label htmlFor="shiftCode">الوردية <span className="required">*</span></label>
-          <select id="shiftCode" className="select" value={form.shiftCode} onChange={(e) => setForm({ ...form, shiftCode: e.target.value as typeof form.shiftCode })}>
-            <option value="MORNING">صباحية</option>
-            <option value="EVENING">مسائية</option>
-            <option value="CUSTOM">مخصصة</option>
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="password">كلمة المرور <span className="required">*</span></label>
-          <PasswordField id="password" value={form.password} onChange={(password) => setForm({ ...form, password })} autoComplete="new-password" required minLength={PASSWORD_MIN_CREATE} />
-          {fieldErrors.password ? <div className="error">{fieldErrors.password}</div> : null}
-        </div>
-        <div className="field">
-          <label htmlFor="confirmPassword">تأكيد كلمة المرور <span className="required">*</span></label>
-          <PasswordField id="confirmPassword" name="confirmPassword" value={form.confirmPassword} onChange={(confirmPassword) => setForm({ ...form, confirmPassword })} autoComplete="new-password" required minLength={PASSWORD_MIN_CREATE} />
-        </div>
-        <button className="btn btn-primary" type="submit" disabled={loading}>{loading ? "جارٍ الحفظ..." : "إنشاء"}</button>
-      </form>
-
-      <section className="card-surface" style={{ padding: "1.25rem" }}>
-        <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>السكرتارية</h2>
-        <div style={{ display: "grid", gap: "0.75rem" }}>
-          {rows.map((s) => (
-            <div key={s.id} style={{ borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                <div>
-                  <strong>{s.fullName}</strong>
-                  <div className="hint">
-                    {s.email} · {s.phone} · {SHIFT_LABELS[s.shiftCode || ""] || s.shiftCode} · {s.status}
-                  </div>
-                  <div className="hint" style={{ marginTop: "0.25rem" }}>
-                    أوقات العمل: {formatShiftTime(s.workStartTime, s.workEndTime)}
-                    {s.workDays ? ` · ${s.workDays}` : ""}
-                    {s.isActive === false ? " · غير نشط" : ""}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() =>
-                      setShiftEdit({
-                        userId: s.id,
-                        shiftCode: (s.shiftCode as "MORNING" | "EVENING" | "CUSTOM") || "MORNING",
-                        workStartTime: s.workStartTime || "07:00",
-                        workEndTime: s.workEndTime || "14:30",
-                      })
-                    }
-                  >
-                    أوقات العمل
-                  </button>
-                  <button type="button" className="btn btn-outline" onClick={() => setEdit({ userId: s.id, email: s.email || "", phone: s.phone || "", newPassword: "" })}>تعديل الدخول</button>
-                  <Link className="btn btn-outline" href={`/${locale}/doctor/specialist/staff/${s.id}/activity`}>النشاط</Link>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => { setDialogError(""); setDeactivate({ userId: s.id, name: s.fullName }); }}
-                  >
-                    <span>تعطيل</span>
-                    <span className="hint" style={{ display: "block", fontSize: "0.75rem", marginTop: "0.1rem" }}>
-                      حذف الحساب
-                    </span>
-                  </button>
-                </div>
+      <div className="admin-doctors-page">
+        <AdminPageHeader
+          eyebrow="إدارة العيادة"
+          title="إدارة السكرتارية"
+          description="إدارة حسابات فريق الاستقبال وورديات العمل وحالة الوصول بطريقة آمنة."
+          breadcrumbs={[
+            { label: "لوحة التحكم", href: `/${locale}/doctor/specialist/dashboard` },
+            { label: "السكرتارية" },
+          ]}
+          primaryAction={<button type="button" className="btn btn-primary" onClick={openCreate}>+ إضافة سكرتير/ة</button>}
+        />
+        <section className="admin-list-card">
+          <AdminTableToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="ابحث بالاسم أو البريد أو الهاتف"
+            resultCount={total}
+            filters={
+              <>
+                <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="الحالة">
+                  <option value="">كل الحالات</option>
+                  <option value="ACTIVE">نشط</option>
+                  <option value="INACTIVE">غير نشط</option>
+                  <option value="LOCKED">مقفل</option>
+                </select>
+                <select value={shift} onChange={(event) => setShift(event.target.value)} aria-label="الوردية">
+                  <option value="">كل الورديات</option>
+                  <option value="MORNING">صباحية</option>
+                  <option value="EVENING">مسائية</option>
+                  <option value="CUSTOM">مخصصة</option>
+                </select>
+              </>
+            }
+          />
+          {loading ? <AdminLoadingSkeleton /> : loadError ? (
+            <AdminErrorState message={loadError} onRetry={() => void load()} />
+          ) : rows.length === 0 ? (
+            <AdminEmptyState
+              title="لا توجد حسابات مطابقة"
+              description="أضف عضو استقبال جديدًا أو عدّل فلاتر البحث."
+              action={<button type="button" className="btn btn-primary" onClick={openCreate}>إضافة سكرتير/ة</button>}
+            />
+          ) : (
+            <>
+              <div className="admin-doctors-table-wrap">
+                <table className="admin-doctors-table">
+                  <thead>
+                    <tr>
+                      <th>الاسم</th>
+                      <th>التواصل</th>
+                      <th>الوردية</th>
+                      <th>ساعات العمل</th>
+                      <th>الحالة</th>
+                      <th><span className="sr-only">الإجراءات</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{row.fullName}</strong></td>
+                        <td><span dir="ltr">{row.email}</span><small dir="ltr">{row.phone}</small></td>
+                        <td>{SHIFT_LABELS[row.shiftCode || "MORNING"]}</td>
+                        <td dir="ltr">{row.workStartTime || "—"} – {row.workEndTime || "—"}</td>
+                        <td><AdminStatusBadge tone={row.status === "ACTIVE" ? "success" : "warning"}>{row.status === "ACTIVE" ? "نشط" : "غير نشط"}</AdminStatusBadge></td>
+                        <td>
+                          <AdminRowActions>
+                            <button type="button" onClick={() => openEdit(row)}>تعديل الحساب والوردية</button>
+                            <button type="button" onClick={() => setResetTarget(row)}>إعادة تعيين كلمة المرور</button>
+                            {row.status === "ACTIVE" ? <button type="button" onClick={() => setDeactivate(row)}>تعطيل الحساب</button> : null}
+                          </AdminRowActions>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {shiftEdit?.userId === s.id ? (
-                <form onSubmit={onSaveShift} style={{ marginTop: "0.75rem", display: "grid", gap: "0.65rem" }}>
-                  <div className="field">
-                    <label>الوردية</label>
-                    <select
-                      className="select"
-                      value={shiftEdit.shiftCode}
-                      onChange={(e) =>
-                        setShiftEdit({
-                          ...shiftEdit,
-                          shiftCode: e.target.value as typeof shiftEdit.shiftCode,
-                        })
-                      }
-                    >
-                      <option value="MORNING">صباحية</option>
-                      <option value="EVENING">مسائية</option>
-                      <option value="CUSTOM">مخصصة</option>
-                    </select>
-                  </div>
-                  <div className="row-2">
-                    <div className="field">
-                      <label>بداية الدوام</label>
-                      <input
-                        className="input"
-                        type="time"
-                        dir="ltr"
-                        value={shiftEdit.workStartTime}
-                        onChange={(e) =>
-                          setShiftEdit({ ...shiftEdit, workStartTime: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label>نهاية الدوام</label>
-                      <input
-                        className="input"
-                        type="time"
-                        dir="ltr"
-                        value={shiftEdit.workEndTime}
-                        onChange={(e) =>
-                          setShiftEdit({ ...shiftEdit, workEndTime: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button className="btn btn-primary" type="submit" disabled={loading}>
-                      {loading ? "جارٍ الحفظ..." : "حفظ أوقات العمل"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      onClick={() => setShiftEdit(null)}
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-              {edit?.userId === s.id ? (
-                <form onSubmit={onUpdate} style={{ marginTop: "0.75rem", display: "grid", gap: "0.65rem" }}>
-                  <div className="field">
-                    <label>البريد</label>
-                    <input className="input" type="email" autoComplete="email" dir="ltr" spellCheck={false} value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
-                  </div>
-                  <div className="field">
-                    <label>الهاتف</label>
-                    <PhoneField id={`edit-phone-${s.id}`} value={edit.phone} onChange={(phone) => setEdit({ ...edit, phone })} />
-                  </div>
-                  <div className="field">
-                    <label>كلمة مرور جديدة (اختياري)</label>
-                    <PasswordField id={`edit-pass-${s.id}`} value={edit.newPassword} onChange={(newPassword) => setEdit({ ...edit, newPassword })} autoComplete="new-password" hint="اتركه فارغًا للإبقاء على كلمة المرور الحالية" />
-                  </div>
-                  <button className="btn btn-primary" type="submit" disabled={loading}>حفظ التعديل</button>
-                </form>
-              ) : null}
+              <div className="admin-doctor-cards">
+                {rows.map((row) => (
+                  <article key={row.id} className="admin-doctor-card">
+                    <header>
+                      <span className="admin-doctor-avatar"><span>{row.fullName.charAt(0)}</span></span>
+                      <div><h3>{row.fullName}</h3><p>{SHIFT_LABELS[row.shiftCode || "MORNING"]} · <span dir="ltr">{row.workStartTime}–{row.workEndTime}</span></p></div>
+                      <AdminRowActions>
+                        <button type="button" onClick={() => openEdit(row)}>تعديل</button>
+                        <button type="button" onClick={() => setResetTarget(row)}>كلمة المرور</button>
+                      </AdminRowActions>
+                    </header>
+                    <div><AdminStatusBadge tone={row.status === "ACTIVE" ? "success" : "warning"}>{row.status === "ACTIVE" ? "نشط" : "غير نشط"}</AdminStatusBadge></div>
+                  </article>
+                ))}
+              </div>
+              <AdminPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </>
+          )}
+        </section>
+      </div>
+
+      <AdminDialog
+        open={dialog === "create"}
+        title="إضافة حساب سكرتارية"
+        description="أنشئ بيانات الدخول والوردية ثم راجعها قبل الإضافة."
+        onClose={() => setDialog(null)}
+        dirty={dirty}
+        busy={saving}
+        size="lg"
+        locale={locale}
+        footer={
+          <>
+            <span className="admin-step-count">الخطوة {step + 1} من 3</span>
+            <div className="admin-dialog-actions">
+              {step > 0 ? <button type="button" className="btn btn-outline" onClick={() => setStep(step - 1)}>السابق</button> : null}
+              {step < 2 ? <button type="button" className="btn btn-primary" onClick={() => {
+                const message = step === 0 ? validate({ ...draft, workEndTime: "23:59", workStartTime: "00:00" }, true) : draft.workEndTime <= draft.workStartTime ? "وقت نهاية الوردية يجب أن يكون بعد البداية." : "";
+                if (message && step === 0) { setFormError(message); return; }
+                if (message) { setFormError(message); return; }
+                setFormError("");
+                setStep(step + 1);
+              }}>التالي</button> : <button type="button" className="btn btn-primary" disabled={saving} onClick={() => void save()}>{saving ? "جارٍ إضافة الحساب..." : "إضافة الحساب"}</button>}
             </div>
-          ))}
-          {rows.length === 0 ? <p className="hint">لا يوجد سكرتارية بعد.</p> : null}
-        </div>
-      </section>
+          </>
+        }
+      >
+        {formError ? <div className="admin-form-error" role="alert">{formError}</div> : null}
+        {step === 0 ? (
+          <AdminFormSection title="المعلومات الأساسية">
+            <AdminField label="الاسم الكامل">{({ id }) => <AdminInput id={id} autoFocus value={draft.fullName} onChange={(event) => patch({ fullName: event.target.value })} />}</AdminField>
+            <AdminField label="البريد الإلكتروني">{({ id }) => <AdminInput id={id} type="email" dir="ltr" value={draft.email} onChange={(event) => patch({ email: event.target.value })} />}</AdminField>
+            <AdminField label="رقم الهاتف">{({ id }) => <AdminInput id={id} inputMode="numeric" dir="ltr" value={draft.phone} onChange={(event) => patch({ phone: event.target.value })} />}</AdminField>
+            <AdminField label="كلمة المرور المؤقتة">{({ id }) => <AdminInput id={id} type="password" dir="ltr" autoComplete="new-password" value={draft.password} onChange={(event) => patch({ password: event.target.value })} />}</AdminField>
+            <AdminField label="تأكيد كلمة المرور">{({ id }) => <AdminInput id={id} type="password" dir="ltr" autoComplete="new-password" value={draft.confirmPassword} onChange={(event) => patch({ confirmPassword: event.target.value })} />}</AdminField>
+          </AdminFormSection>
+        ) : step === 1 ? (
+          <AdminFormSection title="الوردية وساعات العمل">
+            <AdminField label="نوع الوردية">{({ id }) => <AdminSelect id={id} value={draft.shiftCode} onChange={(event) => patch({ shiftCode: event.target.value as SecretaryDraft["shiftCode"] })}><option value="MORNING">صباحية</option><option value="EVENING">مسائية</option><option value="CUSTOM">مخصصة</option></AdminSelect>}</AdminField>
+            <AdminField label="بداية الدوام">{({ id }) => <AdminInput id={id} type="time" dir="ltr" value={draft.workStartTime} onChange={(event) => patch({ workStartTime: event.target.value })} />}</AdminField>
+            <AdminField label="نهاية الدوام">{({ id }) => <AdminInput id={id} type="time" dir="ltr" value={draft.workEndTime} onChange={(event) => patch({ workEndTime: event.target.value })} />}</AdminField>
+            <AdminField label="أيام العمل" description="رموز الأيام مفصولة بفاصلة.">{({ id }) => <AdminInput id={id} dir="ltr" value={draft.workDays} onChange={(event) => patch({ workDays: event.target.value })} />}</AdminField>
+          </AdminFormSection>
+        ) : (
+          <div className="admin-review-grid">
+            <section><h3>الحساب</h3><p>{draft.fullName}</p><p dir="ltr">{draft.email}</p><p dir="ltr">{draft.phone}</p></section>
+            <section><h3>الوردية</h3><p>{SHIFT_LABELS[draft.shiftCode]}</p><p dir="ltr">{draft.workStartTime} – {draft.workEndTime}</p></section>
+            <section><h3>الصلاحيات</h3><p>دور السكرتارية المعتمد في النظام. لا يمنح صلاحيات إدارية.</p></section>
+          </div>
+        )}
+      </AdminDialog>
+
+      <AdminDialog
+        open={dialog === "edit"}
+        title="تعديل حساب السكرتارية"
+        description={editing?.fullName}
+        onClose={() => setDialog(null)}
+        dirty={dirty}
+        busy={saving}
+        variant="drawer"
+        size="lg"
+        locale={locale}
+        footer={
+          <div className="admin-dialog-actions">
+            <button type="button" className="btn btn-outline" disabled={!dirty || saving} onClick={() => void save(false)}>حفظ</button>
+            <button type="button" className="btn btn-primary" disabled={!dirty || saving} onClick={() => void save(true)}>{saving ? "جارٍ الحفظ..." : "حفظ وإغلاق"}</button>
+          </div>
+        }
+      >
+        {formError ? <div className="admin-form-error" role="alert">{formError}</div> : null}
+        <AdminFormSection title="بيانات الحساب">
+          <AdminField label="الاسم الكامل">{({ id }) => <AdminInput id={id} value={draft.fullName} onChange={(event) => patch({ fullName: event.target.value })} />}</AdminField>
+          <AdminField label="البريد الإلكتروني">{({ id }) => <AdminInput id={id} type="email" dir="ltr" value={draft.email} onChange={(event) => patch({ email: event.target.value })} />}</AdminField>
+          <AdminField label="رقم الهاتف">{({ id }) => <AdminInput id={id} inputMode="numeric" dir="ltr" value={draft.phone} onChange={(event) => patch({ phone: event.target.value })} />}</AdminField>
+          <AdminSwitch label="الحساب نشط" checked={draft.status === "ACTIVE"} onChange={(checked) => patch({ status: checked ? "ACTIVE" : "INACTIVE" })} />
+        </AdminFormSection>
+        <AdminFormSection title="الوردية">
+          <AdminField label="نوع الوردية">{({ id }) => <AdminSelect id={id} value={draft.shiftCode} onChange={(event) => patch({ shiftCode: event.target.value as SecretaryDraft["shiftCode"] })}><option value="MORNING">صباحية</option><option value="EVENING">مسائية</option><option value="CUSTOM">مخصصة</option></AdminSelect>}</AdminField>
+          <AdminField label="بداية الدوام">{({ id }) => <AdminInput id={id} type="time" dir="ltr" value={draft.workStartTime} onChange={(event) => patch({ workStartTime: event.target.value })} />}</AdminField>
+          <AdminField label="نهاية الدوام">{({ id }) => <AdminInput id={id} type="time" dir="ltr" value={draft.workEndTime} onChange={(event) => patch({ workEndTime: event.target.value })} />}</AdminField>
+          <AdminField label="أيام العمل">{({ id }) => <AdminInput id={id} dir="ltr" value={draft.workDays} onChange={(event) => patch({ workDays: event.target.value })} />}</AdminField>
+        </AdminFormSection>
+      </AdminDialog>
+
+      <AdminDialog
+        open={!!resetTarget}
+        title="إعادة تعيين كلمة المرور"
+        description={`ستنتهي كل جلسات ${resetTarget?.fullName || "المستخدم"} الحالية.`}
+        onClose={() => { setResetTarget(null); setResetValue(""); }}
+        dirty={resetValue.length > 0}
+        busy={saving}
+        size="sm"
+        locale={locale}
+        footer={<button type="button" className="btn btn-primary" disabled={resetValue.length < 10 || saving} onClick={() => void submitReset()}>{saving ? "جارٍ إعادة التعيين..." : "إعادة تعيين كلمة المرور"}</button>}
+      >
+        <AdminField label="كلمة المرور المؤقتة" description="10 أحرف على الأقل.">{({ id }) => <AdminInput id={id} type="password" dir="ltr" value={resetValue} onChange={(event) => setResetValue(event.target.value)} />}</AdminField>
+      </AdminDialog>
 
       <ConfirmDialog
         open={!!deactivate}
-        title="تأكيد تعطيل الحساب"
-        description={deactivate ? `هل أنت متأكد من تعطيل حساب السكرتير "${deactivate.name}"؟ لن يتمكن من تسجيل الدخول حتى إعادة تفعيل الحساب.` : ""}
+        title="تعطيل حساب السكرتارية"
+        description={`سيُمنع ${deactivate?.fullName || "المستخدم"} من الدخول وتُنهي جميع جلساته. تبقى سجلات الإجراءات السابقة مرتبطة بهويته.`}
         confirmLabel="تعطيل الحساب"
-        loading={dialogLoading}
-        error={dialogError}
-        onCancel={() => { if (!dialogLoading) setDeactivate(null); }}
+        loading={saving}
+        onCancel={() => setDeactivate(null)}
         onConfirm={() => void confirmDeactivate()}
       />
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </DashboardShell>
   );
 }

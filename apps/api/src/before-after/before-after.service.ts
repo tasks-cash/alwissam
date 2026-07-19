@@ -9,6 +9,7 @@ import { User } from "../auth/schemas/auth.schemas";
 import { AuditService } from "../common/audit/audit.service";
 import type { AuthUser } from "../common/auth/session.guard";
 import { ErrorCodes } from "../common/errors/error-codes";
+import { MediaService } from "../media/media.service";
 import {
   ListBeforeAfterQueryDto,
   UpsertBeforeAfterDto,
@@ -29,7 +30,17 @@ export class BeforeAfterService {
     private readonly cases: Model<BeforeAfterCaseDocument>,
     @InjectModel(User.name) private readonly users: Model<User>,
     private readonly audit: AuditService,
+    private readonly media: MediaService,
   ) {}
+
+  private assertManagedMediaReference(reference: string) {
+    if (!/^\/api\/admin\/media\/[a-f\d]{24}$/i.test(reference)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "يجب استخدام صورة مرفوعة من نظام الوسائط المعتمد.",
+      });
+    }
+  }
 
   private assertCanPublish(doc: {
     consentConfirmed?: boolean;
@@ -232,11 +243,11 @@ export class BeforeAfterService {
   }
 
   async create(dto: UpsertBeforeAfterDto, actor: AuthUser) {
-    if (!dto.beforeImageUrl?.trim() || !dto.afterImageUrl?.trim()) {
-      throw new BadRequestException({
-        code: ErrorCodes.VALIDATION_ERROR,
-        message: "صور قبل وبعد مطلوبة.",
-      });
+    if (dto.beforeImageUrl.trim()) {
+      this.assertManagedMediaReference(dto.beforeImageUrl.trim());
+    }
+    if (dto.afterImageUrl.trim()) {
+      this.assertManagedMediaReference(dto.afterImageUrl.trim());
     }
     const created = await this.cases.create({
       titleAr: dto.titleAr.trim(),
@@ -307,6 +318,12 @@ export class BeforeAfterService {
 
     const prevBefore = existing.beforeImageUrl;
     const prevAfter = existing.afterImageUrl;
+    if (dto.beforeImageUrl.trim()) {
+      this.assertManagedMediaReference(dto.beforeImageUrl.trim());
+    }
+    if (dto.afterImageUrl.trim()) {
+      this.assertManagedMediaReference(dto.afterImageUrl.trim());
+    }
 
     existing.titleAr = dto.titleAr.trim();
     existing.titleEn = dto.titleEn?.trim();
@@ -341,6 +358,17 @@ export class BeforeAfterService {
 
     if (existing.isPublished) {
       this.assertCanPublish(existing);
+      await this.media.setPublicFromReferences(
+        [existing.beforeImageUrl, existing.afterImageUrl],
+        true,
+      );
+      await this.media.setPublicFromReferences(
+        [
+          prevBefore !== existing.beforeImageUrl ? prevBefore : undefined,
+          prevAfter !== existing.afterImageUrl ? prevAfter : undefined,
+        ],
+        false,
+      );
     }
 
     await existing.save();
@@ -395,6 +423,10 @@ export class BeforeAfterService {
     if (!approved && row.isPublished) {
       row.isPublished = false;
       row.publishedAt = undefined;
+      await this.media.setPublicFromReferences(
+        [row.beforeImageUrl, row.afterImageUrl],
+        false,
+      );
     }
     row.updatedById = new Types.ObjectId(actor.id);
     await row.save();
@@ -426,6 +458,10 @@ export class BeforeAfterService {
       });
     }
     this.assertCanPublish(row);
+    await this.media.setPublicFromReferences(
+      [row.beforeImageUrl, row.afterImageUrl],
+      true,
+    );
     row.isPublished = true;
     row.publishedAt = new Date();
     row.updatedById = new Types.ObjectId(actor.id);
@@ -458,6 +494,10 @@ export class BeforeAfterService {
       });
     }
     row.isPublished = false;
+    await this.media.setPublicFromReferences(
+      [row.beforeImageUrl, row.afterImageUrl],
+      false,
+    );
     row.updatedById = new Types.ObjectId(actor.id);
     await row.save();
     await this.audit.write({
@@ -489,6 +529,10 @@ export class BeforeAfterService {
     }
     row.archivedAt = new Date();
     row.isPublished = false;
+    await this.media.setPublicFromReferences(
+      [row.beforeImageUrl, row.afterImageUrl],
+      false,
+    );
     row.updatedById = new Types.ObjectId(actor.id);
     await row.save();
     await this.audit.write({
@@ -582,7 +626,7 @@ export class BeforeAfterService {
   }) {
     const locale = opts.locale || "ar";
     const page = Math.max(1, opts.page || 1);
-    const limit = Math.min(10, Math.max(1, opts.limit || 10));
+    const limit = Math.min(30, Math.max(1, opts.limit || 30));
     const filter: Record<string, unknown> = {
       isPublished: true,
       isApproved: true,
@@ -631,8 +675,8 @@ export class BeforeAfterService {
             r.descriptionEn,
             r.descriptionFr,
           ) || null,
-        beforeImageUrl: r.beforeImageUrl,
-        afterImageUrl: r.afterImageUrl,
+        beforeImageUrl: this.media.toPublicReference(r.beforeImageUrl),
+        afterImageUrl: this.media.toPublicReference(r.afterImageUrl),
         beforeAlt:
           this.pickLocale(
             locale,

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import * as bcrypt from "bcryptjs";
 import { Session, User } from "../auth/schemas/auth.schemas";
 import { AuditService } from "../common/audit/audit.service";
@@ -14,6 +14,7 @@ import { ErrorCodes } from "../common/errors/error-codes";
 import {
   CreateSecretaryDto,
   DeleteSecretaryDto,
+  ListSecretariesQueryDto,
   UpdateSecretaryDto,
 } from "./dto/secretary.dto";
 
@@ -27,12 +28,35 @@ export class SecretariesService {
     private readonly audit: AuditService,
   ) {}
 
-  async list() {
-    const rows = await this.users
-      .find({ deletedAt: null, roleCode: "SECRETARY" })
-      .select("fullName email phone roleCode status secretary createdAt")
-      .sort({ createdAt: -1 })
-      .lean();
+  async list(query: ListSecretariesQueryDto = new ListSecretariesQueryDto()) {
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const filter: Record<string, unknown> = {
+      deletedAt: null,
+      roleCode: "SECRETARY",
+    };
+    if (query.search?.trim()) {
+      const search = query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (query.status) filter.status = query.status;
+    if (query.shiftCode) filter["secretary.shiftCode"] = query.shiftCode;
+    const [rows, total] = await Promise.all([
+      this.users
+        .find(filter)
+        .select(
+          "fullName email phone roleCode status secretary createdAt updatedAt lastLoginAt",
+        )
+        .sort({ fullName: 1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean(),
+      this.users.countDocuments(filter),
+    ]);
 
     return {
       ok: true,
@@ -47,7 +71,14 @@ export class SecretariesService {
         workEndTime: s.secretary?.workEndTime,
         workDays: s.secretary?.workDays,
         isActive: s.status === "ACTIVE",
+        createdAt: (s as { createdAt?: Date }).createdAt,
+        updatedAt: (s as { updatedAt?: Date }).updatedAt,
+        lastLoginAt: (s as { lastLoginAt?: Date }).lastLoginAt,
       })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
   }
 
@@ -145,15 +176,22 @@ export class SecretariesService {
     }
 
     await this.assertUnique(dto.email, dto.phone, String(target._id));
+    if (dto.newPassword) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "إعادة تعيين كلمة المرور إجراء مستقل ومحمي.",
+      });
+    }
+    const oldValue = {
+      fullName: target.fullName,
+      email: target.email,
+      phone: target.phone,
+      status: target.status,
+      secretary: target.secretary ? { ...target.secretary } : undefined,
+    };
+    if (dto.fullName) target.fullName = dto.fullName;
     if (dto.email) target.email = dto.email;
     if (dto.phone) target.phone = dto.phone;
-    if (dto.newPassword) {
-      target.passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
-      await this.sessions.updateMany(
-        { userId: target._id, revokedAt: null },
-        { $set: { revokedAt: new Date() } },
-      );
-    }
 
     target.secretary = {
       ...(target.secretary || {}),
@@ -166,7 +204,15 @@ export class SecretariesService {
         target.secretary?.workDays ||
         "SUN,MON,TUE,WED,THU,SAT",
     };
-    target.status = "ACTIVE";
+    if (dto.status) {
+      target.status = dto.status;
+      if (dto.status === "INACTIVE") {
+        await this.sessions.updateMany(
+          { userId: target._id, revokedAt: null },
+          { $set: { revokedAt: new Date() } },
+        );
+      }
+    }
     target.failedLoginCount = 0;
     target.lockedUntil = null;
     await target.save();
@@ -175,13 +221,55 @@ export class SecretariesService {
       action: "SECRETARY_UPDATED",
       entityType: "User",
       entityId: String(target._id),
+      oldValue,
       newValue: {
+        fullName: target.fullName,
         email: target.email,
         phone: target.phone,
-        passwordChanged: Boolean(dto.newPassword),
+        status: target.status,
+        secretary: target.secretary,
       },
     });
     return { ok: true, message: "تم حفظ التعديلات بنجاح." };
+  }
+
+  async resetPassword(userId: string, newPassword: string, actor: AuthUser) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "معرّف السكرتير غير صالح.",
+      });
+    }
+    const target = await this.users.findOne({
+      _id: userId,
+      deletedAt: null,
+      roleCode: "SECRETARY",
+    });
+    if (!target) {
+      throw new NotFoundException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "السكرتير غير موجود",
+      });
+    }
+    target.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    target.failedLoginCount = 0;
+    target.lockedUntil = null;
+    await target.save({ validateModifiedOnly: true });
+    await this.sessions.updateMany(
+      { userId: target._id, revokedAt: null },
+      { $set: { revokedAt: new Date() } },
+    );
+    await this.audit.write({
+      actor,
+      action: "SECRETARY_PASSWORD_RESET",
+      entityType: "User",
+      entityId: String(target._id),
+      newValue: { sessionsRevoked: true },
+    });
+    return {
+      ok: true,
+      message: "تم تعيين كلمة مرور مؤقتة وإنهاء الجلسات السابقة.",
+    };
   }
 
   async remove(dto: DeleteSecretaryDto, actor: AuthUser) {

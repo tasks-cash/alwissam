@@ -1,404 +1,707 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { DashboardShell } from "../../../../../components/layout/DashboardShell";
-import { apiErrorMessage, apiRequest } from "../../../../../lib/api";
+import {
+  apiErrorMessage,
+  apiRequest,
+  mapFieldErrors,
+} from "../../../../../lib/api";
 import { useDashboardSession } from "../../../../../lib/use-dashboard-session";
 
-type WeeklyScheduleDay = {
+type SectionId =
+  | "personal"
+  | "professional"
+  | "avatar"
+  | "schedule"
+  | "notifications"
+  | "security"
+  | "sessions"
+  | "preferences";
+
+type PersonalSettings = {
+  fullName: string;
+  email: string;
+  phone: string;
+  locale: "ar" | "en" | "fr";
+  address: string;
+  emailVerified: boolean;
+};
+
+type ProfessionalSettings = {
+  type: "GENERAL" | "SPECIALIST";
+  specialtyAr: string;
+  specialtyEn: string;
+  specialtyFr: string;
+  professionalTitleAr: string;
+  professionalTitleEn: string;
+  professionalTitleFr: string;
+  shortDescriptionAr: string;
+  bioAr: string;
+  bioEn: string;
+  bioFr: string;
+  licenseNumber: string;
+  yearsExperience?: number;
+  languages: string[];
+  specialtyIds: string[];
+  serviceIds: string[];
+  isPublic: boolean;
+  isBookable: boolean;
+};
+
+type ScheduleWindow = {
   dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  isActive?: boolean;
+};
+
+type ScheduleSettings = {
+  timezone: string;
+  workingHours: ScheduleWindow[];
+  appointmentDurationMinutes: number;
+  leaveDates: string[];
+};
+
+type NotificationSettings = {
+  appointmentNotifications: boolean;
+  patientWaitingNotifications: boolean;
+  staffMessageNotifications: boolean;
+  followUpReminders: boolean;
+  scheduleChanges: boolean;
+  securityAlerts: boolean;
+  inAppNotifications: boolean;
+  soundNotifications: boolean;
+  emailNotifications: boolean;
+};
+
+type PreferenceSettings = {
+  locale: "ar" | "en" | "fr";
+  dateFormat: "dd/MM/yyyy" | "yyyy-MM-dd";
+  timeFormat: "12h" | "24h";
+  reducedMotion: boolean;
+  compactDashboard: boolean;
+  notificationSound: boolean;
+};
+
+type DoctorSettings = {
+  personal: PersonalSettings;
+  professional: ProfessionalSettings;
+  avatar: { url: string };
+  schedule: ScheduleSettings;
+  notifications: NotificationSettings;
+  preferences: PreferenceSettings;
+};
+
+type SessionRow = {
+  id: string;
+  userAgent?: string;
+  ipAddress?: string;
+  createdAt?: string;
+  lastActivityAt?: string;
+  expiresAt?: string;
+  rememberMe?: boolean;
+  current?: boolean;
+};
+
+type DayEditor = {
+  code: string;
+  label: string;
+  enabled: boolean;
   morningEnabled: boolean;
   morningStart: string;
   morningEnd: string;
   eveningEnabled: boolean;
   eveningStart: string;
   eveningEnd: string;
-  isActive: boolean;
 };
 
-type ClinicInfo = {
-  nameAr?: string;
-  nameEn?: string;
-  nameFr?: string;
-  phone?: string;
-  phoneDisplay?: string;
-  phoneInternational?: string;
-  email?: string;
-  address?: string;
-  addressAr?: string;
-  addressEn?: string;
-  addressFr?: string;
-  city?: string;
-  stateOrWilaya?: string;
-  postalCode?: string;
-  countryAr?: string;
-  countryEn?: string;
-  countryFr?: string;
-  whatsappNumber?: string;
-  whatsappEnabled?: boolean;
-  facebookUrl?: string;
-  mapsEmbedUrl?: string;
-  mapsLink?: string;
-  latitude?: string;
-  longitude?: string;
-  timezone?: string;
-  fridayClosed?: boolean;
-  workingHoursAr?: string;
-  workingHoursEn?: string;
-  workingHoursFr?: string;
-  descriptionAr?: string;
-  descriptionEn?: string;
-  descriptionFr?: string;
-  contactHeroTitleAr?: string;
-  contactHeroTitleEn?: string;
-  contactHeroTitleFr?: string;
-  contactHeroDescriptionAr?: string;
-  contactHeroDescriptionEn?: string;
-  contactHeroDescriptionFr?: string;
-  contactHeroImage?: string;
-  inquirySectionTitleAr?: string;
-  inquirySectionDescriptionAr?: string;
-  locationSectionTitleAr?: string;
-  locationSectionDescriptionAr?: string;
-  contactSeoTitleAr?: string;
-  contactSeoDescriptionAr?: string;
-  contactPublished?: boolean;
-  weeklySchedule?: WeeklyScheduleDay[];
-};
+const DAYS = [
+  ["SATURDAY", "السبت"],
+  ["SUNDAY", "الأحد"],
+  ["MONDAY", "الإثنين"],
+  ["TUESDAY", "الثلاثاء"],
+  ["WEDNESDAY", "الأربعاء"],
+  ["THURSDAY", "الخميس"],
+  ["FRIDAY", "الجمعة"],
+] as const;
 
-type PublicPages = {
-  aboutAr?: string;
-  aboutEn?: string;
-  aboutFr?: string;
-  services?: { name: string; description?: string }[];
-  faqs?: { question: string; answer: string }[];
-};
-
-type SpecialtiesPage = {
-  badgeAr?: string;
-  badgeEn?: string;
-  badgeFr?: string;
-  titleAr?: string;
-  titleEn?: string;
-  titleFr?: string;
-  descriptionAr?: string;
-  descriptionEn?: string;
-  descriptionFr?: string;
-  image?: string;
-  imageAltAr?: string;
-  imageAltEn?: string;
-  imageAltFr?: string;
-  primaryCtaLabelAr?: string;
-  primaryCtaRoute?: string;
-  secondaryCtaLabelAr?: string;
-  secondaryCtaRoute?: string;
-  published?: boolean;
-};
-
-type InquiryStatus =
-  | "new"
-  | "in_review"
-  | "contacted"
-  | "resolved"
-  | "archived";
-
-type ContactInquiry = {
-  id: string;
-  fullName: string;
-  phone: string;
-  subject: string;
-  message: string;
-  status: InquiryStatus;
-  createdAt?: string;
-};
-
-const INQUIRY_STATUSES: { value: InquiryStatus; label: string }[] = [
-  { value: "new", label: "جديد" },
-  { value: "in_review", label: "قيد المراجعة" },
-  { value: "contacted", label: "تم التواصل" },
-  { value: "resolved", label: "مغلق" },
-  { value: "archived", label: "مؤرشف" },
+const SECTIONS: Array<{
+  id: SectionId;
+  label: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    id: "personal",
+    label: "المعلومات الشخصية",
+    description: "بيانات الحساب ووسائل التواصل",
+    icon: "01",
+  },
+  {
+    id: "professional",
+    label: "الملف المهني",
+    description: "المعلومات الظاهرة في ملف الطبيب",
+    icon: "02",
+  },
+  {
+    id: "avatar",
+    label: "الصورة الشخصية",
+    description: "صورة مهنية معتمدة",
+    icon: "03",
+  },
+  {
+    id: "schedule",
+    label: "مواعيد العمل",
+    description: "الفترات والإجازات ومدّة الموعد",
+    icon: "04",
+  },
+  {
+    id: "notifications",
+    label: "الإشعارات",
+    description: "اختيار التنبيهات المهمة",
+    icon: "05",
+  },
+  {
+    id: "security",
+    label: "الأمان وكلمة المرور",
+    description: "حماية الحساب وتحديث كلمة المرور",
+    icon: "06",
+  },
+  {
+    id: "sessions",
+    label: "الجلسات والأجهزة",
+    description: "الأجهزة المسجّل دخولها",
+    icon: "07",
+  },
+  {
+    id: "preferences",
+    label: "تفضيلات الحساب",
+    description: "التاريخ والوقت وتجربة الاستخدام",
+    icon: "08",
+  },
 ];
 
-const WEEK_DAYS: { code: string; label: string }[] = [
-  { code: "SAT", label: "السبت" },
-  { code: "SUN", label: "الأحد" },
-  { code: "MON", label: "الإثنين" },
-  { code: "TUE", label: "الثلاثاء" },
-  { code: "WED", label: "الأربعاء" },
-  { code: "THU", label: "الخميس" },
-  { code: "FRI", label: "الجمعة" },
-];
-
-function defaultWeeklySchedule(): WeeklyScheduleDay[] {
-  return WEEK_DAYS.map(({ code }) => ({
-    dayOfWeek: code,
-    morningEnabled: code !== "FRI",
-    morningStart: "08:00",
-    morningEnd: "12:00",
-    eveningEnabled: code !== "FRI",
-    eveningStart: "14:00",
-    eveningEnd: "17:00",
-    isActive: code !== "FRI",
-  }));
-}
-
-function normalizeWeeklySchedule(raw: unknown): WeeklyScheduleDay[] {
-  const defaults = defaultWeeklySchedule();
-  if (!Array.isArray(raw)) return defaults;
-  return defaults.map((def) => {
-    const row = raw.find(
-      (r) =>
-        r &&
-        typeof r === "object" &&
-        String((r as WeeklyScheduleDay).dayOfWeek).toUpperCase() === def.dayOfWeek,
-    ) as WeeklyScheduleDay | undefined;
-    if (!row) return def;
+function toDayEditors(windows: ScheduleWindow[]): DayEditor[] {
+  return DAYS.map(([code, label]) => {
+    const rows = windows
+      .filter((row) => row.dayOfWeek === code && row.isActive !== false)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
     return {
-      dayOfWeek: def.dayOfWeek,
-      morningEnabled: row.morningEnabled !== false,
-      morningStart: row.morningStart || def.morningStart,
-      morningEnd: row.morningEnd || def.morningEnd,
-      eveningEnabled: row.eveningEnabled !== false,
-      eveningStart: row.eveningStart || def.eveningStart,
-      eveningEnd: row.eveningEnd || def.eveningEnd,
-      isActive: row.isActive !== false,
+      code,
+      label,
+      enabled: rows.length > 0,
+      morningEnabled: Boolean(rows[0]),
+      morningStart: rows[0]?.startTime || "08:00",
+      morningEnd: rows[0]?.endTime || "12:00",
+      eveningEnabled: Boolean(rows[1]),
+      eveningStart: rows[1]?.startTime || "14:00",
+      eveningEnd: rows[1]?.endTime || "17:00",
     };
   });
 }
 
-function isValidHttpUrl(value: string) {
-  try {
-    const u = new URL(value);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-export default function ClinicSettingsPage() {
-  const { locale, dict, user, loading, error } = useDashboardSession({
-    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
-  });
-  const [info, setInfo] = useState<ClinicInfo>({});
-  const [pages, setPages] = useState<PublicPages>({});
-  const [specialtiesPage, setSpecialtiesPage] = useState<SpecialtiesPage>({});
-  const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
-  const [inquiriesTotal, setInquiriesTotal] = useState(0);
-  const [inquiriesPage, setInquiriesPage] = useState(1);
-  const [inquiriesStatus, setInquiriesStatus] = useState("");
-  const [inquiriesSearch, setInquiriesSearch] = useState("");
-  const [inquiriesError, setInquiriesError] = useState("");
-  const [inquiriesLoading, setInquiriesLoading] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [mapsLinkError, setMapsLinkError] = useState("");
-
-  const load = useCallback(async () => {
-    const [a, b, c] = await Promise.all([
-      fetch("/api/admin/clinic-settings", { credentials: "include" }),
-      fetch("/api/admin/public-pages", { credentials: "include" }),
-      fetch("/api/admin/specialties-page", { credentials: "include" }),
-    ]);
-    if (a.ok) {
-      const d = await a.json();
-      const clinicInfo = d.clinicInfo || {};
-      setInfo({
-        ...clinicInfo,
-        weeklySchedule: normalizeWeeklySchedule(clinicInfo.weeklySchedule),
+function fromDayEditors(days: DayEditor[]): ScheduleWindow[] {
+  return days.flatMap((day) => {
+    if (!day.enabled) return [];
+    const windows: ScheduleWindow[] = [];
+    if (day.morningEnabled) {
+      windows.push({
+        dayOfWeek: day.code,
+        startTime: day.morningStart,
+        endTime: day.morningEnd,
+        isActive: true,
       });
     }
-    if (b.ok) {
-      const d = await b.json();
-      setPages(d.publicPages || {});
+    if (day.eveningEnabled) {
+      windows.push({
+        dayOfWeek: day.code,
+        startTime: day.eveningStart,
+        endTime: day.eveningEnd,
+        isActive: true,
+      });
     }
-    if (c.ok) {
-      const d = await c.json();
-      setSpecialtiesPage(d.specialtiesPage || {});
-    }
+    return windows;
+  });
+}
+
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0))
+      .join("") || "ط"
+  );
+}
+
+function describeDevice(userAgent = "") {
+  const browser = /Edg\//.test(userAgent)
+    ? "Microsoft Edge"
+    : /Firefox\//.test(userAgent)
+      ? "Firefox"
+      : /Chrome\//.test(userAgent)
+        ? "Chrome"
+        : /Safari\//.test(userAgent)
+          ? "Safari"
+          : "متصفح غير معروف";
+  const device = /Mobile|Android|iPhone/i.test(userAgent)
+    ? "هاتف أو جهاز لوحي"
+    : "حاسوب";
+  return `${browser} — ${device}`;
+}
+
+function formatDate(value?: string) {
+  if (!value) return "غير متاح";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "غير متاح";
+  return new Intl.DateTimeFormat("ar-DZ", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+export default function SpecialistSettingsPage() {
+  const router = useRouter();
+  const { locale, dict, user, loading, error, refresh } = useDashboardSession({
+    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
+    loginPath: "staff",
+  });
+  const [settings, setSettings] = useState<DoctorSettings | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionId>("personal");
+  const [dirty, setDirty] = useState<Set<SectionId>>(new Set());
+  const [saving, setSaving] = useState<SectionId | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [message, setMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [sessionsError, setSessionsError] = useState("");
+  const [sessionBusy, setSessionBusy] = useState("");
+  const [scheduleDays, setScheduleDays] = useState<DayEditor[]>([]);
+  const [leaveDatesText, setLeaveDatesText] = useState("");
+  const [password, setPassword] = useState({
+    currentPassword: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const markDirty = useCallback((section: SectionId) => {
+    setDirty((current) => new Set(current).add(section));
+    setMessage("");
+    setSaveError("");
   }, []);
 
-  const loadInquiries = useCallback(async () => {
-    setInquiriesLoading(true);
-    setInquiriesError("");
-    const qs = new URLSearchParams({
-      page: String(inquiriesPage),
-      limit: "20",
+  const clearDirty = useCallback((section: SectionId) => {
+    setDirty((current) => {
+      const next = new Set(current);
+      next.delete(section);
+      return next;
     });
-    if (inquiriesStatus) qs.set("status", inquiriesStatus);
-    if (inquiriesSearch.trim()) qs.set("search", inquiriesSearch.trim());
-    const { ok, data } = await apiRequest<{
-      items?: ContactInquiry[];
-      total?: number;
-    }>(`/api/admin/contact-inquiries?${qs}`);
-    setInquiriesLoading(false);
-    if (!ok) {
-      setInquiriesError("تعذر تحميل استفسارات التواصل.");
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoadError("");
+    const [settingsResult, sessionsResult] = await Promise.all([
+      apiRequest<{ settings?: DoctorSettings }>("/api/doctor/settings"),
+      apiRequest<{ sessions?: SessionRow[] }>("/api/auth/sessions"),
+    ]);
+    if (!settingsResult.ok || !settingsResult.data.settings) {
+      setLoadError("تعذر تحميل إعدادات الحساب حاليًا.");
       return;
     }
-    setInquiries(data.items || []);
-    setInquiriesTotal(data.total || 0);
-  }, [inquiriesPage, inquiriesSearch, inquiriesStatus]);
+    const next = settingsResult.data.settings;
+    setSettings(next);
+    setScheduleDays(toDayEditors(next.schedule.workingHours || []));
+    setLeaveDatesText((next.schedule.leaveDates || []).join("\n"));
+    setDirty(new Set());
+    if (sessionsResult.ok) {
+      setSessions(sessionsResult.data.sessions || []);
+      setSessionsError("");
+    } else {
+      setSessionsError("تعذر تحميل الجلسات النشطة حاليًا.");
+    }
+  }, []);
 
   useEffect(() => {
     if (user) void load();
   }, [load, user]);
 
   useEffect(() => {
-    if (user) void loadInquiries();
-  }, [loadInquiries, user]);
+    const applyHash = () => {
+      const sectionByHash: Record<string, SectionId> = {
+        "#contact": "personal",
+        "#hours": "schedule",
+        "#pages": "professional",
+      };
+      const next = sectionByHash[window.location.hash];
+      if (next) setActiveSection(next);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
-  function validateMapsLink(link: string | undefined) {
-    const trimmed = (link || "").trim();
-    if (!trimmed) {
-      setMapsLinkError("");
-      return true;
-    }
-    if (!isValidHttpUrl(trimmed)) {
-      setMapsLinkError("رابط الخريطة يجب أن يبدأ بـ http:// أو https://");
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (dirty.size === 0) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  useEffect(
+    () => () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    },
+    [avatarPreview],
+  );
+
+  const updateSettings = useCallback(
+    <K extends keyof DoctorSettings>(
+      key: K,
+      patch: Partial<DoctorSettings[K]>,
+      section: SectionId,
+    ) => {
+      setSettings((current) =>
+        current
+          ? {
+              ...current,
+              [key]: { ...current[key], ...patch },
+            }
+          : current,
+      );
+      markDirty(section);
+    },
+    [markDirty],
+  );
+
+  async function saveJson(
+    section: SectionId,
+    path: string,
+    body: unknown,
+    successMessage: string,
+  ) {
+    setSaving(section);
+    setMessage("");
+    setSaveError("");
+    setFieldErrors({});
+    const result = await apiRequest<{ settings?: DoctorSettings; message?: string }>(
+      path,
+      { method: "PATCH", body: JSON.stringify(body) },
+    );
+    setSaving(null);
+    if (!result.ok) {
+      setFieldErrors(mapFieldErrors(result.data));
+      setSaveError(
+        apiErrorMessage(
+          result.data,
+          "تعذر حفظ التغييرات. تحقق من البيانات وحاول مرة أخرى.",
+        ),
+      );
       return false;
     }
-    setMapsLinkError("");
+    if (result.data.settings) setSettings(result.data.settings);
+    clearDirty(section);
+    setMessage(result.data.message || successMessage);
     return true;
   }
 
-  async function persistInfo(partial: ClinicInfo, successMsg?: string) {
-    setSaving(true);
-    setMsg("");
-    setErr("");
-    const payload = { ...info, ...partial };
-    const { ok, data } = await apiRequest<{ message?: string }>(
-      "/api/admin/clinic-settings",
+  async function savePersonal(event: FormEvent) {
+    event.preventDefault();
+    if (!settings) return;
+    const saved = await saveJson(
+      "personal",
+      "/api/doctor/settings/personal",
       {
-        method: "PUT",
-        body: JSON.stringify({ section: "clinic_info", clinicInfo: payload }),
+        fullName: settings.personal.fullName,
+        email: settings.personal.email,
+        phone: settings.personal.phone,
+        locale: settings.personal.locale,
+        address: settings.personal.address,
       },
+      "تم حفظ التغييرات بنجاح.",
     );
-    setSaving(false);
-    if (!ok) {
-      setErr(apiErrorMessage(data));
-      return false;
+    if (saved) await refresh();
+  }
+
+  async function saveProfessional(event: FormEvent) {
+    event.preventDefault();
+    if (!settings) return;
+    const profile = settings.professional;
+    await saveJson(
+      "professional",
+      "/api/doctor/settings/professional",
+      {
+        professionalTitleAr: profile.professionalTitleAr,
+        professionalTitleEn: profile.professionalTitleEn,
+        professionalTitleFr: profile.professionalTitleFr,
+        shortDescriptionAr: profile.shortDescriptionAr,
+        bioAr: profile.bioAr,
+        bioEn: profile.bioEn,
+        bioFr: profile.bioFr,
+        languages: profile.languages,
+      },
+      "تم حفظ الملف المهني.",
+    );
+  }
+
+  async function saveSchedule(event: FormEvent) {
+    event.preventDefault();
+    if (!settings) return;
+    if (
+      scheduleDays.some(
+        (day) =>
+          day.enabled && !day.morningEnabled && !day.eveningEnabled,
+      )
+    ) {
+      setSaveError("اختر فترة عمل واحدة على الأقل لكل يوم مفعّل.");
+      return;
     }
-    setInfo(payload);
-    setMsg(data.message || successMsg || dict.successSaved);
-    return true;
-  }
-
-  async function saveContact(e: FormEvent) {
-    e.preventDefault();
-    if (!validateMapsLink(info.mapsLink)) return;
-    await persistInfo(info, "تم حفظ التواصل.");
-  }
-
-  async function saveHours(e: FormEvent) {
-    e.preventDefault();
-    await persistInfo(
+    const leaveDates = leaveDatesText
+      .split(/[\n,\s]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    await saveJson(
+      "schedule",
+      "/api/doctor/settings/schedule",
       {
-        weeklySchedule: info.weeklySchedule,
-        workingHoursAr: info.workingHoursAr,
-        workingHoursEn: info.workingHoursEn,
-        workingHoursFr: info.workingHoursFr,
-        fridayClosed: info.fridayClosed,
+        workingHours: fromDayEditors(scheduleDays),
+        appointmentDurationMinutes:
+          settings.schedule.appointmentDurationMinutes,
+        leaveDates,
       },
-      "تم حفظ الدوام.",
+      "تم حفظ مواعيد العمل.",
     );
   }
 
-  async function savePages(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setMsg("");
-    setErr("");
-    const { ok, data } = await apiRequest<{ message?: string }>(
-      "/api/admin/clinic-settings",
+  async function saveNotifications(event: FormEvent) {
+    event.preventDefault();
+    if (!settings) return;
+    await saveJson(
+      "notifications",
+      "/api/doctor/settings/notifications",
+      settings.notifications,
+      "تم حفظ إعدادات الإشعارات.",
+    );
+  }
+
+  async function savePreferences(event: FormEvent) {
+    event.preventDefault();
+    if (!settings) return;
+    await saveJson(
+      "preferences",
+      "/api/doctor/settings/preferences",
       {
-        method: "PUT",
+        ...settings.preferences,
+        locale: settings.personal.locale,
+      },
+      "تم حفظ تفضيلات الحساب.",
+    );
+  }
+
+  async function changePassword(event: FormEvent) {
+    event.preventDefault();
+    setMessage("");
+    setSaveError("");
+    setFieldErrors({});
+    if (password.password !== password.confirmPassword) {
+      setFieldErrors({ confirmPassword: "تأكيد كلمة المرور غير مطابق." });
+      return;
+    }
+    setSaving("security");
+    const result = await apiRequest<{ message?: string }>(
+      "/api/auth/change-password",
+      {
+        method: "POST",
         body: JSON.stringify({
-          section: "public_pages",
-          publicPages: {
-            aboutAr: pages.aboutAr,
-            aboutEn: pages.aboutEn,
-            aboutFr: pages.aboutFr,
-            services: pages.services || [],
-            faqs: pages.faqs || [],
-          },
+          currentPassword: password.currentPassword,
+          password: password.password,
         }),
       },
     );
-    setSaving(false);
-    if (!ok) {
-      setErr(apiErrorMessage(data));
+    setSaving(null);
+    if (!result.ok) {
+      setFieldErrors(mapFieldErrors(result.data));
+      setSaveError(
+        apiErrorMessage(
+          result.data,
+          "تعذر تغيير كلمة المرور. تحقق من البيانات وحاول مرة أخرى.",
+        ),
+      );
       return;
     }
-    setMsg(data.message || dict.successSaved);
+    setPassword({ currentPassword: "", password: "", confirmPassword: "" });
+    setMessage("تم تغيير كلمة المرور بنجاح.");
+    window.setTimeout(() => router.replace(`/${locale}/staff/login`), 900);
   }
 
-  async function saveSpecialtiesPage(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setMsg("");
-    setErr("");
-    const { ok, data } = await apiRequest<{
+  function chooseAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSaveError("");
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setSaveError("يُسمح فقط بصور JPEG أو PNG.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setSaveError("حجم الصورة يجب ألا يتجاوز 3 ميغابايت.");
+      event.target.value = "";
+      return;
+    }
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarFile(file);
+    markDirty("avatar");
+  }
+
+  async function uploadAvatar() {
+    if (!avatarFile) return;
+    setSaving("avatar");
+    setSaveError("");
+    setMessage("");
+    setUploadProgress(0);
+    const form = new FormData();
+    form.append("file", avatarFile);
+    const response = await new Promise<{
+      ok: boolean;
+      status: number;
+      data: { settings?: DoctorSettings; message?: string; error?: string };
+    }>((resolve) => {
+      const request = new XMLHttpRequest();
+      request.open("PATCH", "/api/doctor/settings/avatar");
+      request.withCredentials = true;
+      request.upload.onprogress = (progress) => {
+        if (progress.lengthComputable) {
+          setUploadProgress(
+            Math.round((progress.loaded / progress.total) * 100),
+          );
+        }
+      };
+      request.onload = () => {
+        let data = {};
+        try {
+          data = JSON.parse(request.responseText);
+        } catch {
+          data = {};
+        }
+        resolve({
+          ok: request.status >= 200 && request.status < 300,
+          status: request.status,
+          data,
+        });
+      };
+      request.onerror = () =>
+        resolve({ ok: false, status: 0, data: {} });
+      request.send(form);
+    });
+    setSaving(null);
+    if (!response.ok) {
+      setSaveError(
+        response.data.message ||
+          response.data.error ||
+          "تعذر رفع الصورة. تحقق من الملف وحاول مرة أخرى.",
+      );
+      return;
+    }
+    if (response.data.settings) setSettings(response.data.settings);
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarPreview("");
+    setAvatarFile(null);
+    setUploadProgress(0);
+    clearDirty("avatar");
+    setMessage(response.data.message || "تم تحديث الصورة الشخصية.");
+  }
+
+  async function removeAvatar() {
+    setSaving("avatar");
+    setSaveError("");
+    const result = await apiRequest<{
+      settings?: DoctorSettings;
       message?: string;
-      specialtiesPage?: SpecialtiesPage;
-    }>("/api/admin/clinic-settings", {
-      method: "PUT",
-      body: JSON.stringify({
-        section: "specialties_page",
-        specialtiesPage,
-      }),
-    });
-    setSaving(false);
-    if (!ok) {
-      setErr(apiErrorMessage(data));
+    }>("/api/doctor/settings/avatar", { method: "DELETE" });
+    setSaving(null);
+    if (!result.ok) {
+      setSaveError("تعذر حذف الصورة الشخصية حاليًا.");
       return;
     }
-    if (data.specialtiesPage) setSpecialtiesPage(data.specialtiesPage);
-    setMsg(data.message || "تم حفظ واجهة صفحة التخصصات.");
+    if (result.data.settings) setSettings(result.data.settings);
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarPreview("");
+    setAvatarFile(null);
+    clearDirty("avatar");
+    setMessage(result.data.message || "تم حذف الصورة الشخصية.");
   }
 
-  async function updateInquiryStatus(id: string, status: InquiryStatus) {
-    setInquiriesError("");
-    const { ok } = await apiRequest(
-      `/api/admin/contact-inquiries/${id}/status`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      },
-    );
-    if (!ok) {
-      setInquiriesError("تعذر تحديث حالة الاستفسار.");
+  async function revokeSession(id: string) {
+    setSessionBusy(id);
+    setSessionsError("");
+    const result = await apiRequest(`/api/auth/sessions/${id}`, {
+      method: "DELETE",
+    });
+    setSessionBusy("");
+    if (!result.ok) {
+      setSessionsError("تعذر إنهاء الجلسة حاليًا.");
       return;
     }
-    setInquiries((current) =>
-      current.map((item) => (item.id === id ? { ...item, status } : item)),
+    setSessions((current) => current.filter((session) => session.id !== id));
+  }
+
+  async function logoutOtherSessions() {
+    setSessionBusy("others");
+    setSessionsError("");
+    const result = await apiRequest<{ message?: string }>(
+      "/api/auth/sessions/logout-others",
+      { method: "POST", body: JSON.stringify({}) },
+    );
+    setSessionBusy("");
+    if (!result.ok) {
+      setSessionsError(
+        apiErrorMessage(
+          result.data,
+          "تعذر تسجيل الخروج من الأجهزة الأخرى حاليًا.",
+        ),
+      );
+      return;
+    }
+    setSessions((current) =>
+      current.filter((session) => session.current),
+    );
+    setMessage(
+      result.data.message || "تم تسجيل الخروج من جميع الأجهزة الأخرى.",
     );
   }
 
-  function updateScheduleDay(index: number, patch: Partial<WeeklyScheduleDay>) {
-    setInfo((prev) => {
-      const schedule = [...(prev.weeklySchedule || defaultWeeklySchedule())];
-      schedule[index] = { ...schedule[index], ...patch };
-      return { ...prev, weeklySchedule: schedule };
-    });
-  }
-
-  function updateSpecialtiesPage(
-    field: keyof SpecialtiesPage,
-    value: string | boolean,
-  ) {
-    setSpecialtiesPage((current) => ({ ...current, [field]: value }));
-  }
+  const activeMeta = useMemo(
+    () => SECTIONS.find((section) => section.id === activeSection)!,
+    [activeSection],
+  );
 
   if (loading || !user) {
-    return <main className="dash-panel">{dict.loading}</main>;
+    return <main className="dash-panel">جارٍ تحميل إعدادات الحساب...</main>;
   }
   if (error) {
     return <main className="dash-panel alert-error">{error}</main>;
   }
-
-  const schedule = info.weeklySchedule || defaultWeeklySchedule();
 
   return (
     <DashboardShell
@@ -406,966 +709,1073 @@ export default function ClinicSettingsPage() {
       dict={dict}
       role={user.role}
       userName={user.fullName}
-      title={dict.navSettings}
-      description={dict.dashboardLead}
+      title="إعدادات حساب الطبيب"
+      description="إدارة معلوماتك الشخصية والمهنية، مواعيد العمل، الأمان، والإشعارات من مكان واحد."
+      initialAdminMode={
+        user.adminDashboardMode === "full" ? "full" : "quick"
+      }
+      pageLanguage={locale}
+      pageDirection={locale === "ar" ? "rtl" : "ltr"}
+      pageClassName="doctor-settings-shell"
     >
-      {msg ? <div className="alert-success">{msg}</div> : null}
-      {err ? <div className="alert-error">{err}</div> : null}
-
-      <section id="contact" className="card-surface dash-actions">
-        <h2>Clinic info</h2>
-        <form className="stack-form" onSubmit={saveContact}>
-          <div className="row-2">
-            <div className="field">
-              <label>Name (AR)</label>
-              <input
-                className="input"
-                value={info.nameAr || ""}
-                onChange={(e) => setInfo((i) => ({ ...i, nameAr: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>Name (EN)</label>
-              <input
-                className="input"
-                value={info.nameEn || ""}
-                onChange={(e) => setInfo((i) => ({ ...i, nameEn: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>Name (FR)</label>
-            <input
-              className="input"
-              value={info.nameFr || ""}
-              onChange={(e) => setInfo((i) => ({ ...i, nameFr: e.target.value }))}
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>{dict.phone}</label>
-              <input
-                className="input"
-                type="text"
-                inputMode="numeric"
-                autoComplete="tel"
-                dir="ltr"
-                value={info.phone || ""}
-                onChange={(e) => setInfo((i) => ({ ...i, phone: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>{dict.email}</label>
-              <input
-                className="input"
-                type="email"
-                dir="ltr"
-                spellCheck={false}
-                autoComplete="email"
-                value={info.email || ""}
-                onChange={(e) => setInfo((i) => ({ ...i, email: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>Address (AR)</label>
-            <textarea
-              className="input"
-              rows={2}
-              value={info.addressAr || info.address || ""}
-              onChange={(e) =>
-                setInfo((i) => ({
-                  ...i,
-                  addressAr: e.target.value,
-                  address: e.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Address (EN)</label>
-              <textarea
-                className="input"
-                rows={2}
-                value={info.addressEn || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, addressEn: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Address (FR)</label>
-              <textarea
-                className="input"
-                rows={2}
-                value={info.addressFr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, addressFr: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>City</label>
-              <input
-                className="input"
-                value={info.city || ""}
-                onChange={(e) => setInfo((i) => ({ ...i, city: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>Wilaya</label>
-              <input
-                className="input"
-                value={info.stateOrWilaya || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, stateOrWilaya: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Postal code</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.postalCode || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, postalCode: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Timezone</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.timezone || "Africa/Algiers"}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, timezone: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Country (AR)</label>
-              <input
-                className="input"
-                value={info.countryAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, countryAr: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Country (EN)</label>
-              <input
-                className="input"
-                value={info.countryEn || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, countryEn: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>Country (FR)</label>
-            <input
-              className="input"
-              value={info.countryFr || ""}
-              onChange={(e) =>
-                setInfo((i) => ({ ...i, countryFr: e.target.value }))
-              }
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Phone display</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.phoneDisplay || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, phoneDisplay: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Phone international</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.phoneInternational || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    phoneInternational: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>WhatsApp number</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.whatsappNumber || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, whatsappNumber: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>WhatsApp enabled</label>
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={info.whatsappEnabled !== false}
-                  onChange={(e) =>
-                    setInfo((i) => ({
-                      ...i,
-                      whatsappEnabled: e.target.checked,
-                    }))
-                  }
-                />
-                <span>Show WhatsApp on public site</span>
-              </label>
-            </div>
-          </div>
-          <div className="field">
-            <label>Facebook URL</label>
-            <input
-              className="input"
-              dir="ltr"
-              value={info.facebookUrl || ""}
-              onChange={(e) =>
-                setInfo((i) => ({ ...i, facebookUrl: e.target.value }))
-              }
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Maps link (directions)</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.mapsLink || ""}
-                onChange={(e) => {
-                  const mapsLink = e.target.value;
-                  setInfo((i) => ({ ...i, mapsLink }));
-                  validateMapsLink(mapsLink);
-                }}
-                onBlur={() => validateMapsLink(info.mapsLink)}
-              />
-              {mapsLinkError ? (
-                <div className="error">{mapsLinkError}</div>
-              ) : null}
-            </div>
-            <div className="field">
-              <label>Maps embed URL</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.mapsEmbedUrl || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, mapsEmbedUrl: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Latitude</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.latitude || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, latitude: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Longitude</label>
-              <input
-                className="input"
-                dir="ltr"
-                value={info.longitude || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, longitude: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <h3>محتوى صفحة التواصل</h3>
-          <div className="row-2">
-            <div className="field">
-              <label>عنوان الواجهة (AR)</label>
-              <input
-                className="input"
-                value={info.contactHeroTitleAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactHeroTitleAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>عنوان الواجهة (EN)</label>
-              <input
-                className="input"
-                value={info.contactHeroTitleEn || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactHeroTitleEn: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>عنوان الواجهة (FR)</label>
-            <input
-              className="input"
-              value={info.contactHeroTitleFr || ""}
-              onChange={(e) =>
-                setInfo((i) => ({
-                  ...i,
-                  contactHeroTitleFr: e.target.value,
-                }))
-              }
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>وصف الواجهة (AR)</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={info.contactHeroDescriptionAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactHeroDescriptionAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>وصف الواجهة (EN)</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={info.contactHeroDescriptionEn || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactHeroDescriptionEn: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>وصف الواجهة (FR)</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={info.contactHeroDescriptionFr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactHeroDescriptionFr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>مسار صورة الواجهة</label>
-              <input
-                className="input"
-                dir="ltr"
-                placeholder="/api/media/..."
-                value={info.contactHeroImage || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactHeroImage: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>عنوان قسم الاستفسار</label>
-              <input
-                className="input"
-                value={info.inquirySectionTitleAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    inquirySectionTitleAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>وصف قسم الاستفسار</label>
-              <textarea
-                className="input"
-                rows={2}
-                value={info.inquirySectionDescriptionAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    inquirySectionDescriptionAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>عنوان قسم الموقع</label>
-              <input
-                className="input"
-                value={info.locationSectionTitleAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    locationSectionTitleAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>وصف قسم الموقع</label>
-              <textarea
-                className="input"
-                rows={2}
-                value={info.locationSectionDescriptionAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    locationSectionDescriptionAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>عنوان SEO لصفحة التواصل</label>
-              <input
-                className="input"
-                value={info.contactSeoTitleAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactSeoTitleAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>وصف SEO لصفحة التواصل</label>
-              <textarea
-                className="input"
-                rows={2}
-                value={info.contactSeoDescriptionAr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({
-                    ...i,
-                    contactSeoDescriptionAr: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={info.contactPublished !== false}
-              onChange={(e) =>
-                setInfo((i) => ({
-                  ...i,
-                  contactPublished: e.target.checked,
-                }))
-              }
-            />
-            <span>نشر صفحة التواصل</span>
-          </label>
-          <button className="btn btn-primary" type="submit" disabled={saving || !!mapsLinkError}>
-            {saving ? dict.saving : "حفظ التواصل"}
+      {loadError ? (
+        <section className="doctor-settings-load-error" role="alert">
+          <strong>تعذر تحميل إعدادات الحساب حاليًا.</strong>
+          <button className="btn btn-outline" type="button" onClick={() => void load()}>
+            إعادة المحاولة
           </button>
-        </form>
-      </section>
+        </section>
+      ) : null}
 
-      <section id="specialties-page" className="card-surface dash-actions">
-        <h2>واجهة صفحة التخصصات</h2>
-        <form className="stack-form" onSubmit={saveSpecialtiesPage}>
-          <div className="row-2">
-            {(
-              [
-                ["badgeAr", "الشارة (AR)"],
-                ["badgeEn", "الشارة (EN)"],
-                ["badgeFr", "الشارة (FR)"],
-                ["titleAr", "العنوان (AR)"],
-                ["titleEn", "العنوان (EN)"],
-                ["titleFr", "العنوان (FR)"],
-              ] as const
-            ).map(([field, label]) => (
-              <div className="field" key={field}>
-                <label>{label}</label>
-                <input
-                  className="input"
-                  value={specialtiesPage[field] || ""}
-                  onChange={(e) =>
-                    updateSpecialtiesPage(field, e.target.value)
+      {!loadError && settings ? (
+        <div className="doctor-settings-layout">
+          <aside className="doctor-settings-nav" aria-label="أقسام الإعدادات">
+            <div className="doctor-settings-identity">
+              <span className="doctor-settings-avatar-small">
+                {settings.avatar.url ? (
+                  <Image
+                    src={settings.avatar.url}
+                    alt=""
+                    width={48}
+                    height={48}
+                    unoptimized
+                  />
+                ) : (
+                  initials(settings.personal.fullName)
+                )}
+              </span>
+              <span>
+                <strong>{settings.personal.fullName}</strong>
+                <small>
+                  {settings.professional.type === "SPECIALIST"
+                    ? "طبيب مختص"
+                    : "طبيب عام"}
+                </small>
+              </span>
+            </div>
+            <div className="doctor-settings-nav-list">
+              {SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={
+                    activeSection === section.id
+                      ? "doctor-settings-nav-item active"
+                      : "doctor-settings-nav-item"
                   }
-                />
-              </div>
-            ))}
-          </div>
-          <div className="row-2">
-            {(
-              [
-                ["descriptionAr", "الوصف (AR)"],
-                ["descriptionEn", "الوصف (EN)"],
-                ["descriptionFr", "الوصف (FR)"],
-              ] as const
-            ).map(([field, label]) => (
-              <div className="field" key={field}>
-                <label>{label}</label>
-                <textarea
-                  className="input"
-                  rows={3}
-                  value={specialtiesPage[field] || ""}
-                  onChange={(e) =>
-                    updateSpecialtiesPage(field, e.target.value)
+                  aria-current={
+                    activeSection === section.id ? "page" : undefined
                   }
-                />
-              </div>
-            ))}
-          </div>
-          <div className="field">
-            <label>مسار الصورة</label>
-            <input
-              className="input"
-              dir="ltr"
-              placeholder="/api/media/..."
-              value={specialtiesPage.image || ""}
-              onChange={(e) => updateSpecialtiesPage("image", e.target.value)}
-            />
-          </div>
-          <div className="row-2">
-            {(
-              [
-                ["imageAltAr", "النص البديل للصورة (AR)"],
-                ["imageAltEn", "النص البديل للصورة (EN)"],
-                ["imageAltFr", "النص البديل للصورة (FR)"],
-              ] as const
-            ).map(([field, label]) => (
-              <div className="field" key={field}>
-                <label>{label}</label>
-                <input
-                  className="input"
-                  value={specialtiesPage[field] || ""}
-                  onChange={(e) =>
-                    updateSpecialtiesPage(field, e.target.value)
-                  }
-                />
-              </div>
-            ))}
-          </div>
-          <div className="row-2">
-            {(
-              [
-                ["primaryCtaLabelAr", "نص الزر الرئيسي"],
-                ["primaryCtaRoute", "مسار الزر الرئيسي"],
-                ["secondaryCtaLabelAr", "نص الزر الثانوي"],
-                ["secondaryCtaRoute", "مسار الزر الثانوي"],
-              ] as const
-            ).map(([field, label]) => (
-              <div className="field" key={field}>
-                <label>{label}</label>
-                <input
-                  className="input"
-                  dir={field.endsWith("Route") ? "ltr" : undefined}
-                  placeholder={field.endsWith("Route") ? "/..." : undefined}
-                  value={specialtiesPage[field] || ""}
-                  onChange={(e) =>
-                    updateSpecialtiesPage(field, e.target.value)
-                  }
-                />
-              </div>
-            ))}
-          </div>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={specialtiesPage.published !== false}
-              onChange={(e) =>
-                updateSpecialtiesPage("published", e.target.checked)
-              }
-            />
-            <span>نشر صفحة التخصصات</span>
-          </label>
-          <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? dict.saving : "حفظ واجهة التخصصات"}
-          </button>
-        </form>
-      </section>
-
-      <section id="contact-inquiries" className="card-surface dash-actions">
-        <h2>استفسارات التواصل</h2>
-        <div className="row-2" style={{ marginBottom: "1rem" }}>
-          <div className="field">
-            <label>بحث</label>
-            <input
-              className="input"
-              placeholder="الاسم، الهاتف، الموضوع أو الرسالة"
-              value={inquiriesSearch}
-              onChange={(e) => {
-                setInquiriesPage(1);
-                setInquiriesSearch(e.target.value);
-              }}
-            />
-          </div>
-          <div className="field">
-            <label>الحالة</label>
-            <select
-              className="input"
-              value={inquiriesStatus}
-              onChange={(e) => {
-                setInquiriesPage(1);
-                setInquiriesStatus(e.target.value);
-              }}
-            >
-              <option value="">كل الحالات</option>
-              {INQUIRY_STATUSES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <span aria-hidden="true">{section.icon}</span>
+                  <span>
+                    <strong>{section.label}</strong>
+                    <small>{section.description}</small>
+                  </span>
+                  {dirty.has(section.id) ? (
+                    <i title="تغييرات غير محفوظة" aria-label="تغييرات غير محفوظة" />
+                  ) : null}
+                </button>
               ))}
-            </select>
-          </div>
-        </div>
-        {inquiriesError ? (
-          <p className="alert-error">{inquiriesError}</p>
-        ) : null}
-        {inquiriesLoading ? <p className="muted">جارٍ التحميل…</p> : null}
-        {!inquiriesLoading && !inquiriesError && inquiries.length === 0 ? (
-          <p className="muted">لا توجد استفسارات مطابقة.</p>
-        ) : null}
-        {inquiries.length > 0 ? (
-          <div style={{ overflowX: "auto" }}>
-            <table className="pc-table">
-              <thead>
-                <tr>
-                  <th>الاسم</th>
-                  <th>الهاتف</th>
-                  <th>الموضوع</th>
-                  <th>الرسالة</th>
-                  <th>الحالة</th>
-                  <th>التاريخ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inquiries.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.fullName || "—"}</td>
-                    <td dir="ltr">{item.phone || "—"}</td>
-                    <td>{item.subject || "—"}</td>
-                    <td title={item.message}>
-                      {item.message
-                        ? `${item.message.slice(0, 100)}${
-                            item.message.length > 100 ? "…" : ""
-                          }`
-                        : "—"}
-                    </td>
-                    <td>
-                      <select
-                        className="input"
-                        aria-label={`حالة استفسار ${item.fullName}`}
-                        value={item.status}
-                        onChange={(e) =>
-                          void updateInquiryStatus(
-                            item.id,
-                            e.target.value as InquiryStatus,
-                          )
+            </div>
+          </aside>
+
+          <main className="doctor-settings-content">
+            <header className="doctor-settings-section-head">
+              <span className="doctor-settings-section-number" aria-hidden="true">
+                {activeMeta.icon}
+              </span>
+              <div>
+                <h2>{activeMeta.label}</h2>
+                <p>{activeMeta.description}</p>
+              </div>
+            </header>
+
+            {dirty.size > 0 ? (
+              <div className="doctor-settings-dirty" role="status">
+                <span>لديك تغييرات غير محفوظة.</span>
+                <small>احفظ القسم الحالي قبل مغادرة الصفحة.</small>
+              </div>
+            ) : null}
+            {message ? (
+              <div className="alert-success doctor-settings-feedback" role="status">
+                {message}
+              </div>
+            ) : null}
+            {saveError ? (
+              <div className="alert-error doctor-settings-feedback" role="alert">
+                {saveError}
+              </div>
+            ) : null}
+
+            {activeSection === "personal" ? (
+              <form className="doctor-settings-card" onSubmit={savePersonal}>
+                <div className="doctor-settings-card-intro">
+                  <h3>بيانات الحساب الأساسية</h3>
+                  <p>
+                    تُستخدم هذه البيانات لتسجيل الدخول والتواصل المهني. لا يمكن
+                    تعديل الدور أو الصلاحيات من هنا.
+                  </p>
+                </div>
+                <div className="doctor-settings-grid">
+                  <label className="field">
+                    <span>الاسم الكامل <b aria-hidden="true">*</b></span>
+                    <input
+                      className="input"
+                      autoComplete="name"
+                      value={settings.personal.fullName}
+                      onChange={(event) =>
+                        updateSettings(
+                          "personal",
+                          { fullName: event.target.value },
+                          "personal",
+                        )
+                      }
+                      required
+                    />
+                    {fieldErrors.fullName ? (
+                      <small className="error">{fieldErrors.fullName}</small>
+                    ) : null}
+                  </label>
+                  <label className="field">
+                    <span>
+                      البريد الإلكتروني
+                      <em
+                        className={
+                          settings.personal.emailVerified
+                            ? "verification-badge verified"
+                            : "verification-badge"
                         }
                       >
-                        {INQUIRY_STATUSES.map((statusItem) => (
-                          <option
-                            key={statusItem.value}
-                            value={statusItem.value}
-                          >
-                            {statusItem.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      {item.createdAt
-                        ? new Intl.DateTimeFormat("ar-DZ", {
-                            dateStyle: "medium",
-                          }).format(new Date(item.createdAt))
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
-        <div className="cta-row" style={{ marginTop: "1rem" }}>
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={inquiriesPage <= 1 || inquiriesLoading}
-            onClick={() => setInquiriesPage((page) => Math.max(1, page - 1))}
-          >
-            السابق
-          </button>
-          <span className="muted">
-            الصفحة {inquiriesPage} — الإجمالي {inquiriesTotal}
-          </span>
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={
-              inquiriesLoading || inquiriesPage * 20 >= inquiriesTotal
-            }
-            onClick={() => setInquiriesPage((page) => page + 1)}
-          >
-            التالي
-          </button>
-        </div>
-      </section>
+                        {settings.personal.emailVerified
+                          ? "موثّق"
+                          : "غير موثّق"}
+                      </em>
+                    </span>
+                    <input
+                      className="input"
+                      type="email"
+                      dir="ltr"
+                      autoComplete="email"
+                      value={settings.personal.email}
+                      onChange={(event) =>
+                        updateSettings(
+                          "personal",
+                          { email: event.target.value },
+                          "personal",
+                        )
+                      }
+                    />
+                    {fieldErrors.email ? (
+                      <small className="error">{fieldErrors.email}</small>
+                    ) : null}
+                  </label>
+                  <label className="field">
+                    <span>رقم الهاتف</span>
+                    <input
+                      className="input"
+                      type="text"
+                      inputMode="numeric"
+                      dir="ltr"
+                      autoComplete="tel"
+                      value={settings.personal.phone}
+                      onChange={(event) =>
+                        updateSettings(
+                          "personal",
+                          { phone: event.target.value },
+                          "personal",
+                        )
+                      }
+                    />
+                    <small>يُحفظ الصفر الأول في أرقام الهاتف الجزائرية.</small>
+                    {fieldErrors.phone ? (
+                      <small className="error">{fieldErrors.phone}</small>
+                    ) : null}
+                  </label>
+                  <label className="field">
+                    <span>اللغة المفضلة</span>
+                    <select
+                      className="input"
+                      value={settings.personal.locale}
+                      onChange={(event) =>
+                        updateSettings(
+                          "personal",
+                          {
+                            locale: event.target
+                              .value as PersonalSettings["locale"],
+                          },
+                          "personal",
+                        )
+                      }
+                    >
+                      <option value="ar">العربية</option>
+                      <option value="en">English</option>
+                      <option value="fr">Français</option>
+                    </select>
+                  </label>
+                  <label className="field doctor-settings-span-2">
+                    <span>العنوان (اختياري)</span>
+                    <input
+                      className="input"
+                      autoComplete="street-address"
+                      value={settings.personal.address}
+                      onChange={(event) =>
+                        updateSettings(
+                          "personal",
+                          { address: event.target.value },
+                          "personal",
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="doctor-settings-savebar">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={saving === "personal" || !dirty.has("personal")}
+                  >
+                    {saving === "personal"
+                      ? "جارٍ حفظ التغييرات..."
+                      : "حفظ المعلومات الشخصية"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
 
-      <section id="hours" className="card-surface dash-actions">
-        <h2>ساعات العمل</h2>
-        <form className="stack-form" onSubmit={saveHours}>
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            {schedule.map((day, index) => {
-              const label =
-                WEEK_DAYS.find((d) => d.code === day.dayOfWeek)?.label ||
-                day.dayOfWeek;
-              return (
-                <div
-                  key={day.dayOfWeek}
-                  style={{
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: "0.75rem",
-                    display: "grid",
-                    gap: "0.5rem",
-                  }}
-                >
+            {activeSection === "professional" ? (
+              <form className="doctor-settings-card" onSubmit={saveProfessional}>
+                <div className="doctor-settings-card-intro">
+                  <h3>ملفك المهني</h3>
+                  <p>
+                    حدّث وصفك المهني. الحقول التنظيمية التي تحددها الإدارة ظاهرة
+                    للقراءة فقط.
+                  </p>
+                </div>
+                <div className="doctor-settings-readonly-grid">
+                  <div>
+                    <span>نوع الطبيب</span>
+                    <strong>
+                      {settings.professional.type === "SPECIALIST"
+                        ? "طبيب مختص"
+                        : "طبيب عام"}
+                    </strong>
+                    <small>تتحكم به الإدارة</small>
+                  </div>
+                  <div>
+                    <span>التخصص</span>
+                    <strong>
+                      {settings.professional.specialtyAr || "غير محدد"}
+                    </strong>
+                    <small>تتحكم به الإدارة</small>
+                  </div>
+                  <div>
+                    <span>رقم الترخيص</span>
+                    <strong dir="ltr">
+                      {settings.professional.licenseNumber || "غير مسجل"}
+                    </strong>
+                    <small>يتطلب اعتماد الإدارة</small>
+                  </div>
+                  <div>
+                    <span>الظهور والحجز</span>
+                    <strong>
+                      {settings.professional.isPublic ? "ظاهر" : "غير ظاهر"} ·{" "}
+                      {settings.professional.isBookable
+                        ? "متاح للحجز"
+                        : "غير متاح للحجز"}
+                    </strong>
+                    <small>تتحكم به الإدارة</small>
+                  </div>
+                </div>
+                <div className="doctor-settings-grid">
+                  <label className="field">
+                    <span>المسمى المهني بالعربية</span>
+                    <input
+                      className="input"
+                      value={settings.professional.professionalTitleAr}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { professionalTitleAr: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Professional title</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={settings.professional.professionalTitleEn}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { professionalTitleEn: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Titre professionnel (FR)</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={settings.professional.professionalTitleFr}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { professionalTitleFr: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field doctor-settings-span-2">
+                    <span>وصف عام قصير</span>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      maxLength={350}
+                      value={settings.professional.shortDescriptionAr}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { shortDescriptionAr: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                    <small>
+                      {settings.professional.shortDescriptionAr.length}/350
+                    </small>
+                  </label>
+                  <label className="field doctor-settings-span-2">
+                    <span>السيرة المهنية الكاملة</span>
+                    <textarea
+                      className="input"
+                      rows={7}
+                      maxLength={3000}
+                      value={settings.professional.bioAr}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { bioAr: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Professional biography (EN)</span>
+                    <textarea
+                      className="input"
+                      rows={5}
+                      dir="ltr"
+                      maxLength={3000}
+                      value={settings.professional.bioEn}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { bioEn: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Biographie professionnelle (FR)</span>
+                    <textarea
+                      className="input"
+                      rows={5}
+                      dir="ltr"
+                      maxLength={3000}
+                      value={settings.professional.bioFr}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          { bioFr: event.target.value },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="field doctor-settings-span-2">
+                    <span>اللغات</span>
+                    <input
+                      className="input"
+                      placeholder="العربية، الفرنسية، الإنجليزية"
+                      value={settings.professional.languages.join("، ")}
+                      onChange={(event) =>
+                        updateSettings(
+                          "professional",
+                          {
+                            languages: event.target.value
+                              .split(/[,،]/)
+                              .map((value) => value.trim())
+                              .filter(Boolean),
+                          },
+                          "professional",
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="doctor-settings-savebar">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={
+                      saving === "professional" ||
+                      !dirty.has("professional")
+                    }
+                  >
+                    {saving === "professional"
+                      ? "جارٍ حفظ التغييرات..."
+                      : "حفظ الملف المهني"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {activeSection === "avatar" ? (
+              <section className="doctor-settings-card">
+                <div className="doctor-settings-card-intro">
+                  <h3>الصورة الشخصية المهنية</h3>
+                  <p>
+                    استخدم صورة واضحة بصيغة JPEG أو PNG، بحجم لا يتجاوز 3
+                    ميغابايت وأبعاد بين 128 و4096 بكسل.
+                  </p>
+                </div>
+                <div className="doctor-avatar-editor">
+                  <div className="doctor-avatar-preview">
+                    {avatarPreview || settings.avatar.url ? (
+                      <Image
+                        src={avatarPreview || settings.avatar.url}
+                        alt={`صورة ${settings.personal.fullName}`}
+                        fill
+                        sizes="180px"
+                        unoptimized
+                      />
+                    ) : (
+                      <span>{initials(settings.personal.fullName)}</span>
+                    )}
+                  </div>
+                  <div className="doctor-avatar-actions">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      hidden
+                      onChange={chooseAvatar}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {settings.avatar.url ? "تغيير الصورة" : "رفع صورة جديدة"}
+                    </button>
+                    {avatarFile ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={saving === "avatar"}
+                        onClick={() => void uploadAvatar()}
+                      >
+                        {saving === "avatar"
+                          ? `جارٍ الرفع ${uploadProgress}%`
+                          : "حفظ الصورة"}
+                      </button>
+                    ) : null}
+                    {settings.avatar.url ? (
+                      <button
+                        type="button"
+                        className="btn btn-outline doctor-danger-button"
+                        disabled={saving === "avatar"}
+                        onClick={() => void removeAvatar()}
+                      >
+                        حذف الصورة
+                      </button>
+                    ) : null}
+                    {saving === "avatar" ? (
+                      <progress value={uploadProgress} max={100}>
+                        {uploadProgress}%
+                      </progress>
+                    ) : null}
+                    <small>
+                      تُحفظ إشارة الوسائط فقط في MongoDB، ولا تُحفظ الصورة
+                      بصيغة Base64.
+                    </small>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {activeSection === "schedule" ? (
+              <form className="doctor-settings-card" onSubmit={saveSchedule}>
+                <div className="doctor-settings-card-intro">
+                  <h3>جدول العمل الأسبوعي</h3>
+                  <p>
+                    المنطقة الزمنية: <b>Africa/Algiers</b>. الفاصل بين الفترتين
+                    لا ينتج مواعيد حجز.
+                  </p>
+                </div>
+                <div className="doctor-schedule-summary">
+                  <div>
+                    <span>أيام العمل</span>
+                    <strong>
+                      {scheduleDays.filter((day) => day.enabled).length} أيام
+                    </strong>
+                  </div>
+                  <div>
+                    <span>مدة الموعد</span>
+                    <strong>
+                      {settings.schedule.appointmentDurationMinutes} دقيقة
+                    </strong>
+                  </div>
+                  <div>
+                    <span>الإجازات المسجلة</span>
+                    <strong>{settings.schedule.leaveDates.length}</strong>
+                  </div>
+                </div>
+                <div className="doctor-schedule-days">
+                  {scheduleDays.map((day, index) => (
+                    <article
+                      key={day.code}
+                      className={
+                        day.enabled
+                          ? "doctor-schedule-day enabled"
+                          : "doctor-schedule-day"
+                      }
+                    >
+                      <header>
+                        <div>
+                          <strong>{day.label}</strong>
+                          <small>{day.enabled ? "يوم عمل" : "مغلق"}</small>
+                        </div>
+                        <label className="doctor-switch">
+                          <input
+                            type="checkbox"
+                            checked={day.enabled}
+                            onChange={(event) => {
+                              setScheduleDays((current) =>
+                                current.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? {
+                                        ...item,
+                                        enabled: event.target.checked,
+                                        morningEnabled: event.target.checked
+                                          ? true
+                                          : item.morningEnabled,
+                                      }
+                                    : item,
+                                ),
+                              );
+                              markDirty("schedule");
+                            }}
+                          />
+                          <span />
+                        </label>
+                      </header>
+                      {day.enabled ? (
+                        <div className="doctor-shifts">
+                          {(["morning", "evening"] as const).map((shift) => {
+                            const enabledKey =
+                              `${shift}Enabled` as keyof DayEditor;
+                            const startKey =
+                              `${shift}Start` as keyof DayEditor;
+                            const endKey = `${shift}End` as keyof DayEditor;
+                            const enabled = Boolean(day[enabledKey]);
+                            return (
+                              <div className="doctor-shift-row" key={shift}>
+                                <label className="checkbox-row">
+                                  <input
+                                    type="checkbox"
+                                    checked={enabled}
+                                    onChange={(event) => {
+                                      setScheduleDays((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? {
+                                                ...item,
+                                                [enabledKey]:
+                                                  event.target.checked,
+                                              }
+                                            : item,
+                                        ),
+                                      );
+                                      markDirty("schedule");
+                                    }}
+                                  />
+                                  <span>
+                                    {shift === "morning"
+                                      ? "الفترة الصباحية"
+                                      : "الفترة المسائية"}
+                                  </span>
+                                </label>
+                                <input
+                                  className="input"
+                                  type="time"
+                                  dir="ltr"
+                                  disabled={!enabled}
+                                  value={String(day[startKey])}
+                                  aria-label={`${day.label} بداية ${shift}`}
+                                  onChange={(event) => {
+                                    setScheduleDays((current) =>
+                                      current.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? {
+                                              ...item,
+                                              [startKey]: event.target.value,
+                                            }
+                                          : item,
+                                      ),
+                                    );
+                                    markDirty("schedule");
+                                  }}
+                                />
+                                <span aria-hidden="true">—</span>
+                                <input
+                                  className="input"
+                                  type="time"
+                                  dir="ltr"
+                                  disabled={!enabled}
+                                  value={String(day[endKey])}
+                                  aria-label={`${day.label} نهاية ${shift}`}
+                                  onChange={(event) => {
+                                    setScheduleDays((current) =>
+                                      current.map((item, itemIndex) =>
+                                        itemIndex === index
+                                          ? {
+                                              ...item,
+                                              [endKey]: event.target.value,
+                                            }
+                                          : item,
+                                      ),
+                                    );
+                                    markDirty("schedule");
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+                <div className="doctor-settings-grid">
+                  <label className="field">
+                    <span>مدة الموعد</span>
+                    <select
+                      className="input"
+                      value={settings.schedule.appointmentDurationMinutes}
+                      onChange={(event) =>
+                        updateSettings(
+                          "schedule",
+                          {
+                            appointmentDurationMinutes: Number(
+                              event.target.value,
+                            ),
+                          },
+                          "schedule",
+                        )
+                      }
+                    >
+                      {[15, 20, 30, 45, 60, 90, 120].map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                          {minutes} دقيقة
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>فترات الإجازة</span>
+                    <textarea
+                      className="input"
+                      rows={4}
+                      dir="ltr"
+                      placeholder={"2026-08-10\n2026-08-11"}
+                      value={leaveDatesText}
+                      onChange={(event) => {
+                        setLeaveDatesText(event.target.value);
+                        markDirty("schedule");
+                      }}
+                    />
+                    <small>تاريخ واحد في كل سطر بصيغة YYYY-MM-DD.</small>
+                  </label>
+                </div>
+                <div className="doctor-settings-savebar">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={saving === "schedule" || !dirty.has("schedule")}
+                  >
+                    {saving === "schedule"
+                      ? "جارٍ حفظ التغييرات..."
+                      : "حفظ مواعيد العمل"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {activeSection === "notifications" ? (
+              <form className="doctor-settings-card" onSubmit={saveNotifications}>
+                <div className="doctor-settings-card-intro">
+                  <h3>التنبيهات المهمة</h3>
+                  <p>
+                    اختر التنبيهات التي تريد استقبالها داخل النظام. لا تظهر
+                    قنوات خارجية كفعّالة دون مزود إرسال حقيقي.
+                  </p>
+                </div>
+                <div className="doctor-toggle-list">
+                  {(
+                    [
+                      ["appointmentNotifications", "المواعيد", "طلبات المواعيد والتأكيدات والتغييرات"],
+                      ["patientWaitingNotifications", "انتظار المريض", "تنبيه عند وصول مريض إلى قائمة الانتظار"],
+                      ["staffMessageNotifications", "رسائل الطاقم", "تنبيه عند وصول رسالة داخلية جديدة"],
+                      ["followUpReminders", "تذكيرات المتابعة", "التذكير بالمتابعات المرتبطة بالمرضى"],
+                      ["scheduleChanges", "تغييرات الجدول", "التعديلات والاستثناءات في مواعيد العمل"],
+                      ["securityAlerts", "تنبيهات الأمان", "تسجيل الدخول وتغييرات الأمان المهمة"],
+                      ["inAppNotifications", "إشعارات داخل التطبيق", "عرض التنبيهات داخل لوحة الطبيب"],
+                      ["soundNotifications", "صوت الإشعارات", "تشغيل صوت عند وصول تنبيه مدعوم"],
+                    ] as const
+                  ).map(([key, label, description]) => (
+                    <label className="doctor-toggle-row" key={key}>
+                      <span>
+                        <strong>{label}</strong>
+                        <small>{description}</small>
+                      </span>
+                      <span className="doctor-switch">
+                        <input
+                          type="checkbox"
+                          checked={settings.notifications[key]}
+                          onChange={(event) =>
+                            updateSettings(
+                              "notifications",
+                              { [key]: event.target.checked },
+                              "notifications",
+                            )
+                          }
+                        />
+                        <span />
+                      </span>
+                    </label>
+                  ))}
+                  <label className="doctor-toggle-row disabled">
+                    <span>
+                      <strong>إشعارات البريد الإلكتروني</strong>
+                      <small>غير متاحة حتى تهيئة مزود بريد إلكتروني فعلي.</small>
+                    </span>
+                    <span className="doctor-switch">
+                      <input type="checkbox" checked={false} disabled />
+                      <span />
+                    </span>
+                  </label>
+                </div>
+                <div className="doctor-settings-savebar">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={
+                      saving === "notifications" ||
+                      !dirty.has("notifications")
+                    }
+                  >
+                    {saving === "notifications"
+                      ? "جارٍ حفظ التغييرات..."
+                      : "حفظ إعدادات الإشعارات"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {activeSection === "security" ? (
+              <form className="doctor-settings-card" onSubmit={changePassword}>
+                <div className="doctor-settings-card-intro">
+                  <h3>تغيير كلمة المرور</h3>
+                  <p>
+                    سيؤدي تغيير كلمة المرور إلى إنهاء الجلسات النشطة لحماية
+                    الحساب.
+                  </p>
+                </div>
+                <div className="doctor-security-form">
+                  <label className="field">
+                    <span>كلمة المرور الحالية</span>
+                    <input
+                      className="input"
+                      type={showPasswords ? "text" : "password"}
+                      dir="ltr"
+                      autoComplete="current-password"
+                      value={password.currentPassword}
+                      onChange={(event) =>
+                        setPassword((current) => ({
+                          ...current,
+                          currentPassword: event.target.value,
+                        }))
+                      }
+                      required
+                    />
+                    {fieldErrors.currentPassword ? (
+                      <small className="error">
+                        {fieldErrors.currentPassword}
+                      </small>
+                    ) : null}
+                  </label>
+                  <label className="field">
+                    <span>كلمة المرور الجديدة</span>
+                    <input
+                      className="input"
+                      type={showPasswords ? "text" : "password"}
+                      dir="ltr"
+                      autoComplete="new-password"
+                      minLength={8}
+                      value={password.password}
+                      onChange={(event) =>
+                        setPassword((current) => ({
+                          ...current,
+                          password: event.target.value,
+                        }))
+                      }
+                      required
+                    />
+                    <small>
+                      استخدم 8 أحرف على الأقل ومزيجًا يصعب تخمينه.
+                    </small>
+                  </label>
+                  <label className="field">
+                    <span>تأكيد كلمة المرور الجديدة</span>
+                    <input
+                      className="input"
+                      type={showPasswords ? "text" : "password"}
+                      dir="ltr"
+                      autoComplete="new-password"
+                      minLength={8}
+                      value={password.confirmPassword}
+                      onChange={(event) =>
+                        setPassword((current) => ({
+                          ...current,
+                          confirmPassword: event.target.value,
+                        }))
+                      }
+                      required
+                    />
+                    {fieldErrors.confirmPassword ? (
+                      <small className="error">
+                        {fieldErrors.confirmPassword}
+                      </small>
+                    ) : null}
+                  </label>
                   <label className="checkbox-row">
                     <input
                       type="checkbox"
-                      checked={day.isActive}
-                      onChange={(e) =>
-                        updateScheduleDay(index, { isActive: e.target.checked })
-                      }
+                      checked={showPasswords}
+                      onChange={(event) => setShowPasswords(event.target.checked)}
                     />
-                    <strong>{label}</strong>
+                    <span>إظهار كلمات المرور</span>
                   </label>
-                  <div className="row-2">
-                    <label className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={day.morningEnabled}
-                        disabled={!day.isActive}
-                        onChange={(e) =>
-                          updateScheduleDay(index, {
-                            morningEnabled: e.target.checked,
-                          })
-                        }
-                      />
-                      <span>صباح</span>
-                    </label>
-                    <label className="checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={day.eveningEnabled}
-                        disabled={!day.isActive}
-                        onChange={(e) =>
-                          updateScheduleDay(index, {
-                            eveningEnabled: e.target.checked,
-                          })
-                        }
-                      />
-                      <span>مساء</span>
-                    </label>
-                  </div>
-                  <div className="row-2">
-                    <div className="field">
-                      <label>صباح — من</label>
-                      <input
-                        className="input"
-                        type="time"
-                        dir="ltr"
-                        disabled={!day.isActive || !day.morningEnabled}
-                        value={day.morningStart}
-                        onChange={(e) =>
-                          updateScheduleDay(index, { morningStart: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label>صباح — إلى</label>
-                      <input
-                        className="input"
-                        type="time"
-                        dir="ltr"
-                        disabled={!day.isActive || !day.morningEnabled}
-                        value={day.morningEnd}
-                        onChange={(e) =>
-                          updateScheduleDay(index, { morningEnd: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="row-2">
-                    <div className="field">
-                      <label>مساء — من</label>
-                      <input
-                        className="input"
-                        type="time"
-                        dir="ltr"
-                        disabled={!day.isActive || !day.eveningEnabled}
-                        value={day.eveningStart}
-                        onChange={(e) =>
-                          updateScheduleDay(index, { eveningStart: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="field">
-                      <label>مساء — إلى</label>
-                      <input
-                        className="input"
-                        type="time"
-                        dir="ltr"
-                        disabled={!day.isActive || !day.eveningEnabled}
-                        value={day.eveningEnd}
-                        onChange={(e) =>
-                          updateScheduleDay(index, { eveningEnd: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
+                <div className="doctor-settings-savebar">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={saving === "security"}
+                  >
+                    {saving === "security"
+                      ? "جارٍ حفظ التغييرات..."
+                      : "تغيير كلمة المرور"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
 
-          <div className="field">
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={info.fridayClosed !== false}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, fridayClosed: e.target.checked }))
-                }
-              />
-              <span>Friday closed</span>
-            </label>
-          </div>
-          <div className="field">
-            <label>Working hours (AR) — نص إضافي</label>
-            <textarea
-              className="input"
-              rows={3}
-              value={info.workingHoursAr || ""}
-              onChange={(e) =>
-                setInfo((i) => ({ ...i, workingHoursAr: e.target.value }))
-              }
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>Working hours (EN)</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={info.workingHoursEn || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, workingHoursEn: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Working hours (FR)</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={info.workingHoursFr || ""}
-                onChange={(e) =>
-                  setInfo((i) => ({ ...i, workingHoursFr: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? dict.saving : "حفظ الدوام (صباح / مساء)"}
-          </button>
-        </form>
-      </section>
+            {activeSection === "sessions" ? (
+              <section className="doctor-settings-card">
+                <div className="doctor-settings-card-intro">
+                  <h3>الجلسات النشطة</h3>
+                  <p>
+                    راجع الأجهزة التي تستخدم حسابك وأنهِ أي جلسة لا تتعرف
+                    عليها.
+                  </p>
+                </div>
+                <div className="doctor-session-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={
+                      sessionBusy === "others" ||
+                      !sessions.some((session) => session.current) ||
+                      sessions.filter((session) => !session.current).length === 0
+                    }
+                    onClick={() => void logoutOtherSessions()}
+                  >
+                    {sessionBusy === "others"
+                      ? "جارٍ تسجيل الخروج..."
+                      : "تسجيل الخروج من جميع الأجهزة الأخرى"}
+                  </button>
+                  {!sessions.some((session) => session.current) ? (
+                    <small>
+                      أعد تسجيل الدخول مرة واحدة لتمييز الجهاز الحالي بأمان.
+                    </small>
+                  ) : null}
+                </div>
+                {sessionsError ? (
+                  <div className="alert-error">{sessionsError}</div>
+                ) : null}
+                {!sessionsError && sessions.length === 0 ? (
+                  <div className="doctor-settings-empty">
+                    لا توجد جلسات نشطة أخرى حاليًا.
+                  </div>
+                ) : null}
+                <div className="doctor-session-list">
+                  {sessions.map((session) => (
+                    <article key={session.id} className="doctor-session-row">
+                      <span className="doctor-session-icon" aria-hidden="true">
+                        ◫
+                      </span>
+                      <div>
+                        <span className="doctor-session-title">
+                          <strong dir="auto">
+                            {describeDevice(session.userAgent)}
+                          </strong>
+                          {session.current ? (
+                            <em>الجهاز الحالي</em>
+                          ) : null}
+                        </span>
+                        <small>
+                          آخر نشاط: {formatDate(session.lastActivityAt)}
+                        </small>
+                        <small>
+                          بدأت الجلسة: {formatDate(session.createdAt)}
+                        </small>
+                      </div>
+                      {session.current ? (
+                        <span className="doctor-current-session-status">
+                          نشط الآن
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          disabled={sessionBusy === session.id}
+                          onClick={() => void revokeSession(session.id)}
+                        >
+                          {sessionBusy === session.id
+                            ? "جارٍ الإنهاء..."
+                            : "إنهاء الجلسة"}
+                        </button>
+                      )}
+                    </article>
+                  ))}
+                </div>
+                <p className="doctor-settings-note">
+                  لا تُعرض المواقع الدقيقة. قد يظهر نوع الجهاز والمتصفح فقط
+                  وفق معلومات الجلسة المتاحة.
+                </p>
+              </section>
+            ) : null}
 
-      <section id="pages" className="card-surface dash-actions">
-        <h2>Public content</h2>
-        <form className="stack-form" onSubmit={savePages}>
-          <div className="field">
-            <label>About (AR)</label>
-            <textarea
-              className="input"
-              rows={4}
-              value={pages.aboutAr || ""}
-              onChange={(e) =>
-                setPages((p) => ({ ...p, aboutAr: e.target.value }))
-              }
-            />
-          </div>
-          <div className="field">
-            <label>About (EN)</label>
-            <textarea
-              className="input"
-              rows={3}
-              value={pages.aboutEn || ""}
-              onChange={(e) =>
-                setPages((p) => ({ ...p, aboutEn: e.target.value }))
-              }
-            />
-          </div>
-          <div className="field">
-            <label>About (FR)</label>
-            <textarea
-              className="input"
-              rows={3}
-              value={pages.aboutFr || ""}
-              onChange={(e) =>
-                setPages((p) => ({ ...p, aboutFr: e.target.value }))
-              }
-            />
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? dict.saving : dict.save}
-          </button>
-        </form>
-      </section>
+            {activeSection === "preferences" ? (
+              <form className="doctor-settings-card" onSubmit={savePreferences}>
+                <div className="doctor-settings-card-intro">
+                  <h3>تفضيلات العرض</h3>
+                  <p>
+                    تُحفظ هذه التفضيلات في حسابك وتنتقل معك بين الأجهزة.
+                  </p>
+                </div>
+                <div className="doctor-settings-grid">
+                  <label className="field">
+                    <span>تنسيق التاريخ</span>
+                    <select
+                      className="input"
+                      value={settings.preferences.dateFormat}
+                      onChange={(event) =>
+                        updateSettings(
+                          "preferences",
+                          {
+                            dateFormat: event.target
+                              .value as PreferenceSettings["dateFormat"],
+                          },
+                          "preferences",
+                        )
+                      }
+                    >
+                      <option value="dd/MM/yyyy">31/12/2026</option>
+                      <option value="yyyy-MM-dd">2026-12-31</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>تنسيق الوقت</span>
+                    <select
+                      className="input"
+                      value={settings.preferences.timeFormat}
+                      onChange={(event) =>
+                        updateSettings(
+                          "preferences",
+                          {
+                            timeFormat: event.target
+                              .value as PreferenceSettings["timeFormat"],
+                          },
+                          "preferences",
+                        )
+                      }
+                    >
+                      <option value="24h">24 ساعة</option>
+                      <option value="12h">12 ساعة</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="doctor-toggle-list">
+                  {(
+                    [
+                      ["reducedMotion", "تقليل الحركة", "تقليل المؤثرات الانتقالية غير الضرورية"],
+                      ["compactDashboard", "عرض لوحة مدمج", "تقليل المسافات في واجهة لوحة الطبيب"],
+                      ["notificationSound", "صوت الإشعارات", "السماح بصوت التنبيهات المدعومة"],
+                    ] as const
+                  ).map(([key, label, description]) => (
+                    <label className="doctor-toggle-row" key={key}>
+                      <span>
+                        <strong>{label}</strong>
+                        <small>{description}</small>
+                      </span>
+                      <span className="doctor-switch">
+                        <input
+                          type="checkbox"
+                          checked={settings.preferences[key]}
+                          onChange={(event) =>
+                            updateSettings(
+                              "preferences",
+                              { [key]: event.target.checked },
+                              "preferences",
+                            )
+                          }
+                        />
+                        <span />
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="doctor-settings-savebar">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={
+                      saving === "preferences" || !dirty.has("preferences")
+                    }
+                  >
+                    {saving === "preferences"
+                      ? "جارٍ حفظ التغييرات..."
+                      : "حفظ تفضيلات الحساب"}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+          </main>
+        </div>
+      ) : null}
     </DashboardShell>
   );
 }

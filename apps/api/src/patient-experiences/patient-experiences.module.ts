@@ -8,6 +8,7 @@ import {
   RolesGuard,
 } from "../common/auth/permissions.guard";
 import { ClinicOwnerGuard } from "../common/auth/session.guard";
+import { MediaModule } from "../media/media.module";
 import { PatientExperiencesAdminController } from "./patient-experiences-admin.controller";
 import { PatientExperiencesPublicController } from "./patient-experiences-public.controller";
 import { PatientExperiencesService } from "./patient-experiences.service";
@@ -19,6 +20,7 @@ import {
 @Module({
   imports: [
     AuthModule,
+    MediaModule,
     MongooseModule.forFeature([
       { name: PatientExperience.name, schema: PatientExperienceSchema },
       { name: User.name, schema: UserSchema },

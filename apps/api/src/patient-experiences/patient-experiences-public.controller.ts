@@ -17,7 +17,7 @@ class PublicExperiencesQuery {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(10)
+  @Max(30)
   limit?: number;
 
   @IsOptional()

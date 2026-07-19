@@ -4,9 +4,12 @@ import {
   IsBoolean,
   IsEmail,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from "class-validator";
@@ -408,10 +411,155 @@ export class UpsertPublicPagesDto {
   faqs?: FaqItemDto[];
 }
 
+export class HomepageSectionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badgeAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badgeEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badgeFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  titleAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  titleEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  titleFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  descriptionAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  descriptionEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  descriptionFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  image?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  mediaAssetId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  imageAltAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  imageAltEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  imageAltFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  ctaLabelAr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  ctaLabelEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  ctaLabelFr?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  ctaRoute?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  backgroundStyle?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  displayOrder?: number;
+}
+
+export class UpsertHomepageSectionsDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HomepageSectionDto)
+  specialties?: HomepageSectionDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HomepageSectionDto)
+  services?: HomepageSectionDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HomepageSectionDto)
+  doctors?: HomepageSectionDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HomepageSectionDto)
+  reviews?: HomepageSectionDto;
+}
+
 export class UpsertSettingsDto {
-  @ApiProperty({ enum: ["clinic_info", "public_pages", "specialties_page"] })
-  @IsIn(["clinic_info", "public_pages", "specialties_page"])
-  section!: "clinic_info" | "public_pages" | "specialties_page";
+  @ApiProperty({
+    enum: [
+      "clinic_info",
+      "public_pages",
+      "specialties_page",
+      "homepage_sections",
+    ],
+  })
+  @IsIn([
+    "clinic_info",
+    "public_pages",
+    "specialties_page",
+    "homepage_sections",
+  ])
+  section!:
+    | "clinic_info"
+    | "public_pages"
+    | "specialties_page"
+    | "homepage_sections";
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -430,4 +578,10 @@ export class UpsertSettingsDto {
   @ValidateNested()
   @Type(() => UpsertSpecialtiesPageDto)
   specialtiesPage?: UpsertSpecialtiesPageDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpsertHomepageSectionsDto)
+  homepageSections?: UpsertHomepageSectionsDto;
 }

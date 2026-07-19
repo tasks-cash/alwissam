@@ -10,6 +10,8 @@ import {
   JwtAuthGuard,
 } from "../common/auth/session.guard";
 import { DoctorsRosterController } from "./doctors-public.controller";
+import { DoctorSettingsController } from "./doctor-settings.controller";
+import { DoctorSettingsService } from "./doctor-settings.service";
 import { DoctorsController } from "./doctors.controller";
 import { DoctorsService } from "./doctors.service";
 import { PublicDoctorsController } from "./public-doctors.controller";
@@ -18,11 +20,13 @@ import { PublicDoctorsController } from "./public-doctors.controller";
   imports: [AuthModule],
   controllers: [
     DoctorsController,
+    DoctorSettingsController,
     DoctorsRosterController,
     PublicDoctorsController,
   ],
   providers: [
     DoctorsService,
+    DoctorSettingsService,
     JwtAuthGuard,
     ClinicOwnerGuard,
     CsrfGuard,

@@ -1,16 +1,24 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEmail,
   IsIn,
+  IsInt,
+  IsMongoId,
   IsOptional,
   IsString,
   Length,
   Matches,
+  Max,
+  MaxLength,
+  Min,
   MinLength,
+  ValidateNested,
   ValidateIf,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   DOCTOR_TYPES,
   FULL_NAME_MIN,
@@ -25,6 +33,29 @@ function mapEasternDigits(value: unknown) {
     .trim()
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - "٠".charCodeAt(0)))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - "۰".charCodeAt(0)));
+}
+
+export class DoctorScheduleEntryDto {
+  @IsIn([
+    "SATURDAY",
+    "SUNDAY",
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+  ])
+  dayOfWeek!: string;
+
+  @Matches(/^\d{2}:\d{2}$/)
+  startTime!: string;
+
+  @Matches(/^\d{2}:\d{2}$/)
+  endTime!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class CreateDoctorDto {
@@ -66,6 +97,56 @@ export class CreateDoctorDto {
   @IsString()
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   specialtyAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  professionalTitleAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  bioAr?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isBookable?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^\/api\/media\/[a-zA-Z0-9._/-]+$/)
+  profileImage?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsMongoId({ each: true })
+  specialtyIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsMongoId({ each: true })
+  serviceIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(14)
+  @ValidateNested({ each: true })
+  @Type(() => DoctorScheduleEntryDto)
+  weeklySchedule?: DoctorScheduleEntryDto[];
 }
 
 export class UpdateDoctorDto {
@@ -152,6 +233,86 @@ export class UpdateDoctorDto {
   @IsOptional()
   @IsIn(["ACTIVE", "INACTIVE"])
   status?: "ACTIVE" | "INACTIVE";
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(FULL_NAME_MIN)
+  @MaxLength(160)
+  fullName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn([...DOCTOR_TYPES])
+  type?: (typeof DOCTOR_TYPES)[number];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^\/api\/media\/[a-zA-Z0-9._/-]+$/)
+  profileImage?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsMongoId({ each: true })
+  specialtyIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsMongoId({ each: true })
+  serviceIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(14)
+  @ValidateNested({ each: true })
+  @Type(() => DoctorScheduleEntryDto)
+  weeklySchedule?: DoctorScheduleEntryDto[];
+}
+
+export class ListDoctorsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize = 20;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  search?: string;
+
+  @IsOptional()
+  @IsIn(["GENERAL", "SPECIALIST"])
+  type?: "GENERAL" | "SPECIALIST";
+
+  @IsOptional()
+  @IsIn(["ACTIVE", "INACTIVE", "LOCKED", "ARCHIVED"])
+  status?: string;
+
+  @IsOptional()
+  @IsIn(["true", "false"])
+  public?: "true" | "false";
+
+  @IsOptional()
+  @IsIn(["name", "createdAt", "specialty", "status"])
+  sort = "name";
+
+  @IsOptional()
+  @IsIn(["asc", "desc"])
+  order: "asc" | "desc" = "asc";
 }
 
 export class DeleteDoctorDto {
@@ -167,6 +328,13 @@ export class ChangeDoctorPasswordDto {
   @MinLength(1)
   userId!: string;
 
+  @ApiProperty()
+  @IsString()
+  @MinLength(PASSWORD_MIN_CREATE)
+  newPassword!: string;
+}
+
+export class ResetDoctorPasswordDto {
   @ApiProperty()
   @IsString()
   @MinLength(PASSWORD_MIN_CREATE)

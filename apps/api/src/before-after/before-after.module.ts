@@ -8,6 +8,7 @@ import {
   RolesGuard,
 } from "../common/auth/permissions.guard";
 import { ClinicOwnerGuard } from "../common/auth/session.guard";
+import { MediaModule } from "../media/media.module";
 import { BeforeAfterAdminController } from "./before-after-admin.controller";
 import { BeforeAfterPublicController } from "./before-after-public.controller";
 import { BeforeAfterService } from "./before-after.service";
@@ -19,6 +20,7 @@ import {
 @Module({
   imports: [
     AuthModule,
+    MediaModule,
     MongooseModule.forFeature([
       { name: BeforeAfterCase.name, schema: BeforeAfterCaseSchema },
       { name: User.name, schema: UserSchema },

@@ -1,17 +1,37 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
+import { AdminPagination, AdminRowActions, AdminTableToolbar } from "../../../../../../components/admin/AdminDataTable";
+import { AdminDialog } from "../../../../../../components/admin/AdminDialog";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingSkeleton,
+  AdminStatusBadge,
+  AdminToast,
+  type AdminToastState,
+} from "../../../../../../components/admin/AdminFeedback";
+import {
+  AdminField,
+  AdminFormSection,
+  AdminInput,
+  AdminSelect,
+  AdminSwitch,
+  AdminTextarea,
+} from "../../../../../../components/admin/AdminForm";
+import { AdminPageHeader } from "../../../../../../components/admin/AdminPageHeader";
 import { DashboardShell } from "../../../../../../components/layout/DashboardShell";
+import { ConfirmDialog } from "../../../../../../components/ui/ConfirmDialog";
 import { apiErrorMessage, apiRequest } from "../../../../../../lib/api";
 import { useDashboardSession } from "../../../../../../lib/use-dashboard-session";
 
-const reviewSchema = z.object({
-  displayName: z.string().min(2).max(120),
-  quoteAr: z.string().min(8).max(2000),
-  quoteEn: z.string().max(2000).optional(),
-  quoteFr: z.string().max(2000).optional(),
-  subjectAr: z.string().max(180).optional(),
+const schema = z.object({
+  displayName: z.string().trim().min(2, "أدخل اسم العرض.").max(120),
+  subjectAr: z.string().trim().max(180).optional(),
+  quoteAr: z.string().trim().min(8, "نص التقييم قصير جدًا.").max(2000),
+  quoteEn: z.string().trim().max(2000).optional(),
+  quoteFr: z.string().trim().max(2000).optional(),
   avatarType: z.enum(["male", "female", "neutral", "initials", "uploaded"]),
   patientImage: z.string().max(500).optional(),
   rating: z.number().min(1).max(5),
@@ -19,157 +39,123 @@ const reviewSchema = z.object({
   specialtySlug: z.string().max(80).optional(),
   serviceSlug: z.string().max(80).optional(),
   isAnonymous: z.boolean(),
-  isVerified: z.boolean(),
   isFeatured: z.boolean(),
   displayOrder: z.number().min(0).max(10000),
   consentConfirmed: z.boolean(),
 });
 
-type ReviewRow = z.infer<typeof reviewSchema> & {
+type ReviewForm = z.infer<typeof schema>;
+type ReviewRow = ReviewForm & {
   id: string;
   status?: string;
   isApproved?: boolean;
   isPublished?: boolean;
+  isVerified?: boolean;
   isSample?: boolean;
+  createdAt?: string;
 };
 
-const emptyForm = {
+const EMPTY: ReviewForm = {
   displayName: "",
+  subjectAr: "",
   quoteAr: "",
   quoteEn: "",
   quoteFr: "",
-  subjectAr: "",
-  avatarType: "neutral" as
-    | "male"
-    | "female"
-    | "neutral"
-    | "initials"
-    | "uploaded",
+  avatarType: "neutral",
   patientImage: "",
   rating: 5,
   doctorId: "",
   specialtySlug: "",
   serviceSlug: "",
   isAnonymous: true,
-  isVerified: false,
   isFeatured: false,
   displayOrder: 0,
-  consentConfirmed: true,
+  consentConfirmed: false,
 };
 
+function statusBadge(row: ReviewRow) {
+  if (row.isPublished) return <AdminStatusBadge tone="success">منشور</AdminStatusBadge>;
+  if (row.status === "REJECTED") return <AdminStatusBadge tone="error">مرفوض</AdminStatusBadge>;
+  if (row.isApproved || row.status === "APPROVED") return <AdminStatusBadge tone="info">معتمد</AdminStatusBadge>;
+  if (row.status === "ARCHIVED") return <AdminStatusBadge>مؤرشف</AdminStatusBadge>;
+  return <AdminStatusBadge tone="warning">بانتظار المراجعة</AdminStatusBadge>;
+}
+
 export default function ReviewsAdminPage() {
-  const { locale, dict, user, loading, error } = useDashboardSession({
-    roles: ["ADMIN", "DOCTOR_SPECIALIST"],
-  });
+  const { locale, dict, user, loading: sessionLoading, error: sessionError } =
+    useDashboardSession({ roles: ["ADMIN", "ADMIN_OWNER", "DOCTOR_SPECIALIST"] });
   const [rows, setRows] = useState<ReviewRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [q, setQ] = useState("");
+  const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [form, setForm] = useState<ReviewForm>(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>(
-    [],
-  );
+  const [formOpen, setFormOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [action, setAction] = useState<{ row: ReviewRow; type: "approve" | "reject" | "publish" | "unpublish" | "archive" | "restore" } | null>(null);
+  const [toast, setToast] = useState<AdminToastState>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1); }, 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const query = useMemo(() => {
+    const params = new URLSearchParams({ page: String(page), limit: "20" });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (status) params.set("status", status);
+    return params.toString();
+  }, [debouncedSearch, page, status]);
 
   const load = useCallback(async () => {
-    const qs = new URLSearchParams({
-      page: String(page),
-      limit: "20",
-    });
-    if (q.trim()) qs.set("search", q.trim());
-    if (status) qs.set("status", status);
-    const res = await fetch(`/api/admin/reviews?${qs}`, {
-      credentials: "include",
-    });
-    if (!res.ok) {
-      setErr("تعذر تحميل التقييمات.");
+    setLoading(true);
+    setLoadError("");
+    const response = await apiRequest<{ items?: ReviewRow[]; total?: number }>(`/api/admin/reviews?${query}`);
+    setLoading(false);
+    if (!response.ok) {
+      setLoadError("تعذر تحميل التقييمات حاليًا.");
       return;
     }
-    const data = await res.json();
-    setRows(data.items || []);
-    setTotal(data.total || 0);
-  }, [page, q, status]);
+    setRows(response.data.items || []);
+    setTotal(response.data.total || 0);
+  }, [query]);
 
   useEffect(() => {
     if (!user) return;
     void load();
-    void fetch("/api/admin/doctors", { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => setDoctors(d.doctors || []))
-      .catch(() => undefined);
+    void apiRequest<{ doctors?: { id: string; fullName: string }[] }>("/api/admin/doctors?pageSize=100").then((response) => {
+      if (response.ok) setDoctors(response.data.doctors || []);
+    });
   }, [load, user]);
 
-  async function save(e: FormEvent) {
-    e.preventDefault();
-    setErr("");
-    setMsg("");
-    const parsed = reviewSchema.safeParse({
-      ...form,
-      displayOrder: Number(form.displayOrder) || 0,
-    });
-    if (!parsed.success) {
-      setErr(parsed.error.issues[0]?.message || "بيانات غير صالحة");
-      return;
-    }
-    setSaving(true);
-    const { ok, data } = await apiRequest<{ message?: string; id?: string }>(
-      editingId ? `/api/admin/reviews/${editingId}` : "/api/admin/reviews",
-      {
-        method: editingId ? "PATCH" : "POST",
-        body: JSON.stringify({
-          ...parsed.data,
-          displayNameAr: parsed.data.displayName,
-        }),
-      },
-    );
-    setSaving(false);
-    if (!ok) {
-      setErr(apiErrorMessage(data));
-      return;
-    }
-    setMsg(data.message || dict.successSaved);
+  const patch = (value: Partial<ReviewForm>) => {
+    setForm((current) => ({ ...current, ...value }));
+    setDirty(true);
+  };
+
+  const openCreate = () => {
+    setForm(EMPTY);
     setEditingId(null);
-    setForm(emptyForm);
-    await load();
-  }
+    setDirty(false);
+    setFormError("");
+    setFormOpen(true);
+  };
 
-  async function act(
-    id: string,
-    action:
-      | "approve"
-      | "reject"
-      | "publish"
-      | "unpublish"
-      | "feature"
-      | "unfeature"
-      | "archive",
-  ) {
-    setErr("");
-    setMsg("");
-    const { ok, data } = await apiRequest<{ message?: string }>(
-      `/api/admin/reviews/${id}/${action}`,
-      { method: "POST", body: JSON.stringify({}) },
-    );
-    if (!ok) {
-      setErr(apiErrorMessage(data));
-      return;
-    }
-    setMsg(data.message || "OK");
-    await load();
-  }
-
-  function startEdit(row: ReviewRow) {
+  const openEdit = (row: ReviewRow) => {
     setEditingId(row.id);
     setForm({
       displayName: row.displayName || "",
+      subjectAr: row.subjectAr || "",
       quoteAr: row.quoteAr || "",
       quoteEn: row.quoteEn || "",
       quoteFr: row.quoteFr || "",
-      subjectAr: row.subjectAr || "",
       avatarType: row.avatarType || "neutral",
       patientImage: row.patientImage || "",
       rating: row.rating || 5,
@@ -177,361 +163,150 @@ export default function ReviewsAdminPage() {
       specialtySlug: row.specialtySlug || "",
       serviceSlug: row.serviceSlug || "",
       isAnonymous: row.isAnonymous !== false,
-      isVerified: row.isVerified === true,
       isFeatured: row.isFeatured === true,
       displayOrder: row.displayOrder || 0,
-      consentConfirmed: row.consentConfirmed !== false,
+      consentConfirmed: row.consentConfirmed === true,
     });
-  }
+    setDirty(false);
+    setFormError("");
+    setFormOpen(true);
+  };
 
-  if (loading || !user) {
-    return <main className="dash-panel">{dict.loading}</main>;
-  }
-  if (error) {
-    return <main className="dash-panel alert-error">{error}</main>;
-  }
+  const uploadAvatar = async (file: File) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024) {
+      setFormError("اختر صورة معتمدة بصيغة JPEG أو PNG أو WebP وحجم لا يتجاوز 3MB.");
+      return;
+    }
+    setSaving(true);
+    const body = new FormData();
+    body.append("file", file);
+    const response = await fetch("/api/admin/media/upload", { method: "POST", credentials: "include", body });
+    const data = await response.json();
+    setSaving(false);
+    if (!response.ok) {
+      setFormError(apiErrorMessage(data));
+      return;
+    }
+    patch({ patientImage: data.url, avatarType: "uploaded" });
+  };
+
+  const save = async (close: boolean) => {
+    const parsed = schema.safeParse(form);
+    if (!parsed.success) {
+      setFormError(parsed.error.issues[0]?.message || "تحقق من البيانات.");
+      return;
+    }
+    setSaving(true);
+    setFormError("");
+    const response = await apiRequest<{ message?: string }>(editingId ? `/api/admin/reviews/${editingId}` : "/api/admin/reviews", {
+      method: editingId ? "PATCH" : "POST",
+      body: JSON.stringify({
+        ...parsed.data,
+        displayNameAr: parsed.data.displayName,
+        isVerified: false,
+      }),
+    });
+    setSaving(false);
+    if (!response.ok) {
+      setFormError(apiErrorMessage(response.data));
+      return;
+    }
+    setDirty(false);
+    setToast({ type: "success", message: editingId ? "تم حفظ التقييم." : "تم إنشاء التقييم كمسودة غير منشورة." });
+    await load();
+    if (close) setFormOpen(false);
+  };
+
+  const executeAction = async () => {
+    if (!action) return;
+    setSaving(true);
+    const response = await apiRequest(`/api/admin/reviews/${action.row.id}/${action.type}`, { method: "POST", body: JSON.stringify({}) });
+    setSaving(false);
+    if (!response.ok) {
+      setToast({ type: "error", message: apiErrorMessage(response.data) });
+      return;
+    }
+    setAction(null);
+    setToast({ type: "success", message: "تم تحديث حالة التقييم." });
+    await load();
+  };
+
+  const toggleFeatured = async (row: ReviewRow) => {
+    const response = await apiRequest(`/api/admin/reviews/${row.id}/${row.isFeatured ? "unfeature" : "feature"}`, { method: "POST", body: JSON.stringify({}) });
+    setToast({ type: response.ok ? "success" : "error", message: response.ok ? "تم تحديث التمييز." : apiErrorMessage(response.data) });
+    if (response.ok) await load();
+  };
+
+  if (sessionLoading || !user) return <main className="dash-panel">{dict.loading}</main>;
+  if (sessionError) return <main className="dash-panel alert-error">{sessionError}</main>;
 
   return (
-    <DashboardShell
-      locale={locale}
-      dict={dict}
-      role={user.role}
-      userName={user.fullName}
-      title={dict.navReviewsAdmin}
-      description="إدارة تقييمات المرضى — اعتماد، نشر، وتمييز"
-    >
-      {msg ? <div className="alert-success">{msg}</div> : null}
-      {err ? <div className="alert-error">{err}</div> : null}
-
-      <section className="card-surface dash-actions">
-        <div className="row-2" style={{ gap: "0.75rem", marginBottom: "1rem" }}>
-          <input
-            className="input"
-            placeholder={dict.search}
-            value={q}
-            onChange={(e) => {
-              setPage(1);
-              setQ(e.target.value);
-            }}
-          />
-          <select
-            className="input"
-            value={status}
-            onChange={(e) => {
-              setPage(1);
-              setStatus(e.target.value);
-            }}
-          >
-            <option value="">كل الحالات</option>
-            <option value="PENDING">بانتظار</option>
-            <option value="APPROVED">معتمد</option>
-            <option value="REJECTED">مرفوض</option>
-          </select>
-        </div>
-        <div style={{ overflowX: "auto" }}>
-          <table className="pc-table">
-            <thead>
-              <tr>
-                <th>الاسم</th>
-                <th>التقييم</th>
-                <th>النص</th>
-                <th>حالة</th>
-                <th>نشر</th>
-                <th>موثّق</th>
-                <th>مميز</th>
-                <th>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    {r.displayName || "—"}{" "}
-                    {r.isSample ? (
-                      <span className="badge">تجريبي</span>
-                    ) : null}
-                  </td>
-                  <td dir="ltr">{r.rating || "—"}</td>
-                  <td>{(r.quoteAr || "").slice(0, 80)}…</td>
-                  <td>{r.status || (r.isApproved ? "APPROVED" : "PENDING")}</td>
-                  <td>{r.isPublished ? "نعم" : "لا"}</td>
-                  <td>{r.isVerified ? "نعم" : "لا"}</td>
-                  <td>{r.isFeatured ? "★" : "—"}</td>
-                  <td>
-                    <div className="pc-actions">
-                      <button type="button" className="btn btn-outline" onClick={() => startEdit(r)}>
-                        تعديل
-                      </button>
-                      {!r.isApproved ? (
-                        <button type="button" className="btn btn-outline" onClick={() => void act(r.id, "approve")}>
-                          اعتماد
-                        </button>
-                      ) : (
-                        <button type="button" className="btn btn-outline" onClick={() => void act(r.id, "reject")}>
-                          رفض
-                        </button>
-                      )}
-                      {r.isPublished ? (
-                        <button type="button" className="btn btn-outline" onClick={() => void act(r.id, "unpublish")}>
-                          إلغاء نشر
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          disabled={r.isSample === true}
-                          title={
-                            r.isSample
-                              ? "لا يمكن نشر التقييمات التجريبية"
-                              : undefined
-                          }
-                          onClick={() => void act(r.id, "publish")}
-                        >
-                          نشر
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() =>
-                          void act(r.id, r.isFeatured ? "unfeature" : "feature")
-                        }
-                      >
-                        {r.isFeatured ? "إلغاء تمييز" : "تمييز"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() => void act(r.id, "archive")}
-                      >
-                        أرشفة
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="muted" style={{ marginTop: "0.75rem" }}>
-          {dict.page} {page} — {dict.total} {total}
-        </p>
-      </section>
-
-      <section className="card-surface dash-actions" style={{ marginTop: "1rem" }}>
-        <h2>{editingId ? "تعديل تقييم" : "إنشاء تقييم"}</h2>
-        <form className="stack-form" onSubmit={save}>
-          <div className="row-2">
-            <div className="field">
-              <label>الاسم *</label>
-              <input
-                className="input"
-                required
-                value={form.displayName}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, displayName: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>التقييم</label>
-              <input
-                className="input"
-                type="number"
-                min={1}
-                max={5}
-                value={form.rating}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, rating: Number(e.target.value) || 5 }))
-                }
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>موضوع التقييم</label>
-            <input
-              className="input"
-              maxLength={180}
-              value={form.subjectAr}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, subjectAr: e.target.value }))
-              }
-            />
-          </div>
-          <div className="field">
-            <label>النص AR *</label>
-            <textarea
-              className="input"
-              rows={3}
-              required
-              value={form.quoteAr}
-              onChange={(e) => setForm((f) => ({ ...f, quoteAr: e.target.value }))}
-            />
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>نوع الصورة الرمزية</label>
-              <select
-                className="input"
-                value={form.avatarType}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    avatarType: e.target.value as typeof f.avatarType,
-                    patientImage:
-                      e.target.value === "uploaded" ? f.patientImage : "",
-                  }))
-                }
-              >
-                <option value="male">ذكر</option>
-                <option value="female">أنثى</option>
-                <option value="neutral">محايد</option>
-                <option value="initials">الأحرف الأولى</option>
-                <option value="uploaded">صورة مرفوعة</option>
-              </select>
-            </div>
-            {form.avatarType === "uploaded" ? (
-              <div className="field">
-                <label>مسار صورة المريض</label>
-                <input
-                  className="input"
-                  dir="ltr"
-                  required
-                  placeholder="/api/media/..."
-                  value={form.patientImage}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      patientImage: e.target.value,
-                    }))
-                  }
-                />
+    <DashboardShell locale={locale} dict={dict} role={user.role} userName={user.fullName} initialAdminMode={user.adminDashboardMode === "full" ? "full" : "quick"}>
+      <div className="admin-doctors-page">
+        <AdminPageHeader
+          eyebrow="محتوى الموقع"
+          title="إدارة التقييمات"
+          description="مراجعة واعتماد ونشر تقييمات المرضى دون تقديم المحتوى التجريبي كتجربة حقيقية."
+          breadcrumbs={[{ label: "لوحة التحكم", href: `/${locale}/doctor/specialist/dashboard` }, { label: "التقييمات" }]}
+          primaryAction={<button type="button" className="btn btn-primary" onClick={openCreate}>+ إنشاء مسودة تقييم</button>}
+          status={<AdminStatusBadge tone="info">{total} تقييم</AdminStatusBadge>}
+        />
+        <section className="admin-list-card">
+          <AdminTableToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالاسم أو الموضوع أو النص" resultCount={total} filters={<select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="الحالة"><option value="">كل الحالات</option><option value="PENDING">بانتظار المراجعة</option><option value="APPROVED">معتمد</option><option value="REJECTED">مرفوض</option><option value="PUBLISHED">منشور</option><option value="ARCHIVED">مؤرشف</option></select>} />
+          {loading ? <AdminLoadingSkeleton /> : loadError ? <AdminErrorState message={loadError} onRetry={() => void load()} /> : rows.length === 0 ? <AdminEmptyState title="لا توجد تقييمات مطابقة" description="أنشئ مسودة إدارية أو عدّل الفلاتر." action={<button type="button" className="btn btn-primary" onClick={openCreate}>إنشاء مسودة</button>} /> : (
+            <>
+              <div className="admin-doctors-table-wrap">
+                <table className="admin-doctors-table">
+                  <thead><tr><th>المراجع</th><th>التقييم</th><th>الموضوع والنص</th><th>الحالة</th><th>مميز</th><th>التاريخ</th><th><span className="sr-only">الإجراءات</span></th></tr></thead>
+                  <tbody>{rows.map((row) => <tr key={row.id}>
+                    <td><strong>{row.displayName || "مجهول"}</strong>{row.isSample ? <small>مسودة تجريبية</small> : null}</td>
+                    <td dir="ltr">{"★".repeat(row.rating || 0)}</td>
+                    <td><strong>{row.subjectAr || "دون موضوع"}</strong><small>{(row.quoteAr || "").slice(0, 90)}{row.quoteAr?.length > 90 ? "…" : ""}</small></td>
+                    <td>{statusBadge(row)}</td>
+                    <td>{row.isFeatured ? "نعم" : "لا"}</td>
+                    <td>{row.createdAt ? new Intl.DateTimeFormat("ar-DZ").format(new Date(row.createdAt)) : "—"}</td>
+                    <td><AdminRowActions>
+                      <button type="button" onClick={() => openEdit(row)}>تعديل</button>
+                      {!row.isApproved ? <button type="button" onClick={() => setAction({ row, type: "approve" })}>اعتماد</button> : <button type="button" onClick={() => setAction({ row, type: "reject" })}>رفض</button>}
+                      {row.isPublished ? <button type="button" onClick={() => setAction({ row, type: "unpublish" })}>إلغاء النشر</button> : <button type="button" disabled={row.isSample || !row.isApproved} title={row.isSample ? "لا يمكن نشر المسودات التجريبية" : undefined} onClick={() => setAction({ row, type: "publish" })}>نشر</button>}
+                      <button type="button" onClick={() => void toggleFeatured(row)}>{row.isFeatured ? "إلغاء التمييز" : "تمييز"}</button>
+                      {row.status === "ARCHIVED" ? <button type="button" onClick={() => setAction({ row, type: "restore" })}>استعادة</button> : <button type="button" onClick={() => setAction({ row, type: "archive" })}>أرشفة</button>}
+                    </AdminRowActions></td>
+                  </tr>)}</tbody>
+                </table>
               </div>
-            ) : null}
-          </div>
-          <div className="row-2">
-            <div className="field">
-              <label>طبيب</label>
-              <select
-                className="input"
-                value={form.doctorId}
-                onChange={(e) => setForm((f) => ({ ...f, doctorId: e.target.value }))}
-              >
-                <option value="">—</option>
-                {doctors.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.fullName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>تخصص slug</label>
-              <input
-                className="input"
-                value={form.specialtySlug}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, specialtySlug: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>خدمة slug</label>
-              <input
-                className="input"
-                value={form.serviceSlug}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, serviceSlug: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label>ترتيب</label>
-              <input
-                className="input"
-                type="number"
-                value={form.displayOrder}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    displayOrder: Number(e.target.value) || 0,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="row-2">
-            <label className="field">
-              <span>
-                <input
-                  type="checkbox"
-                  checked={form.isAnonymous}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isAnonymous: e.target.checked }))
-                  }
-                />{" "}
-                مجهول
-              </span>
-            </label>
-            <label className="field">
-              <span>
-                <input
-                  type="checkbox"
-                  checked={form.isVerified}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isVerified: e.target.checked }))
-                  }
-                />{" "}
-                موثّق
-              </span>
-            </label>
-            <label className="field">
-              <span>
-                <input
-                  type="checkbox"
-                  checked={form.isFeatured}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isFeatured: e.target.checked }))
-                  }
-                />{" "}
-                مميز
-              </span>
-            </label>
-            <label className="field">
-              <span>
-                <input
-                  type="checkbox"
-                  checked={form.consentConfirmed}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      consentConfirmed: e.target.checked,
-                    }))
-                  }
-                />{" "}
-                موافقة
-              </span>
-            </label>
-          </div>
-          <div className="cta-row">
-            <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? dict.loading : dict.save}
-            </button>
-            {editingId ? (
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => {
-                  setEditingId(null);
-                  setForm(emptyForm);
-                }}
-              >
-                {dict.cancel}
-              </button>
-            ) : null}
-          </div>
-        </form>
-      </section>
+              <div className="admin-doctor-cards">{rows.map((row) => <article key={row.id} className="admin-doctor-card"><header><span className="admin-doctor-avatar"><span>{row.avatarType === "female" ? "👩" : row.avatarType === "male" ? "👨" : "★"}</span></span><div><h3>{row.displayName}</h3><p dir="ltr">{"★".repeat(row.rating)}</p></div><AdminRowActions><button type="button" onClick={() => openEdit(row)}>تعديل</button>{!row.isApproved ? <button type="button" onClick={() => setAction({ row, type: "approve" })}>اعتماد</button> : null}</AdminRowActions></header><div>{statusBadge(row)}{row.isSample ? <span>تجريبي</span> : null}</div><small>{row.quoteAr.slice(0, 100)}…</small></article>)}</div>
+              <AdminPagination page={page} totalPages={Math.max(1, Math.ceil(total / 20))} onPageChange={setPage} />
+            </>
+          )}
+        </section>
+      </div>
+
+      <AdminDialog open={formOpen} title={editingId ? "تعديل التقييم" : "إنشاء مسودة تقييم"} description="المسودات الإدارية لا تُنشر تلقائيًا ولا تحمل شارة زيارة موثقة." onClose={() => setFormOpen(false)} dirty={dirty} busy={saving} size="xl" locale={locale} footer={<div className="admin-dialog-actions"><button type="button" className="btn btn-outline" disabled={!dirty || saving} onClick={() => void save(false)}>حفظ</button><button type="button" className="btn btn-primary" disabled={!dirty || saving} onClick={() => void save(true)}>{saving ? "جارٍ الحفظ..." : editingId ? "حفظ وإغلاق" : "إنشاء المسودة"}</button></div>}>
+        {formError ? <div className="admin-form-error" role="alert">{formError}</div> : null}
+        <AdminFormSection title="محتوى التقييم">
+          <AdminField label="اسم العرض">{({ id }) => <AdminInput id={id} value={form.displayName} onChange={(event) => patch({ displayName: event.target.value })} />}</AdminField>
+          <AdminField label="التقييم">{({ id }) => <AdminSelect id={id} value={form.rating} onChange={(event) => patch({ rating: Number(event.target.value) })}><option value={5}>5 — ممتاز</option><option value={4}>4 — جيد جدًا</option><option value={3}>3 — جيد</option><option value={2}>2</option><option value={1}>1</option></AdminSelect>}</AdminField>
+          <AdminField label="الموضوع" optional>{({ id }) => <AdminInput id={id} value={form.subjectAr || ""} onChange={(event) => patch({ subjectAr: event.target.value })} />}</AdminField>
+          <div className="admin-form-full"><AdminField label="نص التقييم بالعربية">{({ id }) => <AdminTextarea id={id} rows={5} value={form.quoteAr} onChange={(event) => patch({ quoteAr: event.target.value })} />}</AdminField></div>
+          <AdminField label="النص بالإنجليزية" optional>{({ id }) => <AdminTextarea id={id} dir="ltr" rows={4} value={form.quoteEn || ""} onChange={(event) => patch({ quoteEn: event.target.value })} />}</AdminField>
+          <AdminField label="النص بالفرنسية" optional>{({ id }) => <AdminTextarea id={id} dir="ltr" rows={4} value={form.quoteFr || ""} onChange={(event) => patch({ quoteFr: event.target.value })} />}</AdminField>
+        </AdminFormSection>
+        <AdminFormSection title="الصورة والارتباطات">
+          <AdminField label="نوع الصورة الرمزية">{({ id }) => <AdminSelect id={id} value={form.avatarType} onChange={(event) => patch({ avatarType: event.target.value as ReviewForm["avatarType"], patientImage: event.target.value === "uploaded" ? form.patientImage : "" })}><option value="neutral">محايد</option><option value="male">ذكر عام</option><option value="female">أنثى عامة</option><option value="initials">الأحرف الأولى</option><option value="uploaded">صورة مرفوعة بموافقة</option></AdminSelect>}</AdminField>
+          {form.avatarType === "uploaded" ? <div className="admin-field"><label htmlFor="review-avatar"><span>صورة معتمدة</span></label><input id="review-avatar" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); }} /><p>لا تُرفع صورة حساب المريض تلقائيًا. يلزم وجود موافقة.</p></div> : null}
+          <AdminField label="الطبيب" optional>{({ id }) => <AdminSelect id={id} value={form.doctorId || ""} onChange={(event) => patch({ doctorId: event.target.value })}><option value="">دون ارتباط</option>{doctors.map((doctor) => <option key={doctor.id} value={doctor.id}>{doctor.fullName}</option>)}</AdminSelect>}</AdminField>
+          <AdminField label="رابط التخصص" optional>{({ id }) => <AdminInput id={id} dir="ltr" value={form.specialtySlug || ""} onChange={(event) => patch({ specialtySlug: event.target.value })} />}</AdminField>
+          <AdminField label="رابط الخدمة" optional>{({ id }) => <AdminInput id={id} dir="ltr" value={form.serviceSlug || ""} onChange={(event) => patch({ serviceSlug: event.target.value })} />}</AdminField>
+          <AdminField label="ترتيب العرض">{({ id }) => <AdminInput id={id} type="number" min={0} value={form.displayOrder} onChange={(event) => patch({ displayOrder: Number(event.target.value) || 0 })} />}</AdminField>
+          <AdminSwitch label="إخفاء هوية المراجع" checked={form.isAnonymous} onChange={(checked) => patch({ isAnonymous: checked })} />
+          <AdminSwitch label="مميز" checked={form.isFeatured} onChange={(checked) => patch({ isFeatured: checked })} />
+          <AdminSwitch label="تأكيد موافقة استخدام المحتوى" checked={form.consentConfirmed} onChange={(checked) => patch({ consentConfirmed: checked })} />
+        </AdminFormSection>
+      </AdminDialog>
+
+      <ConfirmDialog open={!!action} title={action?.type === "publish" ? "نشر التقييم" : action?.type === "archive" ? "أرشفة التقييم" : "تأكيد تغيير الحالة"} description={action?.type === "publish" ? `سيظهر تقييم ${action.row.displayName} للعامة. تأكد من الاعتماد والموافقة وعدم كونه محتوى تجريبيًا.` : `سيتم تحديث حالة تقييم ${action?.row.displayName || ""}.`} confirmLabel={action?.type === "publish" ? "نشر التقييم" : action?.type === "archive" ? "أرشفة التقييم" : "تأكيد"} loading={saving} onCancel={() => setAction(null)} onConfirm={() => void executeAction()} />
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
     </DashboardShell>
   );
 }

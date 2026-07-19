@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { GlobalWhatsAppButton } from "../../components/public/GlobalWhatsAppButton";
+import { GlobalContactChannels } from "../../components/public/GlobalContactChannels";
 import { getDictionary } from "../../lib/i18n/dictionaries";
 import { getPublicCopy } from "../../lib/i18n/public-copy";
 import { isLocale, type Locale } from "../../lib/i18n/config";
-import { fetchPublicSite } from "../../lib/public-site";
 
 export default async function LocaleNotFound({
   params,
@@ -14,8 +13,6 @@ export default async function LocaleNotFound({
   const locale: Locale = raw && isLocale(raw) ? raw : "ar";
   const dict = getDictionary(locale);
   const copy = getPublicCopy(locale);
-  const site = await fetchPublicSite().catch(() => ({ clinic: undefined }));
-
   const title =
     locale === "en"
       ? "Page not found"
@@ -49,7 +46,7 @@ export default async function LocaleNotFound({
           </p>
         </div>
       </section>
-      <GlobalWhatsAppButton locale={locale} clinic={site.clinic} />
+      <GlobalContactChannels locale={locale} />
     </main>
   );
 }

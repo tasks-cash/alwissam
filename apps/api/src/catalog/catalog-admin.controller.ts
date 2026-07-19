@@ -126,7 +126,12 @@ export class CatalogAdminController {
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.specialties_archive)
   archiveSpecialty(@Body() dto: CatalogIdDto, @CurrentUser() user: AuthUser) {
-    return this.catalog.archiveSpecialty(dto.id, user, false);
+    return this.catalog.archiveSpecialty(
+      dto.id,
+      user,
+      false,
+      dto.replacementId,
+    );
   }
 
   @Post("specialties/restore")

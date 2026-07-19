@@ -48,12 +48,10 @@ export class UpsertBeforeAfterDto {
   descriptionFr?: string;
 
   @IsString()
-  @MinLength(3)
   @MaxLength(500)
   beforeImageUrl!: string;
 
   @IsString()
-  @MinLength(3)
   @MaxLength(500)
   afterImageUrl!: string;
 

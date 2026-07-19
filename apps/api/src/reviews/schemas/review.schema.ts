@@ -53,6 +53,10 @@ export class Review {
   @Prop()
   patientImage?: string;
 
+  /** MediaAsset / safe upload reference for review avatar. */
+  @Prop({ trim: true })
+  avatarMediaId?: string;
+
   @Prop({
     enum: ["male", "female", "neutral", "initials", "uploaded"],
     default: "neutral",

@@ -40,6 +40,10 @@ export const ADMIN_QUICK_HREFS = [
   "/doctor/specialist/doctors",
   "/doctor/specialist/secretaries",
   "/doctor/specialist/settings",
+  "/doctor/specialist/clinic-settings",
+  "/doctor/specialist/public-content/reviews",
+  "/doctor/specialist/public-content/before-after",
+  "/doctor/specialist/public-content/contact-channels",
 ] as const;
 
 /**
@@ -48,11 +52,10 @@ export const ADMIN_QUICK_HREFS = [
  */
 export const ADMIN_FULL_EXTRA_HREFS = [
   "/doctor/specialist/public-content/patient-experiences",
-  "/doctor/specialist/public-content/before-after",
+  "/doctor/specialist/public-content/homepage",
   "/doctor/specialist/public-content/specialties",
   "/doctor/specialist/public-content/services",
   "/doctor/specialist/public-content/faqs",
-  "/doctor/specialist/public-content/reviews",
   "/doctor/specialist/messages",
 ] as const;
 
@@ -163,6 +166,12 @@ export const DASHBOARD_NAV: NavItem[] = [
   ),
   staffItem(
     "/doctor/specialist/settings",
+    "navDoctorAccountSettings",
+    ["ADMIN", "DOCTOR_SPECIALIST"],
+    "system",
+  ),
+  staffItem(
+    "/doctor/specialist/clinic-settings",
     "navSettings",
     ["ADMIN", "DOCTOR_SPECIALIST"],
     "system",
@@ -176,6 +185,12 @@ export const DASHBOARD_NAV: NavItem[] = [
   staffItem(
     "/doctor/specialist/public-content/patient-experiences",
     "navPatientExperiences",
+    ["ADMIN", "DOCTOR_SPECIALIST"],
+    "content",
+  ),
+  staffItem(
+    "/doctor/specialist/public-content/homepage",
+    "navHomepageSections",
     ["ADMIN", "DOCTOR_SPECIALIST"],
     "content",
   ),
@@ -206,6 +221,12 @@ export const DASHBOARD_NAV: NavItem[] = [
   staffItem(
     "/doctor/specialist/public-content/reviews",
     "navReviewsAdmin",
+    ["ADMIN", "DOCTOR_SPECIALIST"],
+    "content",
+  ),
+  staffItem(
+    "/doctor/specialist/public-content/contact-channels",
+    "navContactChannels",
     ["ADMIN", "DOCTOR_SPECIALIST"],
     "content",
   ),

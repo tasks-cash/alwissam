@@ -1,15 +1,19 @@
 import {
   IsEmail,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   Length,
+  Max,
+  MaxLength,
+  Min,
   Matches,
   MinLength,
   ValidateIf,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   FULL_NAME_MIN,
   PASSWORD_MIN_CREATE,
@@ -138,6 +142,18 @@ export class UpdateSecretaryDto {
   @IsOptional()
   @IsString()
   workDays?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(FULL_NAME_MIN)
+  @MaxLength(160)
+  fullName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn(["ACTIVE", "INACTIVE"])
+  status?: "ACTIVE" | "INACTIVE";
 }
 
 export class DeleteSecretaryDto {
@@ -145,4 +161,39 @@ export class DeleteSecretaryDto {
   @IsString()
   @MinLength(1)
   userId!: string;
+}
+
+export class ResetSecretaryPasswordDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(PASSWORD_MIN_CREATE)
+  newPassword!: string;
+}
+
+export class ListSecretariesQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize = 20;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  search?: string;
+
+  @IsOptional()
+  @IsIn(["ACTIVE", "INACTIVE", "LOCKED"])
+  status?: string;
+
+  @IsOptional()
+  @IsIn(["MORNING", "EVENING", "CUSTOM"])
+  shiftCode?: string;
 }

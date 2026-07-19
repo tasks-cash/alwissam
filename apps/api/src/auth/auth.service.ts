@@ -52,6 +52,7 @@ import {
 } from "./schemas/staff-invitation.schema";
 import { VerificationToken } from "./schemas/verification-token.schema";
 import {
+  changePasswordLimiter,
   forgotPasswordLimiter,
   loginIdLimiter,
   loginIpLimiter,
@@ -489,13 +490,14 @@ export class AuthService {
     meta: { ip?: string; userAgent?: string },
     rememberMe: boolean,
   ) {
+    const jti = randomUUID();
     const accessToken = await this.tokens.signAccess({
       sub: String(user._id),
       roleCode: user.roleCode,
       fullName: user.fullName,
+      sessionJti: jti,
     });
 
-    const jti = randomUUID();
     const refreshToken = await this.tokens.signRefresh({
       sub: String(user._id),
       jti,
@@ -633,11 +635,19 @@ export class AuthService {
     return { ok: true };
   }
 
-  async listSessions(userId: string) {
+  async listSessions(userId: string, currentSessionJti?: string) {
+    const currentSessionKey = currentSessionJti
+      ? createHash("sha256")
+          .update(currentSessionJti)
+          .digest("hex")
+          .slice(0, 32)
+      : undefined;
     const rows = await this.sessions
       .find({ userId, revokedAt: null, expiresAt: { $gt: new Date() } })
       .sort({ lastActivityAt: -1 })
-      .select("userAgent ipAddress createdAt lastActivityAt expiresAt rememberMe")
+      .select(
+        "userAgent ipAddress createdAt lastActivityAt expiresAt rememberMe csrfToken",
+      )
       .lean();
     return {
       ok: true,
@@ -649,11 +659,58 @@ export class AuthService {
         lastActivityAt: s.lastActivityAt,
         expiresAt: s.expiresAt,
         rememberMe: s.rememberMe,
+        current: Boolean(
+          currentSessionKey && s.csrfToken === currentSessionKey,
+        ),
       })),
     };
   }
 
+  async logoutOtherSessions(userId: string, currentSessionJti?: string) {
+    if (!currentSessionJti) {
+      throw new BadRequestException({
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: "أعد تسجيل الدخول لتحديد الجهاز الحالي بأمان.",
+      });
+    }
+    const currentSessionKey = createHash("sha256")
+      .update(currentSessionJti)
+      .digest("hex")
+      .slice(0, 32);
+    const result = await this.sessions.updateMany(
+      {
+        userId,
+        revokedAt: null,
+        csrfToken: { $ne: currentSessionKey },
+      },
+      {
+        $set: {
+          revokedAt: new Date(),
+          revokedReason: "logout_others",
+        },
+      },
+    );
+    await this.auditLogs.create({
+      userId: new Types.ObjectId(userId),
+      action: "OTHER_SESSIONS_REVOKED",
+      entityType: "User",
+      entityId: userId,
+      newValue: { revoked: result.modifiedCount },
+    });
+    return {
+      ok: true,
+      revoked: result.modifiedCount,
+      message: "تم تسجيل الخروج من جميع الأجهزة الأخرى.",
+    };
+  }
+
   async revokeSession(userId: string, sessionId: string) {
+    if (!Types.ObjectId.isValid(sessionId)) {
+      throw new BadRequestException({
+        code: ErrorCodes.NOT_FOUND,
+        message: "الجلسة غير موجودة",
+      });
+    }
     const updated = await this.sessions.updateOne(
       { _id: sessionId, userId, revokedAt: null },
       { $set: { revokedAt: new Date(), revokedReason: "user_revoke" } },
@@ -664,6 +721,12 @@ export class AuthService {
         message: "الجلسة غير موجودة",
       });
     }
+    await this.auditLogs.create({
+      userId: new Types.ObjectId(userId),
+      action: "SESSION_REVOKED_BY_USER",
+      entityType: "Session",
+      entityId: sessionId,
+    });
     return { ok: true };
   }
 
@@ -960,6 +1023,8 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ) {
+    changePasswordLimiter.prune();
+    changePasswordLimiter.assertAllowed(`change-password:${userId}`);
     const user = await this.users.findOne({ _id: userId, deletedAt: null });
     if (!user) {
       throw new UnauthorizedException({
@@ -981,7 +1046,14 @@ export class AuthService {
       { userId: user._id, revokedAt: null },
       { $set: { revokedAt: new Date() } },
     );
-    return { ok: true, message: "تم تحديث كلمة المرور بنجاح" };
+    await this.auditLogs.create({
+      userId: user._id,
+      roleCode: user.roleCode,
+      action: "PASSWORD_CHANGED",
+      entityType: "User",
+      entityId: String(user._id),
+    });
+    return { ok: true, message: "تم تغيير كلمة المرور بنجاح." };
   }
 
   async requestPasswordReset(identifier: string) {

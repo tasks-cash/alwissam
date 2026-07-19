@@ -168,7 +168,14 @@ export class AuthController {
   @Get("sessions")
   @UseGuards(JwtAuthGuard)
   sessions(@CurrentUser() user: AuthUser) {
-    return this.authService.listSessions(user.id);
+    return this.authService.listSessions(user.id, user.sessionJti);
+  }
+
+  @Post("sessions/logout-others")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  logoutOtherSessions(@CurrentUser() user: AuthUser) {
+    return this.authService.logoutOtherSessions(user.id, user.sessionJti);
   }
 
   @Delete("sessions/:sessionId")

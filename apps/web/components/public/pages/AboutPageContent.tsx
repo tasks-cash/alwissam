@@ -13,6 +13,7 @@ import { ClinicLocation } from "../ClinicLocation";
 import { DoctorsSection } from "../DoctorsSection";
 import { SpecialtiesSection } from "../SpecialtiesSection";
 import { WhyChooseClinic } from "../WhyChooseClinic";
+import { SectionReveal } from "../motion/SectionReveal";
 
 export type AboutPageContentProps = {
   locale: Locale;
@@ -39,127 +40,161 @@ export function AboutPageContent({
 }: AboutPageContentProps) {
   return (
     <>
-      <PageHero
-        title={copy.aboutHeroTitle}
-        description={copy.aboutHeroDescription || about}
-        crumbs={[
-          { href: `/${locale}`, label: copy.navHome },
-          { label: copy.navAbout },
-        ]}
-        actions={
-          <Link className="btn btn-primary" href={`/${locale}/book-appointment`}>
-            {copy.navBook}
-          </Link>
-        }
-        media={
-          <Image
-            src="/images/stock/dental-team-care.jpg"
-            alt={brandName}
-            width={1600}
-            height={1067}
-            className="page-hero-image"
-            priority
-            sizes="(max-width: 900px) 100vw, 42vw"
-          />
-        }
-      />
-
-      <PublicSection>
-        <div className="clinic-intro-grid">
-          <div>
-            <p className="section-kicker">{copy.clinicIntroTitle}</p>
-            <h2>{copy.clinicIntroTitle}</h2>
-            <p className="pub-lead">{about}</p>
-          </div>
-          <div className="clinic-intro-media">
+      <SectionReveal from="up">
+        <PageHero
+          title={copy.aboutHeroTitle}
+          description={copy.aboutHeroDescription || about}
+          crumbs={[
+            { href: `/${locale}`, label: copy.navHome },
+            { label: copy.navAbout },
+          ]}
+          actions={
+            <Link
+              className="btn btn-primary"
+              href={`/${locale}/book-appointment`}
+            >
+              {copy.navBook}
+            </Link>
+          }
+          media={
             <Image
-              src="/images/stock/dental-clinic-interior.jpg"
+              src="/images/about-team.svg"
               alt={brandName}
-              width={1600}
-              height={1070}
-              sizes="(max-width: 768px) 100vw, 48vw"
-              className="clinic-photo"
+              width={1200}
+              height={900}
+              className="page-hero-image no-rtl-flip"
+              priority
+              sizes="(max-width: 900px) 100vw, 42vw"
+              unoptimized
             />
-          </div>
-        </div>
-      </PublicSection>
+          }
+        />
+      </SectionReveal>
 
-      {(mission || copy.visionBody) && (
-        <PublicSection tone="soft">
-          <div className="mission-vision-grid">
-            {mission ? (
-              <article className="card-surface">
-                <h2>{copy.mission}</h2>
-                <p className="pub-lead">{mission}</p>
-              </article>
-            ) : null}
-            <article className="card-surface">
-              <h2>{copy.vision}</h2>
-              <p className="pub-lead">{copy.visionBody}</p>
-            </article>
+      <SectionReveal from="start">
+        <PublicSection>
+          <div className="clinic-intro-grid">
+            <div>
+              <p className="section-kicker">{copy.clinicIntroTitle}</p>
+              <h2>{copy.clinicIntroTitle}</h2>
+              <p className="pub-lead">{about}</p>
+            </div>
+            <div className="clinic-intro-media">
+              <Image
+                src="/images/hero-clinic.svg"
+                alt={brandName}
+                width={1200}
+                height={900}
+                sizes="(max-width: 768px) 100vw, 48vw"
+                className="clinic-photo no-rtl-flip"
+                unoptimized
+              />
+            </div>
           </div>
         </PublicSection>
+      </SectionReveal>
+
+      {(mission || copy.visionBody) && (
+        <SectionReveal from="up">
+          <PublicSection tone="soft">
+            <div className="mission-vision-grid">
+              {mission ? (
+                <article className="card-surface">
+                  <h2>{copy.mission}</h2>
+                  <p className="pub-lead">{mission}</p>
+                </article>
+              ) : null}
+              <article className="card-surface">
+                <h2>{copy.vision}</h2>
+                <p className="pub-lead">{copy.visionBody}</p>
+              </article>
+            </div>
+          </PublicSection>
+        </SectionReveal>
       )}
 
-      <PublicSection>
-        <p className="section-kicker">{copy.valuesTitle}</p>
-        <h2>{copy.valuesTitle}</h2>
-        <div className="why-grid">
-          {copy.values.map((v) => (
-            <article key={v.title} className="why-card">
-              <h3>{v.title}</h3>
-              <p>{v.description}</p>
-            </article>
-          ))}
-        </div>
-      </PublicSection>
-
-      <PublicSection tone="mist">
-        <h2>{copy.careApproach}</h2>
-        <p className="pub-lead">{copy.careApproachBody}</p>
-      </PublicSection>
-
-      <PublicSection>
-        <DoctorsSection locale={locale} copy={copy} doctors={doctors} limit={3} />
-      </PublicSection>
-
-      <PublicSection tone="soft">
-        <SpecialtiesSection
-          locale={locale}
-          copy={copy}
-          specialties={specialties}
-        />
-      </PublicSection>
-
-      <PublicSection>
-        <p className="section-kicker">{copy.sectionWhy}</p>
-        <h2>{copy.sectionWhy}</h2>
-        <WhyChooseClinic copy={copy} />
-      </PublicSection>
-
-      <PublicSection tone="mist">
-        <ClinicLocation
-          locale={locale}
-          copy={copy}
-          clinic={clinic}
-          hours={hours}
-        />
-      </PublicSection>
-
-      <PublicSection tone="green">
-        <div className="pub-cta-band">
-          <div>
-            <h2>{copy.navBook}</h2>
-            <p>{about.slice(0, 120)}</p>
+      <SectionReveal from="up" delayMs={40}>
+        <PublicSection>
+          <p className="section-kicker">{copy.valuesTitle}</p>
+          <h2>{copy.valuesTitle}</h2>
+          <div className="why-grid">
+            {copy.values.map((v, i) => (
+              <article
+                key={v.title}
+                className="why-card"
+                style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
+              >
+                <h3>{v.title}</h3>
+                <p>{v.description}</p>
+              </article>
+            ))}
           </div>
-          <Link
-            className="btn btn-primary btn-on-green"
-            href={`/${locale}/book-appointment`}
-          >
-            {copy.navBook}
-          </Link>
-        </div>
-      </PublicSection>
+        </PublicSection>
+      </SectionReveal>
+
+      <SectionReveal from="start">
+        <PublicSection tone="mist">
+          <h2>{copy.careApproach}</h2>
+          <p className="pub-lead">{copy.careApproachBody}</p>
+        </PublicSection>
+      </SectionReveal>
+
+      <SectionReveal from="up">
+        <PublicSection>
+          <DoctorsSection
+            locale={locale}
+            copy={copy}
+            doctors={doctors}
+            limit={3}
+          />
+        </PublicSection>
+      </SectionReveal>
+
+      <SectionReveal from="end">
+        <PublicSection tone="soft">
+          <SpecialtiesSection
+            locale={locale}
+            copy={copy}
+            specialties={specialties}
+          />
+        </PublicSection>
+      </SectionReveal>
+
+      <SectionReveal from="up">
+        <PublicSection>
+          <p className="section-kicker">{copy.sectionWhy}</p>
+          <h2>{copy.sectionWhy}</h2>
+          <WhyChooseClinic copy={copy} />
+        </PublicSection>
+      </SectionReveal>
+
+      <SectionReveal from="start">
+        <PublicSection tone="mist">
+          <ClinicLocation
+            locale={locale}
+            copy={copy}
+            clinic={clinic}
+            hours={hours}
+          />
+        </PublicSection>
+      </SectionReveal>
+
+      <SectionReveal from="up">
+        <PublicSection tone="green">
+          <div className="pub-cta-band">
+            <div>
+              <h2>{copy.navBook}</h2>
+              <p>{about.slice(0, 120)}</p>
+            </div>
+            <Link
+              className="btn btn-primary btn-on-green"
+              href={`/${locale}/book-appointment`}
+            >
+              {copy.navBook}
+            </Link>
+          </div>
+        </PublicSection>
+      </SectionReveal>
     </>
   );
 }

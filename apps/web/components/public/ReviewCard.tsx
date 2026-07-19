@@ -76,12 +76,30 @@ function ReviewAvatar({
     .join("")
     .slice(0, 2);
 
-  if (type === "uploaded" && review.patientImage?.startsWith("/api/media/")) {
+  if (
+    (type === "uploaded" || review.avatarMediaId || review.patientImage) &&
+    (review.patientImage?.startsWith("/") ||
+      review.avatarMediaId?.startsWith("/"))
+  ) {
+    const src = review.patientImage || review.avatarMediaId || "";
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         className="review-card-avatar review-card-avatar--image"
-        src={review.patientImage}
+        src={src}
+        alt=""
+        width={48}
+        height={48}
+      />
+    );
+  }
+
+  if (type === "male" || type === "female" || type === "neutral") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        className="review-card-avatar review-card-avatar--image"
+        src={`/images/avatars/${type}.svg`}
         alt=""
         width={48}
         height={48}
@@ -90,17 +108,13 @@ function ReviewAvatar({
   }
 
   const tone =
-    type === "male"
-      ? "review-card-avatar--male"
-      : type === "female"
-        ? "review-card-avatar--female"
-        : type === "initials"
-          ? "review-card-avatar--initials"
-          : "review-card-avatar--neutral";
+    type === "initials"
+      ? "review-card-avatar--initials"
+      : "review-card-avatar--neutral";
 
   return (
     <span className={`review-card-avatar ${tone}`} aria-hidden>
-      {type === "initials" || !type ? initials || "ز" : initials || "ز"}
+      {initials || "ز"}
     </span>
   );
 }
@@ -135,8 +149,10 @@ export function ReviewCard({
     return `${quote.slice(0, maxChars).trim()}…`;
   }, [expanded, maxChars, needsTruncate, quote]);
   const relation =
-    review.serviceSlug || review.specialtySlug
-      ? [review.serviceSlug, review.specialtySlug].filter(Boolean).join(" · ")
+    review.doctorName || review.serviceSlug || review.specialtySlug
+      ? [review.doctorName, review.serviceSlug, review.specialtySlug]
+          .filter(Boolean)
+          .join(" · ")
       : "";
 
   return (

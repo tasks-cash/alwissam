@@ -17,6 +17,15 @@ import {
   ContactMessage,
   ContactMessageSchema,
 } from "./schemas/contact-message.schema";
+import {
+  ContactChannel,
+  ContactChannelSchema,
+} from "./schemas/contact-channel.schema";
+import {
+  AdminContactChannelsController,
+  PublicContactChannelsController,
+} from "./contact-channels.controller";
+import { ContactChannelsService } from "./contact-channels.service";
 import { SettingsController } from "./settings.controller";
 import { SettingsService } from "./settings.service";
 
@@ -26,16 +35,22 @@ import { SettingsService } from "./settings.service";
     MongooseModule.forFeature([
       { name: ClinicSetting.name, schema: ClinicSettingSchema },
       { name: ContactMessage.name, schema: ContactMessageSchema },
+      { name: ContactChannel.name, schema: ContactChannelSchema },
     ]),
   ],
-  controllers: [SettingsController],
+  controllers: [
+    SettingsController,
+    PublicContactChannelsController,
+    AdminContactChannelsController,
+  ],
   providers: [
     SettingsService,
+    ContactChannelsService,
     JwtAuthGuard,
     ClinicOwnerGuard,
     RolesGuard,
     PermissionsGuard,
   ],
-  exports: [SettingsService],
+  exports: [SettingsService, ContactChannelsService],
 })
 export class SettingsModule {}

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Locale } from "../../lib/i18n/config";
 import type { PublicCopy } from "../../lib/i18n/public-copy";
@@ -9,6 +8,7 @@ import {
   localizedDoctorSpecialty,
   pickLocalized,
 } from "../../lib/public-site";
+import { DoctorAvatar } from "./DoctorAvatar";
 
 type Props = {
   locale: Locale;
@@ -64,27 +64,13 @@ export function DoctorCard({
       style={{ animationDelay: `${delayMs}ms` }}
     >
       <div className="doctor-portrait-media">
-        <div
-          className={`doctor-avatar portrait${doctor.profileImage ? " has-photo" : ""}`}
-          aria-hidden={doctor.profileImage ? undefined : true}
-        >
-          {doctor.profileImage ? (
-            <Image
-              src={doctor.profileImage}
-              alt={doctor.fullName}
-              width={480}
-              height={560}
-              className="doctor-photo"
-              unoptimized
-              sizes="(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 320px"
-            />
-          ) : (
-            <span className="doctor-initial" aria-hidden>
-              {doctor.fullName.slice(0, 1)}
-            </span>
-          )}
-          <span className="doctor-portrait-gradient" aria-hidden />
-        </div>
+        <DoctorAvatar
+          name={doctor.fullName}
+          imageUrl={doctor.profileImage}
+          size="portrait"
+          className="doctor-avatar portrait"
+          decorative
+        />
         {specialty ? (
           <p className="pub-specialty-chip doctor-specialty-overlap">
             {specialty}
@@ -95,6 +81,21 @@ export function DoctorCard({
       <div className="pub-doctor-body">
         <h3>{doctor.fullName}</h3>
         {title ? <p className="pub-doctor-title">{title}</p> : null}
+        {doctor.type ? (
+          <p className="pub-doctor-type muted">
+            {doctor.type === "SPECIALIST" || doctor.type === "specialist"
+              ? locale === "en"
+                ? "Specialist doctor"
+                : locale === "fr"
+                  ? "Médecin spécialiste"
+                  : "طبيب مختص"
+              : locale === "en"
+                ? "General doctor"
+                : locale === "fr"
+                  ? "Médecin généraliste"
+                  : "طبيب عام"}
+          </p>
+        ) : null}
         {bio ? <p className="pub-doctor-bio">{bio}</p> : null}
         {languages ? (
           <p className="pub-doctor-langs muted">

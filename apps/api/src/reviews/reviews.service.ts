@@ -14,6 +14,8 @@ import {
   UpsertReviewDto,
 } from "./dto/review-query.dto";
 import { SubmitPublicReviewDto } from "./dto/submit-review.dto";
+import { MediaService } from "../media/media.service";
+import { User } from "../auth/schemas/auth.schemas";
 
 const ANON_AR = "مريض من عيادة الوسام";
 const ANON_EN = "Al-Wisam clinic patient";
@@ -60,7 +62,9 @@ type LeanReview = {
 export class ReviewsService {
   constructor(
     @InjectModel(Review.name) private readonly reviews: Model<ReviewDocument>,
+    @InjectModel(User.name) private readonly users: Model<User>,
     private readonly audit: AuditService,
+    private readonly media: MediaService,
   ) {}
 
   private publicFilter() {
@@ -70,10 +74,15 @@ export class ReviewsService {
       isPublished: true,
       isApproved: true,
       isSample: { $ne: true },
+      $or: [{ moderationStatus: "published" }, { status: "PUBLISHED" }],
     };
   }
 
-  private toPublicDto(row: LeanReview, locale = "ar") {
+  private toPublicDto(
+    row: LeanReview,
+    locale = "ar",
+    doctorName?: string,
+  ) {
     const anonymous = row.isAnonymous !== false;
     const name =
       locale === "en"
@@ -115,17 +124,23 @@ export class ReviewsService {
           : row.createdAt
             ? new Date(row.createdAt).toISOString().slice(0, 10)
             : undefined,
-      patientImage: row.patientImage || null,
+      patientImage: row.patientImage
+        ? this.media.toPublicReference(row.patientImage)
+        : null,
+      avatarMediaId: (row as { avatarMediaId?: string }).avatarMediaId || null,
       avatarType: row.avatarType || "neutral",
       doctorId: row.doctorId ? String(row.doctorId) : null,
+      doctorName: doctorName || null,
       specialtySlug: row.specialtySlug || null,
       serviceSlug: row.serviceSlug || null,
       // Only mark verified when a real completed appointment is linked.
       isVerified: Boolean(
         (row.isVerified || row.verified) && row.appointmentId,
       ),
+      verified: Boolean((row.isVerified || row.verified) && row.appointmentId),
       isFeatured: Boolean(row.isFeatured),
       isAnonymous: anonymous,
+      locale,
     };
   }
 
@@ -219,10 +234,35 @@ export class ReviewsService {
         }
       | undefined;
 
+    const doctorIds = [
+      ...new Set(
+        (rows as unknown as LeanReview[])
+          .map((row) => (row.doctorId ? String(row.doctorId) : ""))
+          .filter(Boolean),
+      ),
+    ];
+    const doctors = doctorIds.length
+      ? await this.users
+          .find({
+            _id: { $in: doctorIds },
+            deletedAt: null,
+            status: "ACTIVE",
+          })
+          .select("fullName")
+          .lean()
+      : [];
+    const doctorNames = new Map(
+      doctors.map((doctor) => [String(doctor._id), doctor.fullName]),
+    );
+
     return {
       ok: true,
       items: (rows as unknown as LeanReview[]).map((r) =>
-        this.toPublicDto(r, locale),
+        this.toPublicDto(
+          r,
+          locale,
+          r.doctorId ? doctorNames.get(String(r.doctorId)) : undefined,
+        ),
       ),
       page,
       limit,
@@ -339,7 +379,8 @@ export class ReviewsService {
         input.doctorId && Types.ObjectId.isValid(input.doctorId)
           ? new Types.ObjectId(input.doctorId)
           : undefined,
-      patientImage: input.avatarImage || undefined,
+      // Never copy the private Patient account image into public review content.
+      avatarType: "initials",
       status: "PENDING",
       moderationStatus: "pending_review",
       isApproved: false,
@@ -474,6 +515,10 @@ export class ReviewsService {
     }
     patch.updatedBy = new Types.ObjectId(actor.id);
 
+    const previous = await this.reviews
+      .findOne({ _id: id, deletedAt: null })
+      .select("patientImage")
+      .lean();
     const updated = await this.reviews
       .findOneAndUpdate({ _id: id, deletedAt: null }, { $set: patch }, {
         new: true,
@@ -484,6 +529,12 @@ export class ReviewsService {
         code: ErrorCodes.NOT_FOUND,
         message: "التقييم غير موجود.",
       });
+    }
+    if (updated.isPublished) {
+      await this.media.setPublicFromReferences([updated.patientImage], true);
+    }
+    if (previous?.patientImage !== updated.patientImage) {
+      await this.media.setPublicFromReferences([previous?.patientImage], false);
     }
     await this.audit.write({
       actor,
@@ -539,6 +590,7 @@ export class ReviewsService {
         patch.isApproved = false;
         patch.isPublished = false;
         patch.moderationStatus = "rejected";
+        await this.media.setPublicFromReferences([existing.patientImage], false);
         break;
       case "publish":
         if (!existing.isApproved || existing.isSample) {
@@ -554,10 +606,12 @@ export class ReviewsService {
         patch.moderationStatus = "published";
         patch.publishedAt = new Date();
         patch.archivedAt = null;
+        await this.media.setPublicFromReferences([existing.patientImage], true);
         break;
       case "unpublish":
         patch.isPublished = false;
         patch.moderationStatus = "approved";
+        await this.media.setPublicFromReferences([existing.patientImage], false);
         break;
       case "feature":
         patch.isFeatured = true;
@@ -570,6 +624,7 @@ export class ReviewsService {
         patch.isPublished = false;
         patch.moderationStatus = "archived";
         patch.archivedAt = new Date();
+        await this.media.setPublicFromReferences([existing.patientImage], false);
         break;
       case "restore":
         patch.status = "PENDING";
@@ -606,7 +661,10 @@ export class ReviewsService {
     if (
       dto.avatarType === "uploaded" &&
       dto.patientImage &&
-      !dto.patientImage.startsWith("/api/media/")
+      !/^\/api\/admin\/media\/[a-f\d]{24}$/i.test(dto.patientImage) &&
+      !/^\/uploads\/public-content\/[a-z0-9-]+\.(?:jpe?g|png|webp)$/i.test(
+        dto.patientImage,
+      )
     ) {
       throw new BadRequestException({
         code: ErrorCodes.VALIDATION_ERROR,

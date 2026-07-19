@@ -57,6 +57,31 @@ export class User {
   @Prop({ enum: ["ar", "en", "fr"], default: "ar" })
   locale!: string;
 
+  @Prop({ trim: true, maxlength: 300 })
+  address?: string;
+
+  @Prop({ type: Object, default: {} })
+  notificationPreferences?: {
+    appointmentNotifications?: boolean;
+    patientWaitingNotifications?: boolean;
+    staffMessageNotifications?: boolean;
+    followUpReminders?: boolean;
+    scheduleChanges?: boolean;
+    securityAlerts?: boolean;
+    inAppNotifications?: boolean;
+    soundNotifications?: boolean;
+    emailNotifications?: boolean;
+  };
+
+  @Prop({ type: Object, default: {} })
+  preferences?: {
+    dateFormat?: "dd/MM/yyyy" | "yyyy-MM-dd";
+    timeFormat?: "12h" | "24h";
+    reducedMotion?: boolean;
+    compactDashboard?: boolean;
+    notificationSound?: boolean;
+  };
+
   /**
    * Admin/Owner dashboard density preference.
    * Canonical: `quick` | `full`. Legacy `light` is accepted and normalized to `quick`.
@@ -73,9 +98,12 @@ export class User {
     professionalTitleAr?: string;
     professionalTitleEn?: string;
     professionalTitleFr?: string;
+    shortDescriptionAr?: string;
     bioAr?: string;
     bioEn?: string;
     bioFr?: string;
+    licenseNumber?: string;
+    yearsExperience?: number;
     colorCode?: string;
     isActive?: boolean;
     /** When false, excluded from public directory. Missing means public for DOCTOR roles. */

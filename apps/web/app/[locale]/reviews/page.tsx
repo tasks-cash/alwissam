@@ -4,6 +4,7 @@ import { PageHero } from "../../../components/public/PageHero";
 import { PublicChrome } from "../../../components/public/PublicChrome";
 import { PublicSection } from "../../../components/public/PublicSection";
 import { ReviewsExplorer } from "../../../components/public/ReviewsExplorer";
+import { ReviewsSlider } from "../../../components/public/ReviewsSlider";
 import { isLocale, type Locale } from "../../../lib/i18n/config";
 import {
   buildPublicMetadata,
@@ -93,10 +94,24 @@ export default async function ReviewsPage({
         tone="mist"
       />
       <PublicSection>
+        {featuredRes.items.length > 0 ? (
+          <div style={{ marginBottom: "2rem" }}>
+            <ReviewsSlider
+              locale={locale}
+              reviews={featuredRes.items}
+              anonymousLabel={copy.reviewsAnonymous}
+              verifiedLabel={copy.reviewsVerifiedBadge}
+              readMoreLabel={copy.reviewsReadMore}
+              readLessLabel={copy.reviewsReadLess}
+              featuredTitle={copy.reviewsFeaturedTitle}
+              emptyLabel={copy.emptyReviews}
+            />
+          </div>
+        ) : null}
         <ReviewsExplorer
           locale={locale}
           initialItems={reviewsRes.items}
-          initialFeatured={featuredRes.items}
+          initialFeatured={[]}
           initialStats={reviewsRes.stats}
           initialPage={reviewsRes.page}
           initialTotal={reviewsRes.total}

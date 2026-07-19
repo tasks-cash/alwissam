@@ -65,3 +65,8 @@ export const verifyResendLimiter = new AuthRateLimiter(
   Number(process.env.AUTH_VERIFY_RESEND_MAX || 3),
   Number(process.env.AUTH_VERIFY_RESEND_WINDOW_MS || 10 * 60_000),
 );
+
+export const changePasswordLimiter = new AuthRateLimiter(
+  Number(process.env.AUTH_CHANGE_PASSWORD_MAX || 5),
+  Number(process.env.AUTH_CHANGE_PASSWORD_WINDOW_MS || 15 * 60_000),
+);

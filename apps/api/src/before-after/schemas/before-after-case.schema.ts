@@ -23,10 +23,10 @@ export class BeforeAfterCase {
   @Prop({ trim: true })
   descriptionFr?: string;
 
-  @Prop({ required: true })
+  @Prop({ default: "" })
   beforeImageUrl!: string;
 
-  @Prop({ required: true })
+  @Prop({ default: "" })
   afterImageUrl!: string;
 
   @Prop({ trim: true })

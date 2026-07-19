@@ -13,6 +13,7 @@ import {
   toInternationalAlgeriaPhone,
   toWhatsAppNumber,
 } from "./clinic-contact.util";
+import { DEFAULT_HOMEPAGE_SECTION_TITLES } from "./homepage-sections.defaults";
 import { UpsertSettingsDto } from "./dto/settings.dto";
 import { ClinicSetting } from "./schemas/clinic-setting.schema";
 import { ContactMessage } from "./schemas/contact-message.schema";
@@ -410,6 +411,138 @@ const DEFAULT_SPECIALTIES_PAGE = {
   secondaryCtaLabelAr: "احجز موعدًا",
   secondaryCtaRoute: "/book-appointment",
   published: true,
+};
+
+type HomepageSectionValue = {
+  badgeAr: string;
+  badgeEn: string;
+  badgeFr: string;
+  titleAr: string;
+  titleEn: string;
+  titleFr: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  descriptionFr: string;
+  image: string;
+  mediaAssetId?: string;
+  imageAltAr: string;
+  imageAltEn: string;
+  imageAltFr: string;
+  ctaLabelAr: string;
+  ctaLabelEn: string;
+  ctaLabelFr: string;
+  ctaRoute: string;
+  backgroundStyle: string;
+  published: boolean;
+  displayOrder: number;
+};
+
+const DEFAULT_HOMEPAGE_SECTIONS: {
+  specialties: HomepageSectionValue;
+  services: HomepageSectionValue;
+  doctors: HomepageSectionValue;
+  reviews: HomepageSectionValue;
+} = {
+  specialties: {
+    badgeAr: "تخصصاتنا",
+    badgeEn: "Our specialties",
+    badgeFr: "Nos spécialités",
+    titleAr: DEFAULT_HOMEPAGE_SECTION_TITLES.specialtiesAr,
+    titleEn: "Our Medical Specialties",
+    titleFr: "Nos spécialités médicales",
+    descriptionAr:
+      "مجموعة من تخصصات طب الأسنان لتوفير التشخيص والعلاج المناسب لكل حالة.",
+    descriptionEn:
+      "A range of dental specialties to support accurate diagnosis and appropriate care.",
+    descriptionFr:
+      "Un ensemble de spécialités dentaires pour un diagnostic et une prise en charge adaptés.",
+    image: DEFAULT_HOMEPAGE_SECTION_TITLES.specialtiesImage,
+    imageAltAr: "تخصصات طب الأسنان في عيادة الوسام",
+    imageAltEn: "Dental specialties at Al Wissam Clinic",
+    imageAltFr: "Spécialités dentaires à la Clinique El Wissam",
+    ctaLabelAr: "كل التخصصات",
+    ctaLabelEn: "All specialties",
+    ctaLabelFr: "Toutes les spécialités",
+    ctaRoute: "/specialties",
+    backgroundStyle: "mist",
+    published: true,
+    displayOrder: 1,
+  },
+  services: {
+    badgeAr: "خدماتنا",
+    badgeEn: "Our services",
+    badgeFr: "Nos services",
+    titleAr: DEFAULT_HOMEPAGE_SECTION_TITLES.servicesAr,
+    titleEn: "Dental Services",
+    titleFr: "Services dentaires",
+    descriptionAr:
+      "اختر الخدمة التي تحتاجها، ثم اطّلع على الأطباء والمواعيد المتاحة للحجز.",
+    descriptionEn:
+      "Choose the service you need, then review available doctors and appointment times.",
+    descriptionFr:
+      "Choisissez le service dont vous avez besoin, puis consultez les médecins disponibles.",
+    image: DEFAULT_HOMEPAGE_SECTION_TITLES.servicesImage,
+    imageAltAr: "خدمات طب الأسنان في عيادة الوسام",
+    imageAltEn: "Dental services at Al Wissam Clinic",
+    imageAltFr: "Services dentaires à la Clinique El Wissam",
+    ctaLabelAr: "كل الخدمات",
+    ctaLabelEn: "All services",
+    ctaLabelFr: "Tous les services",
+    ctaRoute: "/services",
+    backgroundStyle: "soft",
+    published: true,
+    displayOrder: 2,
+  },
+  doctors: {
+    badgeAr: "فريقنا الطبي",
+    badgeEn: "Our team",
+    badgeFr: "Notre équipe",
+    titleAr: "أطباؤنا",
+    titleEn: "Our Doctors",
+    titleFr: "Nos médecins",
+    descriptionAr:
+      "تعرف على أطباء العيادة المتاحين للحجز واختر الأنسب لحالتك.",
+    descriptionEn:
+      "Meet the clinic doctors available for booking and choose the right fit.",
+    descriptionFr:
+      "Découvrez les médecins disponibles à la réservation.",
+    image: "",
+    imageAltAr: "",
+    imageAltEn: "",
+    imageAltFr: "",
+    ctaLabelAr: "كل الأطباء",
+    ctaLabelEn: "All doctors",
+    ctaLabelFr: "Tous les médecins",
+    ctaRoute: "/doctors",
+    backgroundStyle: "white",
+    published: true,
+    displayOrder: 3,
+  },
+  reviews: {
+    badgeAr: "آراء المرضى",
+    badgeEn: "Patient reviews",
+    badgeFr: "Avis patients",
+    titleAr: "تقييمات المرضى",
+    titleEn: "Patient Reviews",
+    titleFr: "Avis des patients",
+    descriptionAr:
+      "تقييمات منشورة بعد مراجعة العيادة — بدون ادعاءات طبية غير موثقة.",
+    descriptionEn:
+      "Published reviews after clinic moderation — no unverified medical claims.",
+    descriptionFr:
+      "Avis publiés après validation clinique — sans allégations médicales non vérifiées.",
+    image: "",
+    imageAltAr: "",
+    imageAltEn: "",
+    imageAltFr: "",
+    ctaLabelAr: "كل التقييمات",
+    ctaLabelEn: "All reviews",
+    ctaLabelFr: "Tous les avis",
+    ctaRoute: "/reviews",
+    backgroundStyle: "mist",
+    published: true,
+    displayOrder: 4,
+  },
 };
 
 function isSafeMediaReference(value: string): boolean {
@@ -877,18 +1010,46 @@ export class SettingsService {
     return { ok: true, specialtiesPage };
   }
 
+  async getHomepageSections(admin = false) {
+    const stored = (await this.getKey("homepage_sections")) || {};
+    const mergeSection = (
+      key: keyof typeof DEFAULT_HOMEPAGE_SECTIONS,
+    ): HomepageSectionValue | null => {
+      const base = DEFAULT_HOMEPAGE_SECTIONS[key];
+      const next = {
+        ...base,
+        ...((stored as Record<string, unknown>)[key] as
+          | Partial<HomepageSectionValue>
+          | undefined),
+      };
+      if (!admin && next.published === false) return null;
+      return next;
+    };
+    return {
+      ok: true,
+      homepageSections: {
+        specialties: mergeSection("specialties"),
+        services: mergeSection("services"),
+        doctors: mergeSection("doctors"),
+        reviews: mergeSection("reviews"),
+      },
+    };
+  }
+
   /** Public unauthenticated payload. */
   async getPublicSite() {
-    const [info, pages, specialtiesPage] = await Promise.all([
+    const [info, pages, specialtiesPage, homepage] = await Promise.all([
       this.getClinicInfo(),
       this.getPublicPages(),
       this.getSpecialtiesPage(false),
+      this.getHomepageSections(false),
     ]);
     return {
       ok: true,
       clinic: this.toPublicClinic(info.clinicInfo as Record<string, unknown>),
       content: pages.publicPages,
       specialtiesPage: specialtiesPage.specialtiesPage,
+      homepageSections: homepage.homepageSections,
     };
   }
 
@@ -996,6 +1157,60 @@ export class SettingsService {
         ok: true,
         message: "تم حفظ واجهة صفحة التخصصات.",
         specialtiesPage: next,
+      };
+    }
+
+    if (dto.section === "homepage_sections") {
+      const prev = (await this.getKey("homepage_sections")) || {};
+      const incoming = dto.homepageSections || {};
+      const next: Record<string, HomepageSectionValue> = {
+        specialties: {
+          ...DEFAULT_HOMEPAGE_SECTIONS.specialties,
+          ...(prev as { specialties?: HomepageSectionValue }).specialties,
+          ...(incoming.specialties || {}),
+        },
+        services: {
+          ...DEFAULT_HOMEPAGE_SECTIONS.services,
+          ...(prev as { services?: HomepageSectionValue }).services,
+          ...(incoming.services || {}),
+        },
+        doctors: {
+          ...DEFAULT_HOMEPAGE_SECTIONS.doctors,
+          ...(prev as { doctors?: HomepageSectionValue }).doctors,
+          ...(incoming.doctors || {}),
+        },
+        reviews: {
+          ...DEFAULT_HOMEPAGE_SECTIONS.reviews,
+          ...(prev as { reviews?: HomepageSectionValue }).reviews,
+          ...(incoming.reviews || {}),
+        },
+      };
+      for (const section of Object.values(next)) {
+        if (
+          !isSafeMediaReference(String(section.image || "")) ||
+          !isSafeInternalRoute(String(section.ctaRoute || "/"))
+        ) {
+          throw new BadRequestException({
+            code: ErrorCodes.VALIDATION_ERROR,
+            message: "صورة أو رابط قسم الصفحة الرئيسية غير صالح.",
+          });
+        }
+      }
+      await this.settings.findOneAndUpdate(
+        { key: "homepage_sections" },
+        { $set: { value: next } },
+        { upsert: true, new: true },
+      );
+      await this.audit.write({
+        actor,
+        action: "HOMEPAGE_SECTIONS_UPDATED",
+        entityType: "ClinicSetting",
+        entityId: "homepage_sections",
+      });
+      return {
+        ok: true,
+        message: "تم حفظ أقسام الصفحة الرئيسية.",
+        homepageSections: next,
       };
     }
 

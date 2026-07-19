@@ -1113,6 +1113,7 @@ export class AppointmentsService {
     const dayOfWeek = dayKeys[day.getDay()];
 
     let windows: Array<{ startTime: string; endTime: string }> = [];
+    let slotMinutes = 60;
 
     if (input.doctorId) {
       if (!Types.ObjectId.isValid(input.doctorId)) {
@@ -1130,7 +1131,9 @@ export class AppointmentsService {
           "doctor.isActive": { $ne: false },
           roleCode: { $in: ["DOCTOR_GENERAL", "DOCTOR_SPECIALIST"] },
         })
-        .select("doctor.workingHours doctor.weeklySchedule")
+        .select(
+          "doctor.workingHours doctor.weeklySchedule doctor.appointmentDurationMinutes doctor.leaveDates doctor.unavailableDates",
+        )
         .lean();
       if (!doctor) {
         throw new NotFoundException({
@@ -1152,8 +1155,31 @@ export class AppointmentsService {
             endTime: string;
             isActive?: boolean;
           }>;
+          appointmentDurationMinutes?: number;
+          leaveDates?: string[];
+          unavailableDates?: string[];
         };
       };
+      const unavailable = new Set([
+        ...(doctorDoc.doctor?.leaveDates || []),
+        ...(doctorDoc.doctor?.unavailableDates || []),
+      ]);
+      if (unavailable.has(date)) {
+        return {
+          ok: true,
+          date,
+          times: [] as string[],
+          closed: true,
+          unavailable: true,
+        };
+      }
+      if (
+        typeof doctorDoc.doctor?.appointmentDurationMinutes === "number" &&
+        doctorDoc.doctor.appointmentDurationMinutes >= 15 &&
+        doctorDoc.doctor.appointmentDurationMinutes <= 180
+      ) {
+        slotMinutes = doctorDoc.doctor.appointmentDurationMinutes;
+      }
       const hours =
         (Array.isArray(doctorDoc.doctor?.workingHours) &&
         doctorDoc.doctor.workingHours.length
@@ -1189,7 +1215,6 @@ export class AppointmentsService {
       windows = [{ startTime: "08:00", endTime: "17:00" }];
     }
 
-    const slotMinutes = 60;
     const rawTimes = new Set<string>();
     for (const w of windows) {
       for (const t of this.expandTimeWindow(

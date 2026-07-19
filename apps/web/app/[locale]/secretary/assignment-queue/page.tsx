@@ -62,16 +62,15 @@ export default function SecretaryAssignmentQueuePage() {
   useEffect(() => {
     if (!user) return;
     void load();
-    void fetch("/api/admin/doctors", { credentials: "include" })
+    // Scheduling roster (not owner-only admin list) so SECRETARY can load doctors.
+    void fetch("/api/doctors", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { doctors: [] }))
       .then((d) =>
         setDoctors(
           (Array.isArray(d.doctors) ? d.doctors : [])
             .filter(
-              (doc: { roleCode?: string; fullName?: string; id?: string }) =>
-                doc.id &&
-                doc.fullName &&
-                !["OWNER", "SECRETARY"].includes(String(doc.roleCode || "")),
+              (doc: { fullName?: string; id?: string }) =>
+                Boolean(doc.id && doc.fullName),
             )
             .map((doc: { id: string; fullName: string }) => ({
               id: doc.id,

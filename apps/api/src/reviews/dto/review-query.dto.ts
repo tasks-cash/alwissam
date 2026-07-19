@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,

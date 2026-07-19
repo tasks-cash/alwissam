@@ -39,11 +39,12 @@ import {
 } from "./messaging-eligibility";
 import { ReviewsService } from "../reviews/reviews.service";
 import { PatientExperiencesService } from "../patient-experiences/patient-experiences.service";
+import { ContactChannelsService } from "../settings/contact-channels.service";
 
 const PATIENT_SAFE_APPT_FIELDS = true;
 
-const CLINIC_PHONE_TEL = "tel:+213663098208";
-const CLINIC_WHATSAPP = "https://wa.me/213663098208";
+const FALLBACK_PHONE_TEL = "tel:+213663098208";
+const FALLBACK_WHATSAPP = "https://wa.me/213663098208";
 
 @Injectable()
 export class PatientPortalService {
@@ -79,7 +80,25 @@ export class PatientPortalService {
     @InjectModel(AuditLog.name) private readonly auditLogs: Model<AuditLog>,
     private readonly reviews: ReviewsService,
     private readonly experiences: PatientExperiencesService,
+    private readonly contactChannels: ContactChannelsService,
   ) {}
+
+  private async resolveHelpClinicContact() {
+    try {
+      const { channels } = await this.contactChannels.listPublic("patient_help");
+      const phone = channels.find((channel) => channel.type === "phone");
+      const whatsapp = channels.find((channel) => channel.type === "whatsapp");
+      return {
+        phoneTel: phone?.publicUrl || FALLBACK_PHONE_TEL,
+        whatsappUrl: whatsapp?.publicUrl || FALLBACK_WHATSAPP,
+      };
+    } catch {
+      return {
+        phoneTel: FALLBACK_PHONE_TEL,
+        whatsappUrl: FALLBACK_WHATSAPP,
+      };
+    }
+  }
 
   /**
    * Resolve the Patient document owned by this auth user.
@@ -1213,6 +1232,8 @@ export class PatientPortalService {
       })
       .filter(Boolean);
 
+    const clinic = await this.resolveHelpClinicContact();
+
     return {
       ok: true,
       routes: {
@@ -1221,10 +1242,7 @@ export class PatientPortalService {
         contact: "/contact",
         messages: "/patient/messages",
       },
-      clinic: {
-        phoneTel: CLINIC_PHONE_TEL,
-        whatsappUrl: CLINIC_WHATSAPP,
-      },
+      clinic,
       supportAvailable: true,
       messagingDisclaimer:
         "هذه المحادثة مخصصة للاستفسارات المتعلقة بالزيارة المكتملة، وليست لتشخيص حالة جديدة أو لخدمات الطوارئ.",

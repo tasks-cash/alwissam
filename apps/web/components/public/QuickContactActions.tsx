@@ -1,11 +1,9 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import type { Locale } from "../../lib/i18n/config";
 import type { PublicCopy } from "../../lib/i18n/public-copy";
-import {
-  normalizeWhatsappNumber,
-  resolveClinicContact,
-  type ClinicContact,
-} from "../../lib/clinic-contact";
+import { resolveClinicContact, type ClinicContact } from "../../lib/clinic-contact";
 import { pickLocalized } from "../../lib/public-site";
 
 type Props = {
@@ -79,6 +77,18 @@ function IconMaps() {
 }
 
 export function QuickContactActions({ locale, copy, clinic }: Props) {
+  const [channels, setChannels] = useState<
+    Array<{
+      id: string;
+      type: string;
+      labelAr: string;
+      labelEn?: string;
+      labelFr?: string;
+      value: string;
+      publicUrl: string;
+    }>
+  >([]);
+  const [channelsFailed, setChannelsFailed] = useState(false);
   const clinicName = pickLocalized(
     locale,
     clinic?.nameAr || clinic?.clinicNameAr,
@@ -87,41 +97,57 @@ export function QuickContactActions({ locale, copy, clinic }: Props) {
     "",
   );
   const contact = resolveClinicContact(locale, clinic, clinicName);
-  const waNumber = normalizeWhatsappNumber(clinic);
-  const waHref = waNumber ? `https://wa.me/${waNumber}` : "";
   const mapsHref = contact.mapsLink || "";
 
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/public/contact-channels?placement=contact_page", {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("contact channels unavailable");
+        return response.json();
+      })
+      .then((data) => {
+        setChannels(Array.isArray(data.channels) ? data.channels : []);
+        setChannelsFailed(false);
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string }).name !== "AbortError") {
+          setChannelsFailed(true);
+        }
+      });
+    return () => controller.abort();
+  }, []);
+
   const actions = [
-    contact.phoneTel
-      ? {
-          key: "call",
-          href: contact.phoneTel,
-          label: copy.callClinic,
-          support: copy.quickCallSupport,
-          icon: <IconPhone />,
-          external: false,
-        }
-      : null,
-    waHref
-      ? {
-          key: "whatsapp",
-          href: waHref,
-          label: copy.whatsappCta,
-          support: copy.quickWaSupport,
-          icon: <IconWhatsApp />,
-          external: true,
-        }
-      : null,
-    contact.email
-      ? {
-          key: "email",
-          href: `mailto:${contact.email}`,
-          label: copy.sendEmailAction,
-          support: copy.quickEmailSupport,
-          icon: <IconEmail />,
-          external: false,
-        }
-      : null,
+    ...channels.map((channel) => ({
+      key: channel.id,
+      href: channel.publicUrl,
+      label:
+        locale === "en"
+          ? channel.labelEn || channel.labelAr
+          : locale === "fr"
+            ? channel.labelFr || channel.labelEn || channel.labelAr
+            : channel.labelAr,
+      support:
+        channel.type === "phone"
+          ? copy.quickCallSupport
+          : channel.type === "whatsapp"
+            ? copy.quickWaSupport
+            : channel.value,
+      icon:
+        channel.type === "phone" ? (
+          <IconPhone />
+        ) : channel.type === "whatsapp" ? (
+          <IconWhatsApp />
+        ) : channel.type === "email" ? (
+          <IconEmail />
+        ) : (
+          <IconMaps />
+        ),
+      external: /^https:/i.test(channel.publicUrl),
+    })),
     mapsHref
       ? {
           key: "maps",
@@ -141,6 +167,17 @@ export function QuickContactActions({ locale, copy, clinic }: Props) {
     external: boolean;
   }>;
 
+  if (channelsFailed && !mapsHref) {
+    return (
+      <p className="alert-error" role="status">
+        {locale === "ar"
+          ? "تعذر تحميل وسائل التواصل حاليًا."
+          : locale === "fr"
+            ? "Les moyens de contact sont indisponibles."
+            : "Contact channels are unavailable."}
+      </p>
+    );
+  }
   if (!actions.length) return null;
 
   return (

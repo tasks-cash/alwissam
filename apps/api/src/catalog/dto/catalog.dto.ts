@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsInt,
+  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -265,6 +266,10 @@ export class UpsertServiceDto {
 export class CatalogIdDto {
   @IsString()
   id!: string;
+
+  @IsOptional()
+  @IsMongoId()
+  replacementId?: string;
 }
 
 export class CatalogFeatureDto {
@@ -310,6 +315,18 @@ export class AdminListQueryDto {
   @IsOptional()
   @IsString()
   archived?: string;
+
+  @IsOptional()
+  @IsString()
+  active?: string;
+
+  @IsOptional()
+  @IsString()
+  public?: string;
+
+  @IsOptional()
+  @IsString()
+  featured?: string;
 
   @IsOptional()
   @Type(() => Number)

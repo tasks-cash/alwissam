@@ -63,12 +63,15 @@ export type Dictionary = {
   navPayments: string;
   navStaffChat: string;
   navSettings: string;
+  navDoctorAccountSettings: string;
   navPatientExperiences: string;
+  navHomepageSections: string;
   navBeforeAfter: string;
   navSpecialtiesAdmin: string;
   navServicesAdmin: string;
   navFaqsAdmin: string;
   navReviewsAdmin: string;
+  navContactChannels: string;
   navDoctorMessages: string;
   navAssignmentQueue: string;
   assignmentQueueDesc: string;
@@ -209,12 +212,15 @@ const ar: Dictionary = {
   navPayments: "المدفوعات",
   navStaffChat: "دردشة الطاقم",
   navSettings: "إعدادات العيادة",
+  navDoctorAccountSettings: "إعدادات حساب الطبيب",
   navPatientExperiences: "تجارب المرضى",
+  navHomepageSections: "أقسام الصفحة الرئيسية",
   navBeforeAfter: "قبل وبعد العلاج",
   navSpecialtiesAdmin: "إدارة التخصصات",
   navServicesAdmin: "إدارة الخدمات",
   navFaqsAdmin: "إدارة الأسئلة الشائعة",
   navReviewsAdmin: "إدارة التقييمات",
+  navContactChannels: "وسائل التواصل",
   navDoctorMessages: "رسائل المرضى",
   navAssignmentQueue: "تعيين الأطباء",
   assignmentQueueDesc: "طلبات المواعيد التي تحتاج تعيين طبيب من الاستقبال.",
@@ -356,12 +362,15 @@ const en: Dictionary = {
   navPayments: "Payments",
   navStaffChat: "Staff chat",
   navSettings: "Clinic settings",
+  navDoctorAccountSettings: "Doctor account settings",
   navPatientExperiences: "Patient experiences",
+  navHomepageSections: "Homepage sections",
   navBeforeAfter: "Before & after",
   navSpecialtiesAdmin: "Specialties",
   navServicesAdmin: "Services",
   navFaqsAdmin: "FAQs",
   navReviewsAdmin: "Reviews admin",
+  navContactChannels: "Contact channels",
   navDoctorMessages: "Patient messages",
   navAssignmentQueue: "Doctor assignment",
   assignmentQueueDesc: "Appointment requests awaiting reception doctor assignment.",
@@ -505,12 +514,15 @@ const fr: Dictionary = {
   navPayments: "Paiements",
   navStaffChat: "Chat d’équipe",
   navSettings: "Paramètres clinique",
+  navDoctorAccountSettings: "Paramètres du compte médecin",
   navPatientExperiences: "Expériences patients",
+  navHomepageSections: "Sections de l’accueil",
   navBeforeAfter: "Avant / après",
   navSpecialtiesAdmin: "Spécialités",
   navServicesAdmin: "Services",
   navFaqsAdmin: "FAQ",
   navReviewsAdmin: "Gestion des avis",
+  navContactChannels: "Moyens de contact",
   navDoctorMessages: "Messages patients",
   navAssignmentQueue: "Attribution médecin",
   assignmentQueueDesc: "Demandes de rendez-vous en attente d’attribution par l’accueil.",
